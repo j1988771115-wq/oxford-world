@@ -25,7 +25,7 @@
 - Database: PostgreSQL via **Supabase**（含 pgvector for RAG）
 - Auth: **Clerk**
 - Payment: **Stripe**（Phase 1 only；藍新金流 Phase 2）
-- AI: **OpenAI Assistants API**（內建向量存儲，不用 LangChain）
+- AI: **Vercel AI SDK + Claude**（預設 LLM）+ **Supabase pgvector**（RAG 向量搜尋）
 - CMS: **Sanity**
 - Video: **Mux**（Signed URLs, 60 min expiry）
 - Deploy: **Vercel**
