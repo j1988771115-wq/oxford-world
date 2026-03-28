@@ -24,7 +24,7 @@
 - Frontend/Backend: Next.js 14+ (App Router) + **Server Actions**
 - Database: PostgreSQL via **Supabase**（含 pgvector for RAG）
 - Auth: **Clerk**
-- Payment: **Stripe**（Phase 1 only；藍新金流 Phase 2）
+- Payment: **藍新金流 NewebPay**（信用卡、超商代碼、ATM、定期扣款）
 - AI: **Vercel AI SDK + Claude**（預設 LLM）+ **Supabase pgvector**（RAG 向量搜尋）
 - CMS: **Sanity**
 - Video: **Mux**（Signed URLs, 60 min expiry）
@@ -39,7 +39,7 @@
 2. 課程目錄 + 課程詳情頁
 3. 用戶註冊 / 登入（Clerk）
 4. 會員系統（Free + Pro: NT$499/月）
-5. 課程購買（Stripe 一次性）+ Pro 訂閱（Stripe Billing）
+5. 課程購買（藍新一次性）+ Pro 訂閱（藍新定期扣款）
 6. 付費課程影片播放（Mux Signed URLs）
 7. 內容展示頁（Sanity CMS + YouTube 嵌入）
 8. Email capture（Supabase）
@@ -70,7 +70,7 @@
 ## Phase 2（Wave 1-3 完成後）
 
 1. AI 工具訂閱層（Pro + AI: NT$999/月）
-2. 藍新金流整合（台灣在地支付）
+2. Stripe 整合（國際用戶支付，觸發：有明確國際需求）
 3. 進階會員功能（收藏）
 4. 電子報系統
 
