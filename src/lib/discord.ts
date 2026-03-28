@@ -20,6 +20,7 @@ async function discordFetch(path: string, options: RequestInit = {}) {
     return null;
   }
 
+  if (res.status === 204) return {};
   return res.json();
 }
 

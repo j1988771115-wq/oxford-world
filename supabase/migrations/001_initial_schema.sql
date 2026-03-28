@@ -92,7 +92,7 @@ create index idx_course_access_course on public.course_access(course_id);
 create index idx_orders_user on public.orders(user_id);
 create index idx_orders_merchant_no on public.orders(merchant_order_no);
 create index idx_learning_events_user_date on public.learning_events(user_id, event_date);
-create index idx_course_content_embedding on public.course_content using ivfflat (embedding vector_cosine_ops) with (lists = 100);
+create index idx_course_content_embedding on public.course_content using hnsw (embedding vector_cosine_ops);
 
 -- RLS Policies
 alter table public.profiles enable row level security;
@@ -128,6 +128,14 @@ create policy "Users can view own course access"
 create policy "Users can view own orders"
   on public.orders for select
   using (user_id in (
+    select id from public.profiles
+    where clerk_id = (current_setting('request.jwt.claims', true)::json->>'sub')
+  ));
+
+-- Orders: users can create their own
+create policy "Users can create own orders"
+  on public.orders for insert
+  with check (user_id in (
     select id from public.profiles
     where clerk_id = (current_setting('request.jwt.claims', true)::json->>'sub')
   ));
