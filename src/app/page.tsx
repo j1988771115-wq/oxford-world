@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Show, SignInButton } from "@clerk/nextjs";
+import { EmailCaptureForm } from "@/components/email-capture-form";
 
 export default function HomePage() {
   return (
@@ -122,19 +123,7 @@ export default function HomePage() {
           <p className="text-gray-600 mb-6">
             每週精選 AI 學習資源、社群精華、實用工具推薦。
           </p>
-          <form className="flex gap-2">
-            <input
-              type="email"
-              placeholder="your@email.com"
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            />
-            <button
-              type="submit"
-              className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition whitespace-nowrap"
-            >
-              訂閱
-            </button>
-          </form>
+          <EmailCaptureForm />
         </div>
       </section>
 
