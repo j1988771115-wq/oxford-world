@@ -66,6 +66,13 @@ export function createPaymentForm(params: PaymentParams) {
   };
 }
 
+export function verifyTradeSha(tradeInfo: string, receivedSha: string): boolean {
+  const expectedSha = sha256(
+    `HashKey=${HASH_KEY}&${tradeInfo}&HashIV=${HASH_IV}`
+  );
+  return expectedSha === receivedSha;
+}
+
 export function decryptTradeInfo(encryptedData: string): Record<string, unknown> {
   const decipher = crypto.createDecipheriv(
     "aes-256-cbc",

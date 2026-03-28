@@ -1,13 +1,24 @@
 import { streamText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
+import { auth } from "@clerk/nextjs/server";
 import { createAuthClient } from "@/lib/supabase/server";
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function POST(req: Request) {
+  // C4 fix: require authentication
+  const { userId } = await auth();
+  if (!userId) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   const { messages, courseId } = await req.json();
+
+  // C5 fix: validate courseId format
+  const validCourseId = courseId && UUID_REGEX.test(courseId) ? courseId : null;
 
   // Get relevant course content from pgvector
   const supabase = await createAuthClient();
-  const userMessage = messages[messages.length - 1]?.content || "";
 
   // Search for relevant content using pgvector similarity search
   const { data: relevantContent } = await supabase.rpc(
@@ -16,7 +27,7 @@ export async function POST(req: Request) {
       query_embedding: [], // TODO: generate embedding from userMessage
       match_threshold: 0.7,
       match_count: 5,
-      filter_course_id: courseId || null,
+      filter_course_id: validCourseId,
     }
   );
 

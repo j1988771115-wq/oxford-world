@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { createAuthClient } from "@/lib/supabase/server";
 import { createPaymentForm } from "@/lib/newebpay";
+import { PRO_MONTHLY_PRICE } from "@/lib/constants";
 import { randomUUID } from "crypto";
 
 export async function createCourseOrder(courseId: string) {
@@ -80,7 +81,7 @@ export async function createProSubscription() {
     merchant_order_no: orderId,
     user_id: profile.id,
     order_type: "subscription",
-    amount: 499,
+    amount: PRO_MONTHLY_PRICE,
     status: "pending",
   });
 
@@ -93,7 +94,7 @@ export async function createProSubscription() {
 
   const paymentForm = createPaymentForm({
     orderId,
-    amount: 499,
+    amount: PRO_MONTHLY_PRICE,
     description: "牛津視界 Pro 會員 - 月繳",
     email: profile.email,
     returnUrl: `${baseUrl}/dashboard?payment=success&type=pro`,
