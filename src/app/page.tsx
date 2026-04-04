@@ -3,9 +3,11 @@ import { Bolt, Mail, Tv, Users, Route, Bot, Users as Groups, ArrowRight, Star } 
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { EmailCaptureForm } from "@/components/email-capture-form";
-import { DEMO_COURSES } from "@/lib/ui-data";
+import { getCourses } from "@/lib/actions/courses";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const dbCourses = await getCourses();
+  const courses = dbCourses.length > 0 ? dbCourses : [];
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -149,7 +151,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {DEMO_COURSES.map((course) => (
+            {courses.map((course: any) => (
               <Link
                 key={course.id}
                 href={`/courses/${course.slug}`}
@@ -157,9 +159,9 @@ export default function HomePage() {
               >
                 <div className="aspect-video relative overflow-hidden">
                   <div className="absolute inset-0 signature-gradient opacity-20" />
-                  {course.thumbnail ? (
+                  {(course.thumbnail_url || course.thumbnail) ? (
                     <img
-                      src={course.thumbnail}
+                      src={course.thumbnail_url || course.thumbnail}
                       alt={course.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       referrerPolicy="no-referrer"

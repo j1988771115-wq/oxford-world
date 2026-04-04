@@ -9,9 +9,16 @@ export const metadata: Metadata = {
     "系統化的 AI 學習路徑、講師 AI 助手、同儕社群。不再當無頭蒼蠅，找到你的方向。",
   openGraph: {
     title: "牛津視界 Oxford Vision",
-    description: "AI 時代的學習夥伴",
+    description: "AI 時代的學習夥伴 — 系統化的 AI 學習路徑、講師 AI 助手、同儕社群",
     type: "website",
     locale: "zh_TW",
+    images: [{ url: "/og", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "牛津視界 Oxford Vision",
+    description: "AI 時代的學習夥伴",
+    images: ["/og"],
   },
 };
 
