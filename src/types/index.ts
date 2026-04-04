@@ -43,10 +43,10 @@ export interface Review {
 
 export interface UserProfile {
   id: string;
-  clerkId: string;
+  authId: string;
   email: string;
+  displayName?: string;
   tier: "free" | "pro";
-  stripeCustomerId?: string;
   discordId?: string;
   currentStreak: number;
   longestStreak: number;
