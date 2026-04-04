@@ -32,6 +32,13 @@ export default async function CourseDetailPage({ params }: Props) {
   const userId = user?.id ?? null;
   const hasAccess = userId ? await checkCourseAccess(course.id) : false;
 
+  // Get chapters
+  const { data: chapters } = await supabase
+    .from("course_chapters")
+    .select("*")
+    .eq("course_id", course.id)
+    .order("sort_order", { ascending: true });
+
   return (
     <main className="pt-12 pb-20 px-8 max-w-[1440px] mx-auto">
       {/* Breadcrumb */}
@@ -80,61 +87,53 @@ export default async function CourseDetailPage({ params }: Props) {
           <section>
             <div className="flex justify-between items-end mb-6">
               <h2 className="text-2xl font-bold text-on-surface">課程大綱</h2>
+              {chapters && chapters.length > 0 && (
+                <p className="text-sm text-on-surface-variant">
+                  共 {chapters.length} 個章節
+                </p>
+              )}
             </div>
-            <div className="space-y-4">
-              <div className="bg-surface-container-lowest rounded-xl deep-diffusion p-1 overflow-hidden">
-                <details className="group" open>
-                  <summary className="flex justify-between items-center p-5 cursor-pointer list-none">
+            <div className="space-y-3">
+              {chapters && chapters.length > 0 ? (
+                chapters.map((ch: any, i: number) => (
+                  <div
+                    key={ch.id}
+                    className="bg-surface-container-lowest rounded-xl deep-diffusion p-5 flex items-center justify-between"
+                  >
                     <div className="flex items-center gap-4">
                       <span className="w-8 h-8 rounded-lg bg-secondary-fixed text-on-secondary-fixed-variant flex items-center justify-center font-bold text-xs">
-                        01
+                        {String(i + 1).padStart(2, "0")}
                       </span>
-                      <h3 className="font-bold text-lg text-on-surface">
-                        模組 1：核心概論
-                      </h3>
-                    </div>
-                    <ChevronRight className="group-open:rotate-90 transition-transform text-on-surface-variant" />
-                  </summary>
-                  <div className="px-5 pb-5 pt-2 space-y-4 border-t border-surface-container">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-3">
-                        <PlayCircle
-                          size={18}
-                          className="text-secondary-container fill-current"
-                        />
-                        <span className="text-on-surface">課程介紹</span>
+                      <div>
+                        <h3 className="font-bold text-on-surface">
+                          {ch.title}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          {ch.is_free_preview && (
+                            <span className="text-[10px] font-bold text-secondary-container bg-secondary-fixed px-1.5 py-0.5 rounded">
+                              免費試看
+                            </span>
+                          )}
+                          {ch.duration_seconds && (
+                            <span className="text-xs text-on-surface-variant">
+                              {Math.floor(ch.duration_seconds / 60)}:{String(ch.duration_seconds % 60).padStart(2, "0")}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <span className="text-on-surface-variant">15:00</span>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-3">
-                        <PlayCircle
-                          size={18}
-                          className="text-on-surface-variant"
-                        />
-                        <span className="text-on-surface">基礎概念</span>
-                      </div>
-                      <span className="text-on-surface-variant">22:45</span>
-                    </div>
-                  </div>
-                </details>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {["進階應用", "實戰練習", "案例分析", "總結與評估"].map(
-                  (mod, i) => (
-                    <div
-                      key={i}
-                      className="bg-surface-container-low p-5 rounded-xl flex items-center justify-between opacity-80"
-                    >
-                      <span className="font-bold text-on-surface">
-                        模組 {i + 2}：{mod}
-                      </span>
+                    {ch.is_free_preview ? (
+                      <PlayCircle size={20} className="text-secondary-container fill-current" />
+                    ) : (
                       <Lock size={18} className="text-on-surface-variant" />
-                    </div>
-                  )
-                )}
-              </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="bg-surface-container-low p-8 rounded-xl text-center text-on-surface-variant">
+                  課程章節即將上線
+                </div>
+              )}
             </div>
           </section>
 
