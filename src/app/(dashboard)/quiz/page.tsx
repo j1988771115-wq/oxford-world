@@ -1,51 +1,72 @@
 "use client";
 
 import { useState } from "react";
-import { Navbar } from "@/components/layout/navbar";
+import {
+  Code,
+  Palette,
+  Megaphone,
+  BarChart3,
+  GraduationCap,
+  MoreHorizontal,
+  ArrowLeft,
+  ArrowRight,
+  Briefcase,
+  Sparkles,
+  Brain,
+  Clock,
+  Target,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface QuizStep {
   question: string;
-  options: { label: string; value: string }[];
+  icon: React.ElementType;
+  options: { id: string; icon: React.ElementType; label: string }[];
 }
 
 const QUIZ_STEPS: QuizStep[] = [
   {
-    question: "你目前的職業是什麼？",
+    question: "你目前的職業是？",
+    icon: Briefcase,
     options: [
-      { label: "軟體工程師", value: "engineer" },
-      { label: "設計師", value: "designer" },
-      { label: "行銷 / 業務", value: "marketing" },
-      { label: "管理層", value: "management" },
-      { label: "學生", value: "student" },
-      { label: "其他", value: "other" },
+      { id: "engineer", icon: Code, label: "工程師" },
+      { id: "designer", icon: Palette, label: "設計師" },
+      { id: "marketing", icon: Megaphone, label: "行銷" },
+      { id: "manager", icon: BarChart3, label: "管理層" },
+      { id: "student", icon: GraduationCap, label: "學生" },
+      { id: "other", icon: MoreHorizontal, label: "其他" },
     ],
   },
   {
     question: "你對 AI 的了解程度？",
+    icon: Brain,
     options: [
-      { label: "完全不了解", value: "none" },
-      { label: "聽過但沒用過", value: "heard" },
-      { label: "用過 ChatGPT 等工具", value: "used" },
-      { label: "有開發 AI 應用的經驗", value: "developer" },
+      { id: "none", icon: MoreHorizontal, label: "完全不了解" },
+      { id: "heard", icon: MoreHorizontal, label: "聽過但沒用過" },
+      { id: "used", icon: MoreHorizontal, label: "用過 ChatGPT 等工具" },
+      { id: "developer", icon: Code, label: "有開發 AI 應用的經驗" },
     ],
   },
   {
     question: "你最想學什麼？",
+    icon: Target,
     options: [
-      { label: "AI 工具實戰應用", value: "tools" },
-      { label: "程式語言（Python / Go）", value: "programming" },
-      { label: "AI 應用開發", value: "ai-dev" },
-      { label: "AI 商業策略", value: "strategy" },
-      { label: "區塊鏈 / Web3", value: "blockchain" },
+      { id: "tools", icon: MoreHorizontal, label: "AI 工具實戰應用" },
+      { id: "programming", icon: Code, label: "程式語言（Python / Go）" },
+      { id: "ai-dev", icon: MoreHorizontal, label: "AI 應用開發" },
+      { id: "strategy", icon: BarChart3, label: "AI 商業策略" },
+      { id: "blockchain", icon: MoreHorizontal, label: "區塊鏈 / Web3" },
     ],
   },
   {
     question: "你每週能投入多少時間學習？",
+    icon: Clock,
     options: [
-      { label: "1-2 小時", value: "1-2h" },
-      { label: "3-5 小時", value: "3-5h" },
-      { label: "5-10 小時", value: "5-10h" },
-      { label: "10+ 小時（全職學習）", value: "10h+" },
+      { id: "1-2h", icon: MoreHorizontal, label: "1-2 小時" },
+      { id: "3-5h", icon: MoreHorizontal, label: "3-5 小時" },
+      { id: "5-10h", icon: MoreHorizontal, label: "5-10 小時" },
+      { id: "10h+", icon: MoreHorizontal, label: "10+ 小時（全職學習）" },
     ],
   },
 ];
@@ -55,15 +76,18 @@ export default function QuizPage() {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [result, setResult] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const totalSteps = QUIZ_STEPS.length;
 
-  const handleAnswer = (value: string) => {
-    const newAnswers = { ...answers, [step]: value };
-    setAnswers(newAnswers);
+  const handleSelect = (value: string) => {
+    setAnswers({ ...answers, [step]: value });
+  };
 
-    if (step < QUIZ_STEPS.length - 1) {
+  const handleNext = () => {
+    if (!answers[step]) return;
+    if (step < totalSteps - 1) {
       setStep(step + 1);
     } else {
-      generatePath(newAnswers);
+      generatePath(answers);
     }
   };
 
@@ -95,7 +119,6 @@ AI 了解程度：${allAnswers[1]}
           ],
         }),
       });
-
       const text = await response.text();
       setResult(text);
     } catch {
@@ -104,106 +127,177 @@ AI 了解程度：${allAnswers[1]}
     setIsLoading(false);
   };
 
+  const currentStep = QUIZ_STEPS[step];
+
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
-      <main className="flex-1 bg-gradient-to-b from-blue-50 to-white flex items-center justify-center">
-        <div className="max-w-xl mx-auto px-4 py-12 w-full">
-          {!result && !isLoading && (
-            <>
-              {/* Progress */}
-              <div className="flex gap-1 mb-8">
-                {QUIZ_STEPS.map((_, i) => (
-                  <div
-                    key={i}
-                    className={`flex-1 h-1 rounded-full ${
-                      i <= step ? "bg-blue-600" : "bg-gray-200"
-                    }`}
-                  />
-                ))}
+    <main className="lg:pl-64 pt-8 pb-32 px-4 max-w-4xl mx-auto">
+      {!result && !isLoading && (
+        <>
+          {/* Header + Progress */}
+          <div className="mb-12">
+            <div className="flex justify-between items-end mb-4">
+              <div>
+                <h2 className="text-on-surface font-bold text-3xl tracking-tight mb-1">
+                  量身打造你的 AI 學習路徑
+                </h2>
+                <p className="text-on-surface-variant">
+                  只需 {totalSteps} 個步驟，我們將為你匹配最合適的教學資源。
+                </p>
               </div>
-
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                找到你的 AI 學習路徑
-              </h1>
-              <p className="text-gray-500 mb-8">
-                第 {step + 1} / {QUIZ_STEPS.length} 題
-              </p>
-
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                {QUIZ_STEPS[step].question}
-              </h2>
-
-              <div className="space-y-3">
-                {QUIZ_STEPS[step].options.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => handleAnswer(option.value)}
-                    className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition text-gray-700 hover:text-blue-700"
-                  >
-                    {option.label}
-                  </button>
-                ))}
+              <div className="text-right">
+                <span className="text-secondary font-bold text-sm tracking-widest uppercase">
+                  Step {step + 1}/{totalSteps}
+                </span>
               </div>
-
-              {step > 0 && (
-                <button
-                  onClick={() => setStep(step - 1)}
-                  className="mt-4 text-sm text-gray-500 hover:text-gray-700"
-                >
-                  ← 上一題
-                </button>
-              )}
-            </>
-          )}
-
-          {isLoading && (
-            <div className="text-center py-12">
-              <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900">
-                AI 正在分析你的答案...
-              </h2>
-              <p className="text-gray-500 mt-2">
-                根據你的背景和目標，生成個人化學習路線圖
-              </p>
             </div>
-          )}
+            <div className="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+              <div
+                className="h-full signature-gradient transition-all duration-500"
+                style={{ width: `${((step + 1) / totalSteps) * 100}%` }}
+              />
+            </div>
+          </div>
 
-          {result && (
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                🎯 你的專屬學習路徑
-              </h1>
-              <p className="text-gray-500 mb-6">
-                根據你的背景和目標，AI 為你規劃的學習路線
-              </p>
-              <div className="bg-white rounded-xl border border-gray-200 p-6 prose prose-gray max-w-none">
-                <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                  {result}
+          {/* Question */}
+          <section className="space-y-8">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center text-secondary-container">
+                <currentStep.icon size={24} className="fill-current" />
+              </div>
+              <h3 className="text-2xl font-bold text-on-surface">
+                Q{step + 1}: {currentStep.question}
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {currentStep.options.map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => handleSelect(opt.id)}
+                  className={cn(
+                    "group flex flex-col items-center p-6 bg-surface-container-lowest rounded-xl deep-diffusion transition-all border-2",
+                    answers[step] === opt.id
+                      ? "border-secondary-container ring-2 ring-secondary-container/20 ring-offset-2"
+                      : "border-transparent hover:ring-2 hover:ring-secondary-container/20"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "w-16 h-16 mb-4 rounded-full flex items-center justify-center transition-transform group-hover:scale-110",
+                      answers[step] === opt.id
+                        ? "bg-secondary-fixed text-on-secondary-fixed-variant"
+                        : "bg-surface-container-low text-secondary"
+                    )}
+                  >
+                    <opt.icon size={32} />
+                  </div>
+                  <span className="font-bold text-on-surface">{opt.label}</span>
+                  {answers[step] === opt.id && (
+                    <div className="mt-2 h-1.5 w-1.5 rounded-full bg-secondary-container" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* Navigation */}
+          <div className="mt-16 flex justify-between items-center">
+            <button
+              onClick={() => step > 0 && setStep(step - 1)}
+              className={cn(
+                "px-8 py-3 text-on-surface-variant font-bold hover:bg-surface-container-low rounded-xl transition-all flex items-center gap-2",
+                step === 0 && "invisible"
+              )}
+            >
+              <ArrowLeft size={20} />
+              上一步
+            </button>
+            <button
+              onClick={handleNext}
+              disabled={!answers[step]}
+              className="px-10 py-4 signature-gradient text-white font-bold rounded-xl deep-diffusion hover:opacity-90 transition-all flex items-center gap-2 group disabled:opacity-50"
+            >
+              {step < totalSteps - 1 ? "下一步" : "生成學習路徑"}
+              <ArrowRight
+                size={20}
+                className="group-hover:translate-x-1 transition-transform"
+              />
+            </button>
+          </div>
+
+          {/* Info Box */}
+          <div className="mt-24 relative">
+            <div className="absolute -top-6 -left-6 w-24 h-24 signature-gradient rounded-full opacity-10 blur-2xl" />
+            <div className="bg-primary-container p-8 rounded-3xl text-white relative overflow-hidden">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+                <div className="max-w-md">
+                  <h4 className="text-xl font-bold mb-2">
+                    為什麼我們需要這些資訊？
+                  </h4>
+                  <p className="text-on-primary-container text-sm leading-relaxed">
+                    牛津視界 Oxford Vision 的 AI
+                    會根據您的職業背景，自動篩選最相關的案例研究與實作工具。
+                  </p>
+                </div>
+                <div className="flex-shrink-0">
+                  <div className="bg-surface-container-lowest/10 backdrop-blur-md p-4 rounded-2xl border border-white/5">
+                    <Sparkles
+                      size={40}
+                      className="text-secondary-container fill-current"
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-4 mt-6">
-                <a
-                  href="/courses"
-                  className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition"
-                >
-                  瀏覽推薦課程
-                </a>
-                <button
-                  onClick={() => {
-                    setStep(0);
-                    setAnswers({});
-                    setResult(null);
-                  }}
-                  className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 transition"
-                >
-                  重新測驗
-                </button>
-              </div>
             </div>
-          )}
+          </div>
+        </>
+      )}
+
+      {isLoading && (
+        <div className="text-center py-24">
+          <div className="animate-spin w-10 h-10 border-3 border-secondary-container border-t-transparent rounded-full mx-auto mb-6" />
+          <h2 className="text-2xl font-bold text-on-surface mb-2">
+            AI 正在分析你的答案...
+          </h2>
+          <p className="text-on-surface-variant">
+            根據你的背景和目標，生成個人化學習路線圖
+          </p>
         </div>
-      </main>
-    </div>
+      )}
+
+      {result && (
+        <div className="pt-8">
+          <h1 className="text-3xl font-black text-on-surface mb-2 tracking-tight">
+            你的專屬學習路徑
+          </h1>
+          <p className="text-on-surface-variant mb-8">
+            根據你的背景和目標，AI 為你規劃的學習路線
+          </p>
+          <div className="bg-surface-container-lowest rounded-2xl deep-diffusion p-8">
+            <div className="whitespace-pre-wrap text-on-surface leading-relaxed">
+              {result}
+            </div>
+          </div>
+          <div className="flex gap-4 mt-8">
+            <Link
+              href="/courses"
+              className="signature-gradient text-white px-8 py-4 rounded-xl font-bold hover:opacity-90 transition"
+            >
+              瀏覽推薦課程
+            </Link>
+            <button
+              onClick={() => {
+                setStep(0);
+                setAnswers({});
+                setResult(null);
+              }}
+              className="border-2 border-outline-variant text-on-surface px-8 py-4 rounded-xl font-bold hover:bg-surface-container transition"
+            >
+              重新測驗
+            </button>
+          </div>
+        </div>
+      )}
+    </main>
   );
 }

@@ -1,19 +1,6 @@
 import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
-import { zhTW } from "@clerk/localizations";
-import { Noto_Sans_TC, JetBrains_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
-
-const notoSansTC = Noto_Sans_TC({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "牛津視界 Oxford Vision — AI 時代的學習夥伴",
@@ -33,13 +20,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider localization={zhTW}>
-      <html
-        lang="zh-TW"
-        className={`${notoSansTC.variable} ${jetbrainsMono.variable} h-full antialiased`}
-      >
-        <body className="min-h-full flex flex-col font-sans">{children}</body>
-      </html>
-    </ClerkProvider>
+    <html lang="zh-TW" className="h-full antialiased" suppressHydrationWarning>
+      <body className="min-h-full flex flex-col font-sans">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
+    </html>
   );
 }
