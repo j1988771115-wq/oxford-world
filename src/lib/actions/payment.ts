@@ -1,9 +1,7 @@
 "use server";
 
-import { createAuthClient } from "@/lib/supabase/server";
-import { createPaymentForm } from "@/lib/newebpay";
+import { createClient } from "@/lib/supabase/server";
 import { PRO_MONTHLY_PRICE } from "@/lib/constants";
-import { randomUUID } from "crypto";
 
 export async function createCourseOrder(_courseId: string) {
   // TODO: re-enable when auth is configured

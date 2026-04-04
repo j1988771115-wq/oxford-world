@@ -27,8 +27,10 @@ export default async function CourseDetailPage({ params }: Props) {
 
   if (!course) notFound();
 
-  const userId = null; // TODO: re-enable when auth is configured
-  const hasAccess = false;
+  const supabase = await (await import("@/lib/supabase/server")).createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id ?? null;
+  const hasAccess = userId ? await checkCourseAccess(course.id) : false;
 
   return (
     <main className="pt-12 pb-20 px-8 max-w-[1440px] mx-auto">

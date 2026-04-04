@@ -41,17 +41,82 @@ export async function getCourseBySlug(slug: string) {
   return data;
 }
 
-export async function checkCourseAccess(_courseId: string) {
-  // TODO: re-enable when auth is configured
-  return false;
+export async function checkCourseAccess(courseId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  // Get profile
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, tier")
+    .eq("auth_id", user.id)
+    .single();
+
+  if (!profile) return false;
+
+  // Pro members have access to all courses
+  if (profile.tier === "pro") return true;
+
+  // Check direct purchase
+  const { data: access } = await supabase
+    .from("course_access")
+    .select("id")
+    .eq("user_id", profile.id)
+    .eq("course_id", courseId)
+    .limit(1);
+
+  return access !== null && access.length > 0;
 }
 
 export async function getUserProfile() {
-  // TODO: re-enable when auth is configured
-  return null;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("auth_id", user.id)
+    .single();
+
+  if (error) {
+    console.error("Get profile error:", error);
+    return null;
+  }
+
+  return data;
 }
 
 export async function getUserCourses() {
-  // TODO: re-enable when auth is configured
-  return [];
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("auth_id", user.id)
+    .single();
+
+  if (!profile) return [];
+
+  const { data, error } = await supabase
+    .from("course_access")
+    .select("*, courses(*)")
+    .eq("user_id", profile.id)
+    .order("granted_at", { ascending: false });
+
+  if (error) {
+    console.error("Get user courses error:", error);
+    return [];
+  }
+
+  return data;
 }
