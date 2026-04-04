@@ -39,7 +39,9 @@ export default function HomePage() {
                 href="/quiz"
                 className="signature-gradient text-white px-8 py-5 rounded-xl font-bold text-lg shadow-xl shadow-secondary/20 hover:scale-[1.02] transition-transform text-center"
               >
-                免費測驗：找到你的學習路徑
+                免費測驗
+                <br />
+                找到你的學習路徑
               </Link>
               <Link
                 href="/courses"
@@ -155,13 +157,16 @@ export default function HomePage() {
               >
                 <div className="aspect-video relative overflow-hidden">
                   <div className="absolute inset-0 signature-gradient opacity-20" />
-                  {course.thumbnail && (
+                  {course.thumbnail ? (
                     <img
                       src={course.thumbnail}
                       alt={course.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       referrerPolicy="no-referrer"
+                      loading="lazy"
                     />
+                  ) : (
+                    <div className="w-full h-full signature-gradient opacity-40" />
                   )}
                   {course.level && (
                     <div className="absolute top-4 left-4 bg-primary-container text-[#00D2FF] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter">

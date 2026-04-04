@@ -74,7 +74,7 @@ export function Navbar() {
           <Link
             href="/dashboard"
             className={cn(
-              "px-6 py-2.5 rounded-full font-bold text-sm transition-all duration-200 active:scale-95",
+              "hidden sm:inline-block px-6 py-2.5 rounded-full font-bold text-sm transition-all duration-200 active:scale-95 whitespace-nowrap",
               isDark
                 ? "bg-[#00D2FF] text-[#0A192F] hover:opacity-90"
                 : "signature-gradient text-white hover:opacity-90"
