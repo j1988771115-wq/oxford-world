@@ -1,8 +1,19 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { Navbar } from "@/components/layout/navbar";
 import { useRef, useEffect, useState } from "react";
+import {
+  Bot,
+  User,
+  Send,
+  PlusCircle,
+  Lightbulb,
+  FileText,
+  TrendingUp,
+  MoreVertical,
+  School,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function AIAssistantPage() {
   const { messages, sendMessage, status } = useChat();
@@ -21,61 +32,127 @@ export default function AIAssistantPage() {
     setInput("");
   };
 
+  const handleSuggestion = (text: string) => {
+    sendMessage({ role: "user", parts: [{ type: "text", text }] });
+  };
+
   return (
-    <div className="flex flex-col h-screen">
-      <Navbar />
-      <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full">
-        <div className="px-4 py-4 border-b border-gray-200">
-          <h1 className="text-xl font-semibold text-gray-900">AI 學習助手</h1>
-          <p className="text-sm text-gray-500">
-            基於課程內容回答你的問題，隨時問，不用等
-          </p>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-          {messages.length === 0 && (
-            <div className="text-center py-12">
-              <div className="text-4xl mb-4">🤖</div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                有什麼想問的？
-              </h2>
-              <p className="text-gray-500 text-sm max-w-md mx-auto">
-                我是牛津視界的 AI
-                助手，基於講師的課程內容回答問題。試試看：
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center mt-4">
-                {[
-                  "Go 語言的 goroutine 是什麼？",
-                  "如何開始學 AI？",
-                  "推薦我適合的課程",
-                ].map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    onClick={() => setInput(suggestion)}
-                    className="text-sm px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
+    <main className="lg:pl-64 flex flex-col relative h-screen bg-surface">
+      {/* Top App Bar */}
+      <header className="sticky top-0 z-30 bg-surface-container-lowest/80 dark:bg-surface-container/80 backdrop-blur-xl shadow-sm">
+        <div className="flex justify-between items-center px-6 py-4 w-full max-w-7xl mx-auto">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center">
+                <Bot
+                  className="text-secondary-container fill-current"
+                  size={24}
+                />
               </div>
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-surface-container-lowest rounded-full" />
             </div>
-          )}
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold text-on-surface">
+                  AI 助教
+                </span>
+                <span className="px-2 py-0.5 bg-secondary-fixed text-on-secondary-fixed-variant text-[10px] font-bold rounded-full uppercase tracking-tighter">
+                  Powered by AI
+                </span>
+              </div>
+              <p className="text-xs text-on-surface-variant flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />{" "}
+                Online
+              </p>
+            </div>
+          </div>
 
-          {messages.map((message) => (
+          <div className="hidden md:flex items-center px-4 py-2 bg-surface-container rounded-full text-on-surface-variant text-sm font-medium">
+            <School size={16} className="mr-2" />
+            基於課程內容回答
+          </div>
+
+          <button className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors">
+            <MoreVertical size={20} />
+          </button>
+        </div>
+      </header>
+
+      {/* Chat Area */}
+      <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 max-w-5xl mx-auto w-full no-scrollbar">
+        {messages.length === 0 && (
+          <div className="text-center py-16">
+            <div className="w-20 h-20 rounded-2xl bg-primary-container flex items-center justify-center mx-auto mb-6">
+              <Bot
+                className="text-secondary-container fill-current"
+                size={40}
+              />
+            </div>
+            <h2 className="text-2xl font-bold text-on-surface mb-3">
+              有什麼想問的？
+            </h2>
+            <p className="text-on-surface-variant text-sm max-w-md mx-auto mb-8">
+              我是牛津視界的 AI
+              助手，基於講師的課程內容回答問題。試試以下問題：
+            </p>
+            <div className="flex flex-wrap gap-3 justify-center">
+              {[
+                "Go 語言的 goroutine 是什麼？",
+                "如何開始學 AI？",
+                "推薦我適合的課程",
+              ].map((suggestion) => (
+                <button
+                  key={suggestion}
+                  onClick={() => handleSuggestion(suggestion)}
+                  className="px-4 py-2 bg-secondary-fixed text-on-secondary-fixed-variant text-sm font-bold rounded-full hover:bg-secondary-fixed-dim transition-colors shadow-sm"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={cn(
+              "flex items-start gap-4",
+              message.role === "user" && "flex-row-reverse"
+            )}
+          >
             <div
-              key={message.id}
-              className={`flex ${
-                message.role === "user" ? "justify-end" : "justify-start"
-              }`}
+              className={cn(
+                "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+                message.role === "user"
+                  ? "bg-secondary"
+                  : "bg-primary-container"
+              )}
             >
+              {message.role === "user" ? (
+                <User className="text-white" size={20} />
+              ) : (
+                <Bot
+                  className="text-secondary-container fill-current"
+                  size={20}
+                />
+              )}
+            </div>
+            <div className="space-y-2 max-w-[85%]">
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                className={cn(
+                  "p-5 rounded-2xl shadow-sm",
                   message.role === "user"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-900"
-                }`}
+                    ? "signature-gradient text-white rounded-tr-none"
+                    : "bg-surface-container-lowest dark:bg-surface-container rounded-tl-none border border-outline-variant/10"
+                )}
               >
-                <p className="text-sm whitespace-pre-wrap">
+                <p
+                  className={cn(
+                    "leading-relaxed whitespace-pre-wrap text-sm",
+                    message.role !== "user" && "text-on-surface"
+                  )}
+                >
                   {message.parts
                     ?.filter((p) => p.type === "text")
                     .map((p) => (p as { type: "text"; text: string }).text)
@@ -83,42 +160,80 @@ export default function AIAssistantPage() {
                 </p>
               </div>
             </div>
-          ))}
+          </div>
+        ))}
 
-          {isLoading && messages[messages.length - 1]?.role === "user" && (
-            <div className="flex justify-start">
-              <div className="bg-gray-100 rounded-2xl px-4 py-3">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.1s]" />
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                </div>
+        {isLoading && messages[messages.length - 1]?.role === "user" && (
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center shrink-0">
+              <Bot
+                className="text-secondary-container fill-current"
+                size={20}
+              />
+            </div>
+            <div className="bg-surface-container-lowest dark:bg-surface-container rounded-2xl rounded-tl-none px-5 py-4 border border-outline-variant/10">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-on-surface-variant rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-on-surface-variant rounded-full animate-bounce [animation-delay:0.1s]" />
+                <div className="w-2 h-2 bg-on-surface-variant rounded-full animate-bounce [animation-delay:0.2s]" />
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          <div ref={messagesEndRef} />
-        </div>
+        <div ref={messagesEndRef} />
+      </div>
 
-        <div className="px-4 py-4 border-t border-gray-200">
-          <form onSubmit={handleSubmit} className="flex gap-2">
+      {/* Input Area */}
+      <footer className="p-4 md:p-6 bg-surface-container-lowest dark:bg-surface-container border-t border-outline-variant/15">
+        <div className="max-w-5xl mx-auto space-y-4">
+          <div className="flex flex-wrap gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {[
+              { icon: Lightbulb, text: "這個概念能再解釋一次嗎？" },
+              { icon: FileText, text: "給我一個實際案例" },
+              { icon: TrendingUp, text: "下一步該學什麼？" },
+            ].map((btn, i) => (
+              <button
+                key={i}
+                onClick={() => handleSuggestion(btn.text)}
+                className={cn(
+                  "whitespace-nowrap px-4 py-2 text-xs font-bold rounded-full flex items-center gap-2 transition-colors",
+                  i === 0
+                    ? "bg-secondary-fixed text-on-secondary-fixed-variant hover:bg-secondary-fixed-dim shadow-sm"
+                    : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest"
+                )}
+              >
+                <btn.icon size={14} />
+                {btn.text}
+              </button>
+            ))}
+          </div>
+
+          <form
+            onSubmit={handleSubmit}
+            className="relative flex items-center gap-2 bg-surface-container-low p-2 rounded-2xl shadow-inner focus-within:ring-2 ring-secondary-container/30 transition-all"
+          >
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="問我任何關於課程的問題..."
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+              className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-on-surface placeholder-on-surface-variant/50 text-sm py-3 px-2"
+              placeholder="輸入您的訊息..."
+              type="text"
               disabled={isLoading}
             />
             <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="bg-blue-600 text-white px-4 py-3 rounded-xl font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-12 h-12 signature-gradient text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-transform shrink-0 disabled:opacity-50"
             >
-              送出
+              <Send size={20} className="fill-current" />
             </button>
           </form>
+          <p className="text-center text-[10px] text-on-surface-variant/60">
+            AI 助教可能會產生不準確的內容，請確認重要資訊。
+          </p>
         </div>
-      </div>
-    </div>
+      </footer>
+    </main>
   );
 }

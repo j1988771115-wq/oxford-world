@@ -1,7 +1,6 @@
 "use server";
 
-import { createClient, createAuthClient } from "@/lib/supabase/server";
-import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/lib/supabase/server";
 
 export async function getCourses(category?: string) {
   const supabase = await createClient();
@@ -42,65 +41,17 @@ export async function getCourseBySlug(slug: string) {
   return data;
 }
 
-export async function checkCourseAccess(courseId: string) {
-  const { userId } = await auth();
-  if (!userId) return false;
-
-  const supabase = await createAuthClient();
-
-  // Check direct purchase
-  const { data: access } = await supabase
-    .from("course_access")
-    .select("id")
-    .eq("course_id", courseId)
-    .limit(1);
-
-  if (access && access.length > 0) return true;
-
-  // Check Pro subscription
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("tier")
-    .limit(1)
-    .single();
-
-  return profile?.tier === "pro";
+export async function checkCourseAccess(_courseId: string) {
+  // TODO: re-enable when auth is configured
+  return false;
 }
 
 export async function getUserProfile() {
-  const { userId } = await auth();
-  if (!userId) return null;
-
-  const supabase = await createAuthClient();
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .single();
-
-  if (error) {
-    console.error("Get profile error:", error);
-    return null;
-  }
-
-  return data;
+  // TODO: re-enable when auth is configured
+  return null;
 }
 
 export async function getUserCourses() {
-  const { userId } = await auth();
-  if (!userId) return [];
-
-  const supabase = await createAuthClient();
-
-  const { data, error } = await supabase
-    .from("course_access")
-    .select("*, courses(*)")
-    .order("granted_at", { ascending: false });
-
-  if (error) {
-    console.error("Get user courses error:", error);
-    return [];
-  }
-
-  return data;
+  // TODO: re-enable when auth is configured
+  return [];
 }

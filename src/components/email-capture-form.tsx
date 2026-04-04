@@ -4,7 +4,9 @@ import { useState } from "react";
 import { subscribeEmail } from "@/lib/actions/email";
 
 export function EmailCaptureForm() {
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -25,30 +27,32 @@ export function EmailCaptureForm() {
   if (status === "success") {
     return (
       <div className="text-center py-4">
-        <p className="text-green-600 font-medium">✓ 訂閱成功！每週會收到 AI 學習週報。</p>
+        <p className="text-emerald-400 font-bold">
+          訂閱成功！每週會收到 AI 學習週報。
+        </p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <input
         type="email"
         name="email"
         required
-        placeholder="your@email.com"
-        className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+        placeholder="輸入您的電子郵件"
+        className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all"
         disabled={status === "loading"}
       />
       <button
         type="submit"
         disabled={status === "loading"}
-        className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition whitespace-nowrap disabled:opacity-50"
+        className="signature-gradient text-white px-8 py-5 rounded-xl font-bold text-lg hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
       >
-        {status === "loading" ? "送出中..." : "訂閱"}
+        {status === "loading" ? "送出中..." : "立即訂閱"}
       </button>
       {status === "error" && (
-        <p className="text-red-500 text-sm mt-1">{errorMsg}</p>
+        <p className="text-red-400 text-sm">{errorMsg}</p>
       )}
     </form>
   );
