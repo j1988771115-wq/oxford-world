@@ -42,7 +42,11 @@ export async function signIn(formData: FormData) {
   }
 
   const redirectTo = formData.get("redirect") as string;
-  redirect(redirectTo || "/dashboard");
+  const safeRedirect =
+    redirectTo?.startsWith("/") && !redirectTo.startsWith("//")
+      ? redirectTo
+      : "/dashboard";
+  redirect(safeRedirect);
 }
 
 export async function signOut() {
@@ -51,27 +55,25 @@ export async function signOut() {
   redirect("/");
 }
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(): Promise<void> {
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  const { data } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback`,
     },
   });
-  if (error) return;
   if (data.url) redirect(data.url);
 }
 
-export async function signInWithGitHub() {
+export async function signInWithGitHub(): Promise<void> {
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  const { data } = await supabase.auth.signInWithOAuth({
     provider: "github",
     options: {
       redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback`,
     },
   });
-  if (error) return;
   if (data.url) redirect(data.url);
 }
 

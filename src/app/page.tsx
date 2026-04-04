@@ -151,7 +151,7 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {courses.map((course: any) => (
+            {courses.map((course: { id: string; slug: string; title: string; description: string; price: number; thumbnail_url?: string; thumbnail?: string; category?: string; level?: string; rating?: number }) => (
               <Link
                 key={course.id}
                 href={`/courses/${course.slug}`}
