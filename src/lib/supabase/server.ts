@@ -25,6 +25,3 @@ export async function createClient() {
     }
   );
 }
-
-// Alias — when auth is added back, this will use a user-scoped token
-export const createAuthClient = createClient;

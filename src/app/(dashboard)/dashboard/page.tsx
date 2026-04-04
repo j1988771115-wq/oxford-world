@@ -19,37 +19,18 @@ export const metadata = {
 };
 
 export default async function DashboardPage() {
-  // Demo data for presentation — replace with real auth data later
-  const profile = {
+  const realProfile = await getUserProfile() as { tier?: string; current_streak?: number; longest_streak?: number } | null;
+  const realCourses = await getUserCourses() as { course_id: string; courses: { title: string; instructor: string; slug: string } }[];
+
+  const profile = realProfile || {
     tier: "pro",
     current_streak: 7,
     longest_streak: 14,
   };
-  const courses = [
-    {
-      course_id: "1",
-      courses: {
-        title: "AI 驅動決策力：經理人的數據思維",
-        instructor: "久方武院長",
-        slug: "ai-decision-making",
-      },
-    },
-    {
-      course_id: "2",
-      courses: {
-        title: "提示工程大師班：精準溝通的藝術",
-        instructor: "林偉傑",
-        slug: "prompt-engineering-masterclass",
-      },
-    },
-    {
-      course_id: "3",
-      courses: {
-        title: "2026 AI 趨勢導讀：掌握技術奇點",
-        instructor: "張美玲",
-        slug: "ai-trends-2026",
-      },
-    },
+  const courses = realCourses.length > 0 ? realCourses : [
+    { course_id: "1", courses: { title: "AI 驅動決策力：經理人的數據思維", instructor: "久方武院長", slug: "ai-decision-making" } },
+    { course_id: "2", courses: { title: "提示工程大師班：精準溝通的藝術", instructor: "林偉傑", slug: "prompt-engineering-masterclass" } },
+    { course_id: "3", courses: { title: "2026 AI 趨勢導讀：掌握技術奇點", instructor: "張美玲", slug: "ai-trends-2026" } },
   ];
 
   return (
