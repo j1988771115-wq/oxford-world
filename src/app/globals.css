@@ -1,11 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: "Inter", "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
-  --font-headline: "Inter", "Noto Sans TC", sans-serif;
+  --font-sans: var(--font-inter), var(--font-noto), ui-sans-serif, system-ui, sans-serif;
+  --font-headline: var(--font-inter), var(--font-noto), sans-serif;
 
   /* Light palette */
   --color-primary-container: #0d1c32;
