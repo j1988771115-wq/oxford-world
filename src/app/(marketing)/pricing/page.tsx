@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import {
   Check,
   Sparkles,
@@ -7,12 +10,15 @@ import {
   ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
-
-export const metadata = {
-  title: "方案定價 — 牛津視界",
-};
+import { cn } from "@/lib/utils";
 
 export default function PricingPage() {
+  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
+
+  const proPrice = billing === "monthly" ? "NT$499" : "NT$4,990";
+  const proPeriod = billing === "monthly" ? "/ 月" : "/ 年";
+  const proAiPrice = billing === "monthly" ? "NT$999" : "NT$9,990";
+
   return (
     <main className="pt-12 pb-24 bg-surface">
       <div className="max-w-7xl mx-auto px-8 mb-16">
@@ -32,19 +38,37 @@ export default function PricingPage() {
       {/* Billing Toggle */}
       <div className="flex flex-col items-center mb-16">
         <div className="bg-surface-container-low p-1.5 rounded-full flex items-center gap-1">
-          <button className="px-8 py-2.5 rounded-full text-sm font-bold transition-all bg-surface-container-lowest shadow-sm text-on-surface">
+          <button
+            onClick={() => setBilling("monthly")}
+            className={cn(
+              "px-8 py-2.5 rounded-full text-sm font-bold transition-all",
+              billing === "monthly"
+                ? "bg-surface-container-lowest shadow-sm text-on-surface"
+                : "text-on-surface-variant hover:text-on-surface"
+            )}
+          >
             按月計費
           </button>
-          <button className="px-8 py-2.5 rounded-full text-sm font-bold transition-all text-on-surface-variant hover:text-on-surface">
+          <button
+            onClick={() => setBilling("yearly")}
+            className={cn(
+              "px-8 py-2.5 rounded-full text-sm font-bold transition-all",
+              billing === "yearly"
+                ? "bg-surface-container-lowest shadow-sm text-on-surface"
+                : "text-on-surface-variant hover:text-on-surface"
+            )}
+          >
             按年計費
           </button>
         </div>
-        <div className="mt-4 flex items-center gap-2 text-secondary font-bold text-sm">
-          <Sparkles size={18} className="fill-current" />
-          <span className="bg-secondary-fixed px-3 py-1 rounded-full text-on-secondary-fixed-variant text-xs">
-            年繳方案 省 17%
-          </span>
-        </div>
+        {billing === "yearly" && (
+          <div className="mt-4 flex items-center gap-2 text-secondary font-bold text-sm">
+            <Sparkles size={18} className="fill-current" />
+            <span className="bg-secondary-fixed px-3 py-1 rounded-full text-on-secondary-fixed-variant text-xs">
+              年繳方案 省 17%
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Pricing Grid */}
@@ -86,9 +110,9 @@ export default function PricingPage() {
             </h3>
             <div className="flex items-baseline gap-1">
               <span className="text-4xl font-black text-on-surface">
-                NT$499
+                {proPrice}
               </span>
-              <span className="text-on-surface-variant text-sm">/ 月</span>
+              <span className="text-on-surface-variant text-sm">{proPeriod}</span>
             </div>
           </div>
           <div className="space-y-5 mb-10 flex-grow">
@@ -103,9 +127,15 @@ export default function PricingPage() {
               )
             )}
           </div>
-          <button className="w-full py-4 rounded-xl font-bold text-white signature-gradient hover:opacity-90 transition-opacity active:scale-[0.98]">
+          <Link
+            href="/sign-up?plan=pro"
+            className="block w-full py-4 rounded-xl font-bold text-white signature-gradient hover:opacity-90 transition-opacity active:scale-[0.98] text-center"
+          >
             選擇 Pro
-          </button>
+          </Link>
+          <p className="text-center text-xs text-on-surface-variant mt-3">
+            金流系統開通後即可訂閱
+          </p>
         </div>
 
         {/* Pro + AI */}
@@ -121,9 +151,9 @@ export default function PricingPage() {
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-4xl font-black text-on-surface">
-                NT$999
+                {proAiPrice}
               </span>
-              <span className="text-on-surface-variant text-sm">/ 月</span>
+              <span className="text-on-surface-variant text-sm">{proPeriod}</span>
             </div>
           </div>
           <div className="space-y-5 mb-10 flex-grow">
