@@ -246,9 +246,12 @@ export default async function CourseDetailPage({ params }: Props) {
                       免費觀看
                     </Link>
                   ) : userId ? (
-                    <button className="w-full signature-gradient py-4 rounded-xl text-white font-extrabold text-lg deep-diffusion hover:brightness-110 transition-all active:scale-95">
+                    <Link
+                      href={`/pricing`}
+                      className="block w-full text-center signature-gradient py-4 rounded-xl text-white font-extrabold text-lg deep-diffusion hover:brightness-110 transition-all active:scale-95"
+                    >
                       立即購買
-                    </button>
+                    </Link>
                   ) : (
                     <Link
                       href="/sign-in"
