@@ -20,6 +20,8 @@ export default function SettingsPage() {
   const [user, setUser] = useState<{ email?: string; user_metadata?: { full_name?: string } } | null>(null);
   const [profile, setProfile] = useState<{ tier?: string; discord_id?: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [emailNotifs, setEmailNotifs] = useState(true);
+  const [discordNotifs, setDiscordNotifs] = useState(false);
 
   useEffect(() => {
     const supabase = createBrowserClient(
@@ -139,18 +141,36 @@ export default function SettingsPage() {
                 <div className="text-on-surface font-medium text-sm">Email 通知</div>
                 <div className="text-xs text-on-surface-variant">接收課程更新和學習提醒</div>
               </div>
-              <div className="w-12 h-7 bg-secondary rounded-full relative cursor-pointer">
-                <div className="absolute right-1 top-1 w-5 h-5 bg-white rounded-full shadow transition-all" />
-              </div>
+              <button
+                onClick={() => setEmailNotifs(!emailNotifs)}
+                className={cn(
+                  "w-12 h-7 rounded-full relative transition-colors",
+                  emailNotifs ? "bg-secondary" : "bg-surface-container-highest"
+                )}
+              >
+                <div className={cn(
+                  "absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-all",
+                  emailNotifs ? "right-1" : "left-1"
+                )} />
+              </button>
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-on-surface font-medium text-sm">Discord 通知</div>
                 <div className="text-xs text-on-surface-variant">在 Discord 接收學習進度通知</div>
               </div>
-              <div className="w-12 h-7 bg-surface-container-highest rounded-full relative cursor-pointer">
-                <div className="absolute left-1 top-1 w-5 h-5 bg-white rounded-full shadow transition-all" />
-              </div>
+              <button
+                onClick={() => setDiscordNotifs(!discordNotifs)}
+                className={cn(
+                  "w-12 h-7 rounded-full relative transition-colors",
+                  discordNotifs ? "bg-secondary" : "bg-surface-container-highest"
+                )}
+              >
+                <div className={cn(
+                  "absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-all",
+                  discordNotifs ? "right-1" : "left-1"
+                )} />
+              </button>
             </div>
           </div>
         </section>
