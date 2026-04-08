@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { getCourseBySlug, checkCourseAccess } from "@/lib/actions/courses";
-import { REVIEWS } from "@/lib/ui-data";
 import Link from "next/link";
 import {
   ChevronRight,
@@ -142,48 +141,11 @@ export default async function CourseDetailPage({ params }: Props) {
             <h2 className="text-2xl font-bold text-on-surface mb-8">
               學員評價
             </h2>
-            <div className="space-y-6">
-              {REVIEWS.map((review) => (
-                <div
-                  key={review.id}
-                  className="bg-surface-container-lowest p-8 rounded-xl deep-diffusion flex gap-6"
-                >
-                  <div className="shrink-0">
-                    <div
-                      className={cn(
-                        "w-12 h-12 rounded-full flex items-center justify-center font-bold text-on-surface",
-                        review.avatarColor
-                      )}
-                    >
-                      {review.author[0]}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex text-secondary-container">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            size={14}
-                            className={cn(
-                              i < review.rating
-                                ? "fill-current"
-                                : "text-surface-container-highest"
-                            )}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm text-on-surface-variant">
-                        {review.date}
-                      </span>
-                    </div>
-                    <p className="text-on-surface font-bold">{review.title}</p>
-                    <p className="text-on-surface-variant leading-relaxed">
-                      {review.content}
-                    </p>
-                  </div>
-                </div>
-              ))}
+            <div className="bg-surface-container-low p-8 rounded-xl text-center">
+              <Star size={32} className="text-on-surface-variant/30 mx-auto mb-3" />
+              <p className="text-on-surface-variant">
+                還沒有評價。成為第一個完課並留下評價的學員！
+              </p>
             </div>
           </section>
         </div>

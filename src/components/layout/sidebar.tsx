@@ -14,8 +14,8 @@ import {
 import { cn } from "@/lib/utils";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: Map, label: "My Path", path: "/path" },
+  { icon: LayoutDashboard, label: "學習總覽", path: "/dashboard" },
+  { icon: Map, label: "學習路徑", path: "/path" },
   { icon: Bot, label: "AI 助手", path: "/ai-assistant" },
   { icon: Trophy, label: "成就", path: "/achievements" },
   { icon: Settings, label: "設定", path: "/settings" },
