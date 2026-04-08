@@ -56,7 +56,7 @@ export default function PrivacyPage() {
         </ul>
 
         <h2>7. 聯繫我們</h2>
-        <p>如有任何隱私相關問題，請聯繫：privacy@oxfordvision.tw</p>
+        <p>如有任何隱私相關問題，請聯繫：privacy@oxford-vision.com</p>
       </div>
     </main>
   );
