@@ -86,6 +86,11 @@ export default function SignInPage() {
               {error}
             </div>
           )}
+          <div className="text-right">
+            <Link href="/forgot-password" className="text-secondary text-sm hover:underline">
+              忘記密碼？
+            </Link>
+          </div>
           <button
             type="submit"
             disabled={loading}
