@@ -64,7 +64,7 @@ export default function TermsPage() {
         <p>我們保留修改服務條款的權利。重大修改時會透過電子郵件通知您。</p>
 
         <h2>9. 聯繫我們</h2>
-        <p>如有任何問題，請聯繫：support@oxfordvision.tw</p>
+        <p>如有任何問題，請聯繫：support@oxford-vision.com</p>
       </div>
     </main>
   );
