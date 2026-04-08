@@ -1,7 +1,21 @@
 import type { Metadata } from "next";
+import { Inter, Noto_Sans_TC } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/components/auth-provider";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
+
+const notoSansTC = Noto_Sans_TC({
+  subsets: ["latin"],
+  weight: ["400", "500", "700", "900"],
+  display: "swap",
+  variable: "--font-noto",
+});
 
 export const metadata: Metadata = {
   title: "牛津視界 Oxford Vision — AI 時代的學習夥伴",
@@ -85,7 +99,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-TW" className="h-full antialiased" suppressHydrationWarning>
+    <html lang="zh-TW" className={`h-full antialiased ${inter.variable} ${notoSansTC.variable}`} suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"
