@@ -94,7 +94,10 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (profile?.discord_id) {
-        await addProRole(profile.discord_id);
+        const roleAdded = await addProRole(profile.discord_id);
+        if (!roleAdded) {
+          console.warn("Discord role not assigned for user:", updatedOrder.user_id);
+        }
       }
     }
 

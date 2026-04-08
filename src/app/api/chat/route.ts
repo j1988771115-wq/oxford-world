@@ -6,12 +6,24 @@ const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(req: Request) {
+  const supabase = await createClient();
+
+  // Auth check — block unauthenticated requests
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return new Response(JSON.stringify({ error: "請先登入" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   const { messages, courseId } = await req.json();
 
   const validCourseId =
     courseId && UUID_REGEX.test(courseId) ? courseId : null;
-
-  const supabase = await createClient();
 
   const { data: relevantContent } = await supabase.rpc(
     "match_course_content",
