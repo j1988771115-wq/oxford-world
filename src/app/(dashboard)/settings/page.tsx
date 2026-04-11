@@ -15,10 +15,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { AvatarUpload } from "@/components/avatar-upload";
 
 export default function SettingsPage() {
   const [user, setUser] = useState<{ email?: string; user_metadata?: { full_name?: string } } | null>(null);
-  const [profile, setProfile] = useState<{ tier?: string; discord_id?: string } | null>(null);
+  const [profile, setProfile] = useState<{ tier?: string; discord_id?: string; avatar_url?: string; display_name?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [discordNotifs, setDiscordNotifs] = useState(false);
@@ -76,6 +77,10 @@ export default function SettingsPage() {
             <h2 className="text-lg font-bold text-on-surface">個人資料</h2>
           </div>
           <div className="space-y-5">
+            <AvatarUpload
+              currentUrl={profile?.avatar_url}
+              displayName={profile?.display_name || user?.user_metadata?.full_name || "U"}
+            />
             <div>
               <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
                 姓名

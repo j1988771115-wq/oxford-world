@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.64",
+    "@ai-sdk/openai": "^3.0.52",
     "@ai-sdk/react": "^3.0.143",
     "@anthropic-ai/sdk": "^0.80.0",
     "@mux/mux-player-react": "^3.11.7",
@@ -19,7 +20,8 @@
     "lucide-react": "^1.7.0",
     "next": "16.2.1",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "resend": "^6.10.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

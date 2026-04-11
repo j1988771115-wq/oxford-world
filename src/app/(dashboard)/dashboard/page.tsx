@@ -1,269 +1,406 @@
-import { getUserProfile, getUserCourses } from "@/lib/actions/courses";
+import {
+  getUserProfile,
+  getUserCourses,
+  getActivityData,
+  getUserXP,
+  getCourses,
+} from "@/lib/actions/courses";
+import { getLatestInsight } from "@/lib/actions/insights";
+import { ActivityGrid } from "@/components/dashboard/activity-grid";
 import {
   BookOpen,
-  CheckCircle2,
-  Lock,
-  TrendingUp,
-  Flame,
-  Search,
-  Bell,
-  HelpCircle,
   ArrowRight,
   Sparkles,
+  Swords,
+  MessageSquare,
+  Trophy,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 
 export const metadata = {
   title: "我的學習 — 牛津視界",
 };
 
 export default async function DashboardPage() {
-  const profile = (await getUserProfile()) as {
-    tier?: string;
-    current_streak?: number;
-    longest_streak?: number;
-    display_name?: string;
-  } | null;
-  const courses = (await getUserCourses()) as {
-    course_id: string;
-    courses: { title: string; instructor: string; slug: string };
-  }[];
+  const [profile, courses, activityData, xpData, allCourses, latestInsight] = await Promise.all([
+    getUserProfile() as Promise<{
+      tier?: string;
+      current_streak?: number;
+      longest_streak?: number;
+      display_name?: string;
+      email?: string;
+      avatar_url?: string;
+    } | null>,
+    getUserCourses() as Promise<
+      {
+        course_id: string;
+        courses: { title: string; instructor: string; slug: string };
+      }[]
+    >,
+    getActivityData(),
+    getUserXP(),
+    getCourses() as Promise<{ id: string; slug: string; title: string; price: number; category?: string }[]>,
+    getLatestInsight(),
+  ]);
 
-  const streak = profile?.current_streak || 0;
   const displayName = profile?.display_name || "學員";
+  const initial = displayName[0] || "U";
 
   return (
-    <main className="lg:pl-64 pt-24 pb-12 px-8 max-w-[1600px] mx-auto">
+    <main className="lg:pl-64 min-h-screen bg-surface">
       {/* Top Bar */}
-      <div className="fixed top-0 right-0 w-[calc(100%-16rem)] z-40 bg-surface/80 backdrop-blur-xl justify-between items-center px-8 h-16 hidden lg:flex">
-        <h1 className="text-xl font-black text-on-surface">AI 學習學院</h1>
-        <div className="flex items-center gap-6">
-          <div className="relative w-64">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant"
-              size={18}
-            />
-            <input
-              className="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-lg text-sm focus:ring-2 focus:ring-secondary-container transition-all"
-              placeholder="搜尋課程、學習路徑..."
-              type="text"
-            />
-          </div>
-          <div className="flex items-center gap-4 text-on-surface-variant">
-            <button className="hover:text-secondary transition-colors">
-              <Bell size={20} />
-            </button>
-            <button className="hover:text-secondary transition-colors">
-              <HelpCircle size={20} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Welcome Banner */}
-      <section className="mb-10 relative overflow-hidden rounded-3xl p-8 flex items-center justify-between bg-surface-container-lowest deep-diffusion border border-outline-variant/10">
-        <div className="relative z-10">
-          <h2 className="text-3xl font-black text-on-surface tracking-tight mb-2">
-            {streak > 0 ? `歡迎回來，${displayName}！` : `嗨，${displayName}！`}
-          </h2>
-          <div className="flex items-center gap-3 flex-wrap">
-            {streak > 0 ? (
-              <span className="px-4 py-1.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-bold text-sm flex items-center gap-2">
-                <Flame size={18} className="fill-current" />
-                已連續學習 {streak} 天
+      <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10">
+        <div className="flex justify-between items-center px-6 lg:px-8 h-16 max-w-[1400px] mx-auto">
+          <h1 className="text-lg font-black text-on-surface">我的學習</h1>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/achievements"
+              className="flex items-center gap-2 bg-surface-container-low hover:bg-surface-container px-3 py-1.5 rounded-full transition-colors"
+            >
+              <Zap size={14} className="text-secondary" />
+              <span className="text-xs font-bold text-on-surface">
+                Lv.{xpData.level}
               </span>
-            ) : (
-              <span className="text-on-surface-variant font-medium">
-                開始你的第一堂課吧！
+              <span className="text-xs text-on-surface-variant">
+                {xpData.xp.toLocaleString()} XP
               </span>
-            )}
-            <span className="text-on-surface-variant font-medium">
-              {profile?.tier === "pro" ? "Pro 會員" : "免費會員"}
-              {profile?.tier !== "pro" && (
-                <Link
-                  href="/pricing"
-                  className="text-secondary ml-2 hover:underline"
-                >
-                  升級 Pro →
-                </Link>
+            </Link>
+            <Link href="/settings" className="shrink-0">
+              {profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={displayName}
+                  className="w-9 h-9 rounded-full object-cover shadow-md"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full signature-gradient flex items-center justify-center text-white font-bold text-sm shadow-md">
+                  {initial}
+                </div>
               )}
-            </span>
+            </Link>
           </div>
         </div>
-        <div className="hidden lg:block relative z-10">
-          <div className="flex gap-2">
-            <div className="w-1.5 h-12 bg-secondary-container/20 rounded-full" />
-            <div className="w-1.5 h-16 bg-secondary-container/40 rounded-full" />
-            <div className="w-1.5 h-20 signature-gradient rounded-full" />
-            <div className="w-1.5 h-14 bg-secondary-container/30 rounded-full" />
-          </div>
-        </div>
-      </section>
+      </header>
 
-      <div className="grid grid-cols-12 gap-8">
-        {/* Main Content */}
-        <div className="col-span-12 lg:col-span-8 space-y-10">
-          {/* My Courses */}
-          {courses.length > 0 ? (
-            <section className="bg-surface-container-low rounded-3xl p-8">
-              <h2 className="text-2xl font-bold font-headline mb-6 text-on-surface">
-                我的課程
-              </h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                {courses.map((access) => (
-                  <Link
-                    key={access.course_id}
-                    href={`/learn/${access.course_id}`}
-                    className="bg-surface-container-lowest p-6 rounded-xl deep-diffusion hover:-translate-y-1 transition-all group"
-                  >
-                    <h3 className="font-bold text-on-surface group-hover:text-secondary transition-colors">
-                      {access.courses?.title}
-                    </h3>
-                    <p className="text-sm text-on-surface-variant mt-1">
-                      {access.courses?.instructor}
-                    </p>
-                    <div className="mt-3 text-sm text-secondary font-bold">
-                      繼續學習 →
-                    </div>
-                  </Link>
-                ))}
+      <div className="px-6 lg:px-8 py-8 max-w-[1400px] mx-auto space-y-8">
+        {/* Welcome Banner */}
+        <section className="relative overflow-hidden rounded-2xl p-8 bg-primary-container">
+          <div className="absolute top-0 right-0 w-1/3 h-full overflow-hidden opacity-30 pointer-events-none">
+            <div className="absolute top-1/4 right-[-10%] w-[300px] h-[300px] bg-[#00d2ff] blur-[100px] rounded-full opacity-30" />
+          </div>
+
+          <div className="flex items-center gap-5 relative z-10">
+            {/* Avatar */}
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={displayName}
+                className="w-16 h-16 rounded-2xl object-cover shadow-lg shrink-0"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl signature-gradient flex items-center justify-center text-white font-black text-2xl shadow-lg shrink-0">
+                {initial}
               </div>
-            </section>
-          ) : (
-            <section className="bg-surface-container-low rounded-3xl p-8 text-center">
-              <BookOpen size={48} className="text-on-surface-variant/30 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-on-surface mb-2">還沒有課程</h2>
-              <p className="text-on-surface-variant mb-6">
-                探索我們的課程，開始你的 AI 學習之旅
-              </p>
+            )}
+
+            <div className="flex-1">
+              <h2 className="text-2xl font-black text-white tracking-tight">
+                嗨，{displayName}！
+              </h2>
+              <div className="flex items-center gap-3 mt-2 flex-wrap">
+                <span className="text-slate-400 text-sm">
+                  {profile?.tier === "pro" ? (
+                    <span className="text-[#00D2FF] font-bold">Pro 會員</span>
+                  ) : (
+                    <>
+                      免費會員
+                      <Link
+                        href="/pricing"
+                        className="text-[#00D2FF] ml-2 hover:underline font-bold"
+                      >
+                        升級 Pro →
+                      </Link>
+                    </>
+                  )}
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Stats Row */}
+        <div className="grid grid-cols-3 gap-4">
+          <Link
+            href="/achievements"
+            className="bg-surface-container-lowest rounded-xl p-5 deep-diffusion text-center hover:-translate-y-1 transition-all"
+          >
+            <div className="text-2xl font-black text-secondary">
+              Lv.{xpData.level}
+            </div>
+            <div className="text-xs text-on-surface-variant mt-1">
+              查看等級 →
+            </div>
+          </Link>
+          <div className="bg-surface-container-lowest rounded-xl p-5 deep-diffusion text-center">
+            <div className="text-2xl font-black text-on-surface">
+              {xpData.xp.toLocaleString()}
+            </div>
+            <div className="text-xs text-on-surface-variant mt-1">XP</div>
+          </div>
+          <div className="bg-surface-container-lowest rounded-xl p-5 deep-diffusion text-center">
+            <div className="text-2xl font-black text-on-surface">
+              {courses.length}
+            </div>
+            <div className="text-xs text-on-surface-variant mt-1">門課程</div>
+          </div>
+        </div>
+
+        {/* Activity Grid */}
+        <section className="bg-surface-container-lowest rounded-2xl p-6 deep-diffusion border border-outline-variant/10">
+          <h2 className="text-base font-bold text-on-surface mb-4">
+            學習足跡
+          </h2>
+          <ActivityGrid activityData={activityData} />
+        </section>
+
+        <div className="grid grid-cols-12 gap-6">
+          {/* Main Content */}
+          <div className="col-span-12 lg:col-span-8 space-y-6">
+            {/* My Courses */}
+            {courses.length > 0 ? (
+              <section className="bg-surface-container-lowest rounded-2xl p-6 deep-diffusion border border-outline-variant/10">
+                <h2 className="text-lg font-bold text-on-surface mb-4">
+                  我的課程
+                </h2>
+                <div className="grid md:grid-cols-2 gap-3">
+                  {courses.map((access) => (
+                    <Link
+                      key={access.course_id}
+                      href={`/learn/${access.course_id}`}
+                      className="bg-surface-container-low p-5 rounded-xl hover:bg-surface-container transition-colors group"
+                    >
+                      <h3 className="font-bold text-on-surface text-sm group-hover:text-secondary transition-colors">
+                        {access.courses?.title}
+                      </h3>
+                      <p className="text-xs text-on-surface-variant mt-1">
+                        {access.courses?.instructor}
+                      </p>
+                      <div className="mt-3 text-xs text-secondary font-bold">
+                        繼續學習 →
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <section className="bg-surface-container-lowest rounded-2xl p-8 deep-diffusion border border-outline-variant/10 text-center">
+                <BookOpen
+                  size={40}
+                  className="text-on-surface-variant/30 mx-auto mb-3"
+                />
+                <h2 className="text-lg font-bold text-on-surface mb-2">
+                  還沒有課程
+                </h2>
+                <p className="text-on-surface-variant text-sm mb-5">
+                  探索課程，開始你的 AI 學習之旅
+                </p>
+                <Link
+                  href="/courses"
+                  className="inline-flex items-center gap-2 signature-gradient text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition"
+                >
+                  瀏覽課程 <ArrowRight size={16} />
+                </Link>
+              </section>
+            )}
+
+            {/* Quick Start Guide */}
+            {courses.length === 0 && (
+              <section className="bg-surface-container-lowest rounded-2xl p-6 deep-diffusion border border-outline-variant/10">
+                <h2 className="text-lg font-bold text-on-surface mb-4 flex items-center gap-2">
+                  <Sparkles className="text-secondary" size={20} />
+                  開始指南
+                </h2>
+                <div className="space-y-3">
+                  {[
+                    {
+                      step: "01",
+                      title: "完成學習路徑測驗",
+                      desc: "AI 根據你的背景推薦課程",
+                      href: "/quiz",
+                    },
+                    {
+                      step: "02",
+                      title: "瀏覽課程",
+                      desc: "免費試看，或升級 Pro 解鎖全部",
+                      href: "/courses",
+                    },
+                    {
+                      step: "03",
+                      title: "加入 Discord 社群",
+                      desc: "與同儕交流",
+                      href: "https://discord.gg/oxfordvision",
+                    },
+                  ].map((item) => (
+                    <Link
+                      key={item.step}
+                      href={item.href}
+                      className="flex items-center gap-4 bg-surface-container-low p-4 rounded-xl hover:bg-surface-container transition-colors"
+                    >
+                      <span className="w-9 h-9 rounded-lg bg-secondary-fixed text-on-secondary-fixed-variant flex items-center justify-center font-bold text-xs shrink-0">
+                        {item.step}
+                      </span>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-on-surface text-sm">
+                          {item.title}
+                        </h3>
+                        <p className="text-xs text-on-surface-variant">
+                          {item.desc}
+                        </p>
+                      </div>
+                      <ArrowRight
+                        size={16}
+                        className="text-on-surface-variant shrink-0"
+                      />
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Recommended Courses */}
+            {allCourses.length > 0 && (
+              <section className="bg-surface-container-lowest rounded-2xl p-6 deep-diffusion border border-outline-variant/10">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-on-surface flex items-center gap-2">
+                    <Sparkles size={18} className="text-secondary" />
+                    推薦課程
+                  </h2>
+                  <Link href="/courses" className="text-xs text-secondary font-bold hover:underline">
+                    全部課程 →
+                  </Link>
+                </div>
+                <div className="space-y-3">
+                  {allCourses.slice(0, 3).map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/courses/${c.slug}`}
+                      className="flex items-center gap-4 bg-surface-container-low p-4 rounded-xl hover:bg-surface-container transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-lg signature-gradient flex items-center justify-center shrink-0">
+                        <BookOpen size={18} className="text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-on-surface text-sm truncate">{c.title}</h3>
+                        <p className="text-xs text-on-surface-variant">{c.category || "課程"}</p>
+                      </div>
+                      <span className="text-sm font-bold text-on-surface shrink-0">
+                        {c.price === 0 ? "免費" : `NT$${c.price.toLocaleString()}`}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Latest Insight */}
+            {latestInsight && (
               <Link
-                href="/courses"
-                className="inline-flex items-center gap-2 signature-gradient text-white px-6 py-3 rounded-xl font-bold hover:opacity-90 transition"
+                href={`/insights/${latestInsight.slug}`}
+                className="block bg-surface-container-lowest rounded-2xl p-6 deep-diffusion border border-outline-variant/10 hover:-translate-y-0.5 transition-all"
               >
-                瀏覽課程 <ArrowRight size={18} />
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap size={14} className="text-secondary" />
+                  <span className="text-xs font-bold text-secondary">最新 Insight</span>
+                  {latestInsight.is_pro && (
+                    <span className="text-[10px] font-bold text-secondary bg-secondary/10 px-2 py-0.5 rounded-full">PRO</span>
+                  )}
+                </div>
+                <h3 className="font-bold text-on-surface text-sm mb-1">{latestInsight.title}</h3>
+                <p className="text-xs text-on-surface-variant line-clamp-2">{latestInsight.summary}</p>
               </Link>
-            </section>
-          )}
-
-          {/* Quick Start Guide — show when no courses */}
-          {courses.length === 0 && (
-            <section className="bg-surface-container-low rounded-3xl p-8">
-              <h2 className="text-2xl font-bold font-headline mb-6 text-on-surface flex items-center gap-3">
-                <Sparkles className="text-secondary" size={24} />
-                開始指南
-              </h2>
-              <div className="space-y-4">
-                {[
-                  { step: "01", title: "完成學習路徑測驗", desc: "AI 會根據你的背景推薦最適合的課程", href: "/quiz", done: false },
-                  { step: "02", title: "瀏覽並選擇課程", desc: "從免費課程開始，或升級 Pro 解鎖全部", href: "/courses", done: false },
-                  { step: "03", title: "加入 Discord 社群", desc: "與同儕交流，獲得學習夥伴", href: "https://discord.gg/oxfordvision", done: false },
-                ].map((item) => (
-                  <Link
-                    key={item.step}
-                    href={item.href}
-                    className="flex items-center gap-4 bg-surface-container-lowest p-5 rounded-xl deep-diffusion hover:-translate-y-0.5 transition-all"
-                  >
-                    <span className="w-10 h-10 rounded-lg bg-secondary-fixed text-on-secondary-fixed-variant flex items-center justify-center font-bold text-sm shrink-0">
-                      {item.step}
-                    </span>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-on-surface">{item.title}</h3>
-                      <p className="text-sm text-on-surface-variant">{item.desc}</p>
-                    </div>
-                    <ArrowRight size={18} className="text-on-surface-variant shrink-0" />
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-
-        {/* Sidebar Widgets */}
-        <div className="col-span-12 lg:col-span-4 space-y-8">
-          {/* Progress Widget */}
-          <div className="bg-surface-container-lowest p-8 rounded-3xl deep-diffusion text-center">
-            <h4 className="text-base font-bold mb-6 text-on-surface">
-              學習統計
-            </h4>
-            <div className="relative w-40 h-40 mx-auto mb-6">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle
-                  className="text-surface-container"
-                  cx="80"
-                  cy="80"
-                  fill="transparent"
-                  r="70"
-                  stroke="currentColor"
-                  strokeWidth="12"
-                />
-                <circle
-                  className="text-secondary"
-                  cx="80"
-                  cy="80"
-                  fill="transparent"
-                  r="70"
-                  stroke="currentColor"
-                  strokeDasharray="440"
-                  strokeDashoffset={440 - (courses.length / Math.max(courses.length, 5)) * 440}
-                  strokeWidth="12"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl font-black text-on-surface">
-                  {courses.length}
-                </span>
-                <span className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
-                  門課程
-                </span>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-black text-on-surface">{streak}</div>
-                <div className="text-xs text-on-surface-variant">天連勝</div>
-              </div>
-              <div>
-                <div className="text-2xl font-black text-on-surface">{profile?.longest_streak || 0}</div>
-                <div className="text-xs text-on-surface-variant">最長連勝</div>
-              </div>
-            </div>
+            )}
           </div>
 
-          {/* Quick Actions */}
-          <div className="space-y-3">
-            <Link
-              href="/ai-assistant"
-              className="flex items-center gap-3 bg-surface-container-lowest p-4 rounded-xl deep-diffusion hover:-translate-y-1 transition-all"
-            >
-              <div className="w-10 h-10 rounded-lg signature-gradient flex items-center justify-center">
-                <span className="text-white text-lg">AI</span>
-              </div>
-              <div>
-                <div className="font-bold text-on-surface text-sm">
-                  AI 助手
+          {/* Sidebar */}
+          <div className="col-span-12 lg:col-span-4 space-y-6">
+            {/* Eyesy AI CTA */}
+            <div className="bg-primary-container rounded-2xl p-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#00d2ff] blur-[80px] rounded-full opacity-15 pointer-events-none" />
+              <div className="relative z-10">
+                <div className="w-12 h-12 rounded-xl signature-gradient flex items-center justify-center text-white font-bold text-lg shadow-lg mb-4">
+                  E
                 </div>
-                <div className="text-xs text-on-surface-variant">
-                  問任何課程相關問題
-                </div>
+                <h4 className="text-base font-black text-white mb-1">
+                  問 Eyesy 任何問題
+                </h4>
+                <p className="text-slate-400 text-xs mb-4 leading-relaxed">
+                  課程、方案、學習方向 — 都能幫你
+                </p>
+                <Link
+                  href="/ai-assistant"
+                  className="block w-full py-2.5 rounded-xl font-bold text-sm text-center signature-gradient text-white shadow-lg hover:brightness-110 transition-all mb-2"
+                >
+                  開始對話
+                </Link>
+                <Link
+                  href="/quiz"
+                  className="block w-full py-2.5 rounded-xl font-bold text-sm text-center bg-white/10 text-white hover:bg-white/15 transition-colors"
+                >
+                  AI 學習路徑測驗
+                </Link>
               </div>
-            </Link>
-            <Link
-              href="/quiz"
-              className="flex items-center gap-3 bg-surface-container-lowest p-4 rounded-xl deep-diffusion hover:-translate-y-1 transition-all"
-            >
-              <div className="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center">
-                <span className="text-secondary-container text-lg">Q</span>
-              </div>
-              <div>
-                <div className="font-bold text-on-surface text-sm">
-                  學習路徑測驗
-                </div>
-                <div className="text-xs text-on-surface-variant">
-                  找到最適合你的方向
-                </div>
-              </div>
-            </Link>
+            </div>
+
+            {/* Quick Links */}
+            <div className="space-y-2">
+              {[
+                {
+                  href: "/dungeons",
+                  icon: Swords,
+                  label: "副本",
+                  desc: "講座、工作坊、大師圓桌",
+                  color: "text-purple-400",
+                  bg: "bg-purple-500/15",
+                },
+                {
+                  href: "/community",
+                  icon: MessageSquare,
+                  label: "討論區",
+                  desc: "與同學交流 +5 XP",
+                  color: "text-blue-400",
+                  bg: "bg-blue-500/15",
+                },
+                {
+                  href: "/achievements",
+                  icon: Trophy,
+                  label: "成就 & 通行證",
+                  desc: "查看等級與獎勵",
+                  color: "text-amber-400",
+                  bg: "bg-amber-500/15",
+                },
+              ].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-3 bg-surface-container-lowest p-4 rounded-xl deep-diffusion hover:-translate-y-0.5 transition-all border border-outline-variant/10"
+                >
+                  <div
+                    className={`w-10 h-10 rounded-lg ${item.bg} flex items-center justify-center`}
+                  >
+                    <item.icon size={18} className={item.color} />
+                  </div>
+                  <div>
+                    <div className="font-bold text-on-surface text-sm">
+                      {item.label}
+                    </div>
+                    <div className="text-xs text-on-surface-variant">
+                      {item.desc}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </div>

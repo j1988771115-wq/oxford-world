@@ -8,6 +8,10 @@ import {
   RefreshCw,
   Users,
   ChevronDown,
+  Bot,
+  BookOpen,
+  TrendingUp,
+  Crown,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -15,9 +19,8 @@ import { cn } from "@/lib/utils";
 export default function PricingPage() {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
 
-  const proPrice = billing === "monthly" ? "NT$499" : "NT$4,990";
+  const proPrice = billing === "monthly" ? "NT$999" : "NT$9,990";
   const proPeriod = billing === "monthly" ? "/ 月" : "/ 年";
-  const proAiPrice = billing === "monthly" ? "NT$999" : "NT$9,990";
 
   return (
     <main className="pt-12 pb-24 bg-surface">
@@ -29,8 +32,8 @@ export default function PricingPage() {
             學習方案
           </h1>
           <p className="text-xl text-on-surface-variant leading-relaxed">
-            加入領先者的行列，開啟你的 AI
-            學習旅程。我們提供從入門到專家級的完整路徑，助你在數位轉型浪潮中脫穎而出。
+            從免費試看到 Pro
+            全面解鎖，再到大師級深度課程。找到最適合你的學習節奏。
           </p>
         </div>
       </div>
@@ -77,14 +80,18 @@ export default function PricingPage() {
         <div className="bg-surface-container-lowest rounded-xl p-10 flex flex-col h-full border border-transparent hover:border-surface-container-high transition-all deep-diffusion">
           <div className="mb-8">
             <h3 className="text-on-surface-variant font-bold text-sm uppercase tracking-widest mb-2">
-              Basic
+              免費
             </h3>
             <div className="flex items-baseline gap-1">
               <span className="text-4xl font-black text-on-surface">NT$0</span>
             </div>
           </div>
           <div className="space-y-5 mb-10 flex-grow">
-            {["免費課程試看", "公開文章", "Email 訂閱"].map((item, i) => (
+            {[
+              "免費課程試看",
+              "AI 工具分享文章",
+              "Email 訂閱週報",
+            ].map((item, i) => (
               <div key={i} className="flex items-center gap-3">
                 <Check size={18} className="text-green-500 font-bold" />
                 <span className="text-on-surface text-sm">{item}</span>
@@ -112,70 +119,81 @@ export default function PricingPage() {
               <span className="text-4xl font-black text-on-surface">
                 {proPrice}
               </span>
-              <span className="text-on-surface-variant text-sm">{proPeriod}</span>
+              <span className="text-on-surface-variant text-sm">
+                {proPeriod}
+              </span>
             </div>
+            <p className="text-secondary text-xs font-bold mt-2">
+              前 7 天免費試用
+            </p>
           </div>
           <div className="space-y-5 mb-10 flex-grow">
-            {["所有課程", "付費報告", "Discord 社群", "學習排行榜"].map(
-              (item, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <Check size={18} className="text-green-500 font-bold" />
-                  <span className="text-on-surface text-sm font-medium">
-                    {item}
-                  </span>
-                </div>
-              )
-            )}
+            {[
+              { icon: BookOpen, text: "Vibe Coding 全系列小課" },
+              { icon: TrendingUp, text: "市場分析報告" },
+              { icon: Bot, text: "Eyesy AI 助教" },
+              { icon: Sparkles, text: "AI 個人化學習路徑" },
+              { icon: Users, text: "Discord 社群" },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <item.icon
+                  size={18}
+                  className={i < 3 ? "text-secondary" : "text-green-500"}
+                />
+                <span className="text-on-surface text-sm font-medium">
+                  {item.text}
+                </span>
+              </div>
+            ))}
           </div>
           <Link
             href="/sign-up?plan=pro"
             className="block w-full py-4 rounded-xl font-bold text-white signature-gradient hover:opacity-90 transition-opacity active:scale-[0.98] text-center"
           >
-            選擇 Pro
+            免費試用 7 天
           </Link>
           <p className="text-center text-xs text-on-surface-variant mt-3">
-            金流系統開通後即可訂閱
+            試用期間可隨時取消，不收任何費用
           </p>
         </div>
 
-        {/* Pro + AI */}
+        {/* 大師課 */}
         <div className="bg-surface-container-lowest rounded-xl p-10 flex flex-col h-full border border-transparent hover:border-surface-container-high transition-all deep-diffusion">
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-2">
               <h3 className="text-on-surface-variant font-bold text-sm uppercase tracking-widest">
-                Pro + AI
+                大師課
               </h3>
-              <span className="bg-surface-container-highest text-on-surface-variant text-[10px] px-2 py-0.5 rounded font-bold">
-                COMING SOON
-              </span>
+              <Crown size={16} className="text-amber-500" />
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-4xl font-black text-on-surface">
-                {proAiPrice}
+                依課程定價
               </span>
-              <span className="text-on-surface-variant text-sm">{proPeriod}</span>
             </div>
+            <p className="text-on-surface-variant text-xs mt-2">
+              單課買斷，永久觀看
+            </p>
           </div>
           <div className="space-y-5 mb-10 flex-grow">
-            <div className="flex items-center gap-3">
-              <Sparkles size={18} className="text-secondary" />
-              <span className="text-on-surface text-sm">
-                Everything in Pro
-              </span>
-            </div>
-            {["AI 助手無限使用", "AI 個人化路徑", "AI 週報"].map((item, i) => (
+            {[
+              "頂尖講師深度課程",
+              "投資趨勢 × 產業分析",
+              "一次付費，終身回看",
+              "不定期更新補充教材",
+            ].map((item, i) => (
               <div key={i} className="flex items-center gap-3">
-                <Check size={18} className="text-green-500 font-bold" />
+                <Check size={18} className="text-amber-500 font-bold" />
                 <span className="text-on-surface text-sm">{item}</span>
               </div>
             ))}
           </div>
-          <button
-            className="w-full py-4 rounded-xl font-bold bg-surface-container-low text-on-surface-variant cursor-not-allowed"
-            disabled
+          <Link
+            href="/courses"
+            className="block w-full py-4 rounded-xl font-bold bg-surface-container-highest text-on-surface hover:bg-surface-dim transition-colors active:scale-[0.98] text-center"
           >
-            敬請期待
-          </button>
+            瀏覽大師課
+          </Link>
         </div>
       </div>
 
@@ -187,7 +205,7 @@ export default function PricingPage() {
         </div>
         <div className="flex items-center gap-3 text-on-surface">
           <RefreshCw size={24} />
-          <span className="text-sm font-bold">7 天無條件退款政策</span>
+          <span className="text-sm font-bold">7 天免費試用</span>
         </div>
         <div className="flex items-center gap-3 text-on-surface">
           <Users size={24} />
@@ -203,20 +221,24 @@ export default function PricingPage() {
         <div className="space-y-4">
           {[
             {
+              q: "Pro 免費試用怎麼運作？",
+              a: "註冊 Pro 後立即開始 7 天免費試用，期間享有所有 Pro 功能。試用期間可隨時取消，不會收取任何費用。到期後自動轉為月繳或年繳方案。",
+            },
+            {
+              q: "大師課跟 Pro 有什麼差別？",
+              a: "Pro 訂閱包含所有 Vibe Coding 系列小課、市場分析報告、AI 助教等持續更新的內容。大師課是由頂尖講師推出的深度獨立課程，需要另外購買，一次付費永久觀看。",
+            },
+            {
+              q: "我可以同時訂閱 Pro 又購買大師課嗎？",
+              a: "當然可以！兩者完全獨立。Pro 給你持續學習的資源，大師課讓你在特定領域深入鑽研。",
+            },
+            {
               q: "我可以在任何時候取消訂閱嗎？",
-              a: "是的，您可以在任何時間透過個人設定頁面取消訂閱。取消後，您的會員權益將維持到當前計費週期結束。",
-            },
-            {
-              q: "如果我不滿意，可以退款嗎？",
-              a: "我們提供 7 天滿意保證。如果您在購買後 7 天內覺得課程不適合您，且觀看進度未超過 20%，可以聯繫客服申請全額退款。",
-            },
-            {
-              q: "Pro + AI 方案什麼時候會正式推出？",
-              a: "AI 增強方案目前正處於封閉測試階段，預計將於下一季正式對外開放。目前的 Pro 會員屆時將獲得優先升級權與早鳥折扣。",
+              a: "是的，您可以隨時透過個人設定頁面取消訂閱。取消後，權益維持到當前計費週期結束。",
             },
             {
               q: "年繳與月繳方案有什麼差別？",
-              a: "年繳方案享有 17% 的價格優惠（相當於贈送兩個月）。除此之外，年繳會員還能獲得專屬的「年度學習白皮書」實體手冊（僅限 Pro 以上方案）。",
+              a: "年繳方案享有 17% 的價格優惠（相當於省下兩個月費用）。除此之外，功能完全相同。",
             },
           ].map((faq, i) => (
             <details

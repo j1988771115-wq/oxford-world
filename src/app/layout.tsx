@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Noto_Sans_TC } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/components/auth-provider";
+import { EyesyChatWidget } from "@/components/eyesy/chat-widget";
 import "./globals.css";
 
 const inter = Inter({
@@ -112,7 +113,10 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <ThemeProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            {children}
+            <EyesyChatWidget />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

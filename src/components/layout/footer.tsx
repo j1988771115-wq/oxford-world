@@ -90,18 +90,26 @@ export function Footer() {
             <ul className="space-y-4 text-sm">
               <li>
                 <Link
-                  href="/terms"
+                  href="/legal"
                   className="hover:text-[#00D2FF] transition-colors"
                 >
-                  服務條款
+                  服務條款與政策
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/privacy"
+                  href="/legal#privacy"
                   className="hover:text-[#00D2FF] transition-colors"
                 >
-                  隱私權保護聲明
+                  隱私權政策
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/legal#refund"
+                  className="hover:text-[#00D2FF] transition-colors"
+                >
+                  退款政策
                 </Link>
               </li>
             </ul>
@@ -109,7 +117,7 @@ export function Footer() {
         </div>
 
         <div className="pt-12 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
-          <p>&copy; 2026 牛津視界 Oxford Vision. All rights reserved.</p>
+          <p>&copy; 2026 巨石文化有限公司 — 牛津視界 Oxford Vision. All rights reserved.</p>
           <div className="flex gap-8">
             <span className="flex items-center gap-1">
               <Languages size={14} /> 繁體中文
