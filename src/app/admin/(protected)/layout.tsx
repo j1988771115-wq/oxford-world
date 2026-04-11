@@ -1,26 +1,12 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { isAdmin } from "@/lib/admin-auth";
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("admin_token")?.value;
-  const expected = process.env.ADMIN_PASSWORD;
-
-  // If no password is set in env, block access entirely
-  if (!expected) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center text-gray-400">
-        ADMIN_PASSWORD 未設定
-      </div>
-    );
-  }
-
-  // Not logged in → show login page (login page handles its own rendering)
-  if (token !== expected) {
+  if (!(await isAdmin())) {
     redirect("/admin/login");
   }
 

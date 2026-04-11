@@ -1,6 +1,6 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { isAdmin } from "@/lib/admin-auth";
 
 function createAdminClient() {
   return createClient(
@@ -9,21 +9,15 @@ function createAdminClient() {
   );
 }
 
-async function requireAdmin() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("admin_token")?.value;
-  return process.env.ADMIN_PASSWORD && token === process.env.ADMIN_PASSWORD;
-}
-
 export async function GET() {
-  if (!(await requireAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!(await isAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const supabase = createAdminClient();
   const { data } = await supabase.from("insights").select("*").order("created_at", { ascending: false });
   return NextResponse.json(data || []);
 }
 
 export async function POST(req: Request) {
-  if (!(await requireAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!(await isAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const body = await req.json();
   const supabase = createAdminClient();
 
@@ -44,7 +38,7 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  if (!(await requireAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!(await isAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { id } = await req.json();
   const supabase = createAdminClient();
   const { error } = await supabase.from("insights").delete().eq("id", id);

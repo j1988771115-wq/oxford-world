@@ -1,14 +1,10 @@
 "use server";
 
-import { cookies } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { isAdmin } from "@/lib/admin-auth";
 
 async function requireAdmin() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("admin_token")?.value;
-  const expected = process.env.ADMIN_PASSWORD;
-  if (!expected || token !== expected) {
+  if (!(await isAdmin())) {
     redirect("/admin/login");
   }
 }
