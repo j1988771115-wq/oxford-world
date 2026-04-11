@@ -1,7 +1,7 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendBatchEmails } from "@/lib/email";
+import { isAdmin } from "@/lib/admin-auth";
 
 function createAdminClient() {
   return createClient(
@@ -10,15 +10,9 @@ function createAdminClient() {
   );
 }
 
-async function requireAdmin() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("admin_token")?.value;
-  return process.env.ADMIN_PASSWORD && token === process.env.ADMIN_PASSWORD;
-}
-
 // GET — fetch email lists stats
 export async function GET() {
-  if (!(await requireAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!(await isAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const supabase = createAdminClient();
 
@@ -35,7 +29,7 @@ export async function GET() {
 
 // POST — send email blast
 export async function POST(req: Request) {
-  if (!(await requireAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!(await isAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const { target, subject, html } = await req.json();
 

@@ -1,6 +1,7 @@
 import { streamText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { createClient } from "@supabase/supabase-js";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import { generateEmbedding } from "@/lib/embeddings";
 
 type ChatContext = "teaching" | "customer-service" | "recommendation";
@@ -89,6 +90,19 @@ function parseContextHint(text: string): {
 }
 
 export async function POST(req: Request) {
+  // Auth check
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return new Response(JSON.stringify({ error: "請先登入" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   const { messages, context, courseId, quizAnswers } = await req.json();
 
   // Get the last user message for RAG search + context detection
