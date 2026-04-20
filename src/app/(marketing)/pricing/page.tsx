@@ -147,10 +147,10 @@ export default function PricingPage() {
             ))}
           </div>
           <Link
-            href="/sign-up?plan=pro"
+            href={`/checkout?type=pro&billing=${billing}`}
             className="block w-full py-4 rounded-xl font-bold text-white signature-gradient hover:opacity-90 transition-opacity active:scale-[0.98] text-center"
           >
-            免費試用 7 天
+            立即訂閱
           </Link>
           <p className="text-center text-xs text-on-surface-variant mt-3">
             試用期間可隨時取消，不收任何費用
