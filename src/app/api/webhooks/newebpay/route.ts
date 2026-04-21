@@ -96,7 +96,20 @@ export async function POST(req: NextRequest) {
       if (profile?.discord_id) {
         const roleAdded = await addProRole(profile.discord_id);
         if (!roleAdded) {
-          console.warn("Discord role not assigned for user:", updatedOrder.user_id);
+          console.warn("Discord role not assigned, enqueueing retry:", updatedOrder.user_id);
+          await supabase
+            .from("pending_discord_grants")
+            .upsert(
+              {
+                user_id: updatedOrder.user_id,
+                discord_id: profile.discord_id,
+                reason: "webhook_grant_failed",
+                attempts: 1,
+                last_attempt_at: new Date().toISOString(),
+                last_error: "addProRole returned false",
+              },
+              { onConflict: "user_id,discord_id" }
+            );
         }
       }
     }

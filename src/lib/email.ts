@@ -1,9 +1,7 @@
 import { Resend } from "resend";
 
 function getResend() {
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error("RESEND_API_KEY is not set");
-  }
+  if (!process.env.RESEND_API_KEY) return null;
   return new Resend(process.env.RESEND_API_KEY);
 }
 
@@ -18,7 +16,13 @@ export async function sendEmail({
   subject: string;
   html: string;
 }) {
-  const { error } = await getResend().emails.send({
+  const resend = getResend();
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping send", { to, subject });
+    return { error: "email service not configured", skipped: true };
+  }
+
+  const { error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: Array.isArray(to) ? to : [to],
     subject,
@@ -42,7 +46,15 @@ export async function sendBatchEmails({
   subject: string;
   html: string;
 }) {
-  // Resend batch: max 100 per call
+  const resend = getResend();
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping batch", {
+      count: emails.length,
+      subject,
+    });
+    return { sent: 0, failed: 0, skipped: emails.length };
+  }
+
   const batches = [];
   for (let i = 0; i < emails.length; i += 100) {
     batches.push(emails.slice(i, i + 100));
@@ -52,7 +64,7 @@ export async function sendBatchEmails({
   let failed = 0;
 
   for (const batch of batches) {
-    const { error } = await getResend().emails.send({
+    const { error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: batch,
       subject,

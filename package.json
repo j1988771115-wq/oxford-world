@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.64",
@@ -14,6 +17,7 @@
     "@ai-sdk/react": "^3.0.143",
     "@anthropic-ai/sdk": "^0.80.0",
     "@mux/mux-player-react": "^3.11.7",
+    "@sentry/nextjs": "^10.49.0",
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.100.1",
     "ai": "^6.0.141",
@@ -28,9 +32,11 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/ui": "^4.1.5",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.5"
   }
 }

@@ -43,3 +43,9 @@ next-env.d.ts
 # clerk configuration (can include secrets)
 /.clerk/
 .gstack/
+
+# supabase CLI scratch (can include project refs)
+supabase/.temp/
+
+# Sentry source maps
+.sentryclirc
