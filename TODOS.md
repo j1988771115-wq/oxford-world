@@ -18,7 +18,7 @@
 
 - [x] 藍新金流串接 — code 已完成（newebpay.ts + webhook + checkout + return route）
 - [x] 課程頁面結構 — 列表 + 詳情 + 章節 + 付費/Pro CTA 都已完成
-- [x] Discord 角色授予 retry 機制 — pending_discord_grants 表 + cron hourly retry（max 12 次）
+- [x] Discord 角色授予 retry 機制 — pending_discord_grants 表 + cron daily retry（Hobby 限 daily；Pro 升級後改 hourly）
 - [x] 測試基礎建設 — Vitest + 8 passing tests for newebpay 加密/驗簽/roundtrip
 - [ ] Mux 影片上架 — 錄完三位講師大師課後接通影片播放
 - [ ] 三位講師錄影 — 久方武（太空/AI 資本）/ 黃老師（台股技術）/ YC（vibe coding）

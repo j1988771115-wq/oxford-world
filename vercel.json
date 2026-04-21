@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/cron/retry-discord-grants",
-      "schedule": "0 * * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }
