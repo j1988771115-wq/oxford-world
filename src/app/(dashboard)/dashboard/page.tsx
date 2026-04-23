@@ -22,7 +22,11 @@ export const metadata = {
   title: "我的學習 — 牛津視界",
 };
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string }>;
+}) {
   const [profile, courses, activityData, xpData, allCourses, latestInsight] = await Promise.all([
     getUserProfile() as Promise<{
       tier?: string;
@@ -31,6 +35,7 @@ export default async function DashboardPage() {
       display_name?: string;
       email?: string;
       avatar_url?: string;
+      is_alumni?: boolean;
     } | null>,
     getUserCourses() as Promise<
       {
@@ -46,6 +51,9 @@ export default async function DashboardPage() {
 
   const displayName = profile?.display_name || "學員";
   const initial = displayName[0] || "U";
+  const isAlumni = !!profile?.is_alumni;
+  const { welcome } = await searchParams;
+  const showLegacyWelcome = welcome === "legacy" && isAlumni;
 
   return (
     <main className="lg:pl-64 min-h-screen bg-surface">
@@ -84,6 +92,30 @@ export default async function DashboardPage() {
       </header>
 
       <div className="px-6 lg:px-8 py-8 max-w-[1400px] mx-auto space-y-8">
+        {/* Legacy welcome flash — shown after automatic legacy unlock */}
+        {showLegacyWelcome && (
+          <section className="rounded-2xl p-6 bg-gradient-to-r from-emerald-500/10 to-secondary/10 border border-emerald-500/30">
+            <div className="flex items-start gap-4">
+              <div className="text-3xl">🎓</div>
+              <div>
+                <h3 className="text-lg font-black text-on-surface mb-1">
+                  巨石文化老學員身份已啟用
+                </h3>
+                <p className="text-sm text-on-surface-variant">
+                  你當初上過的課已自動解鎖，可在下方「我的課程」直接回看。感謝你支持牛津視界的第一步。
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Persistent alumni badge */}
+        {isAlumni && !showLegacyWelcome && (
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant text-xs font-bold">
+            🎓 巨石文化老學員｜新課享專屬價 NT$1,490
+          </div>
+        )}
+
         {/* Welcome Banner */}
         <section className="relative overflow-hidden rounded-2xl p-8 bg-primary-container">
           <div className="absolute top-0 right-0 w-1/3 h-full overflow-hidden opacity-30 pointer-events-none">

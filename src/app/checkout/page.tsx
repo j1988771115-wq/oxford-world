@@ -1,11 +1,12 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createCourseOrder, createProSubscription } from "@/lib/actions/payment";
 import { Loader2 } from "lucide-react";
 
 function CheckoutForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +30,11 @@ function CheckoutForm() {
 
       if ("error" in result && result.error) {
         setError(result.error);
+        return;
+      }
+
+      if ("freeGranted" in result && result.freeGranted) {
+        router.replace("/dashboard?welcome=legacy");
         return;
       }
 

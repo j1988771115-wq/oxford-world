@@ -1,5 +1,5 @@
 import { getCourses } from "@/lib/actions/courses";
-import { Star } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 
 export const metadata = {
@@ -8,7 +8,24 @@ export const metadata = {
 };
 
 export default async function CoursesPage() {
-  const courses = await getCourses();
+  const coursesRaw = await getCourses();
+
+  // Legacy courses (巨石文化實體課) are only visible to alumni
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  let isAlumni = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_alumni")
+      .eq("auth_id", user.id)
+      .single();
+    isAlumni = !!profile?.is_alumni;
+  }
+
+  const courses = coursesRaw.filter(
+    (c: { slug: string }) => isAlumni || !c.slug.startsWith("legacy-")
+  );
 
   return (
     <main className="pt-12 pb-24 bg-surface">

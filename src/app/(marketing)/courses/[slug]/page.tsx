@@ -31,6 +31,31 @@ export default async function CourseDetailPage({ params }: Props) {
   const userId = user?.id ?? null;
   const hasAccess = userId ? await checkCourseAccess(course.id) : false;
 
+  // Fetch alumni status for pricing + visibility
+  let isAlumni = false;
+  if (userId) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_alumni")
+      .eq("auth_id", userId)
+      .single();
+    isAlumni = !!profile?.is_alumni;
+  }
+
+  // Legacy course gate: non-alumni can't see legacy-* pages
+  const isLegacy = course.slug?.startsWith("legacy-");
+  if (isLegacy && !isAlumni && !hasAccess) {
+    notFound();
+  }
+
+  // Compute effective price for display
+  const hasAlumniDiscount =
+    isAlumni &&
+    course.alumni_price !== null &&
+    course.alumni_price !== undefined &&
+    course.alumni_price < course.price;
+  const effectivePrice = hasAlumniDiscount ? course.alumni_price : course.price;
+
   // Get chapters
   const { data: chapters } = await supabase
     .from("course_chapters")
@@ -183,12 +208,24 @@ export default async function CourseDetailPage({ params }: Props) {
 
               <div className="p-8 space-y-6">
                 {/* Price */}
-                <div className="flex items-baseline gap-4">
-                  <span className="text-4xl font-extrabold text-on-surface">
-                    {course.price === 0
-                      ? "免費"
-                      : `NT$${course.price.toLocaleString()}`}
-                  </span>
+                <div className="space-y-2">
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <span className="text-4xl font-extrabold text-on-surface">
+                      {effectivePrice === 0
+                        ? "免費"
+                        : `NT$${effectivePrice.toLocaleString()}`}
+                    </span>
+                    {hasAlumniDiscount && (
+                      <span className="text-xl text-on-surface-variant line-through">
+                        NT${course.price.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                  {hasAlumniDiscount && (
+                    <p className="text-sm text-secondary font-bold">
+                      🎓 老學員專屬價（您已登入為老學員）
+                    </p>
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -200,19 +237,23 @@ export default async function CourseDetailPage({ params }: Props) {
                     >
                       開始學習
                     </Link>
-                  ) : course.price === 0 || course.is_free_preview ? (
+                  ) : effectivePrice === 0 || course.is_free_preview ? (
                     <Link
-                      href={`/learn/${course.id}`}
+                      href={
+                        userId
+                          ? `/checkout?type=course&courseId=${course.id}`
+                          : `/learn/${course.id}`
+                      }
                       className="block w-full text-center signature-gradient py-4 rounded-xl text-white font-extrabold text-lg deep-diffusion hover:brightness-110 transition-all active:scale-95"
                     >
-                      免費觀看
+                      {effectivePrice === 0 && userId ? "解鎖觀看" : "免費觀看"}
                     </Link>
                   ) : userId ? (
                     <Link
                       href={`/checkout?type=course&courseId=${course.id}`}
                       className="block w-full text-center signature-gradient py-4 rounded-xl text-white font-extrabold text-lg deep-diffusion hover:brightness-110 transition-all active:scale-95"
                     >
-                      立即購買 — NT${course.price.toLocaleString()}
+                      立即購買 — NT${effectivePrice.toLocaleString()}
                     </Link>
                   ) : (
                     <Link

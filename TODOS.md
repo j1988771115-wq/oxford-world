@@ -10,7 +10,7 @@
 - [x] **Supabase SQL Editor 跑 `supabase/migrations/010_master_courses_seed.sql`** — 三位講師大師課資料已 seed
 - [ ] **藍新後台申請「信用卡」啟用** — 目前測試顯示「信用卡服務未啟用」，審核約 3-5 天
 - [ ] **藍新後台申請「信用卡定期定額」啟用** — Pro 月費訂閱必需
-- [ ] **RESEND_API_KEY 申請 + 加到 Vercel** — 註冊/付款 email 目前會 soft-fail skip（不再 throw）
+- [x] **RESEND_API_KEY 申請 + 加到 Vercel** — 2026-04-22 上線（域名驗證 + 測試信實際送達 j1988771115@gmail.com）
 - [ ] **SENTRY_DSN 申請 + 加到 Vercel** — 觀測性，SDK 已 wired，設 DSN 就啟用
 - [ ] Vercel 重新部署問題 — 目前每個 project 只有首次部署成功，後續需刪重建
 

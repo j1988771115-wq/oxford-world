@@ -30,7 +30,7 @@ export async function createCourseOrder(courseId: string) {
   // Get profile
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, email, tier")
+    .select("id, email, tier, is_alumni")
     .eq("auth_id", user.id)
     .single();
 
@@ -55,10 +55,10 @@ export async function createCourseOrder(courseId: string) {
     return { error: "您已購買此課程" };
   }
 
-  // Get course info
+  // Get course info (include alumni_price for server-side price computation)
   const { data: course } = await supabase
     .from("courses")
-    .select("id, title, price")
+    .select("id, title, price, alumni_price")
     .eq("id", courseId)
     .single();
 
@@ -66,20 +66,35 @@ export async function createCourseOrder(courseId: string) {
     return { error: "課程不存在" };
   }
 
-  if (course.price === 0) {
-    return { error: "此為免費課程，無需購買" };
+  // Server-side authoritative price: alumni gets alumni_price if set and lower
+  const effectivePrice =
+    profile.is_alumni &&
+    course.alumni_price !== null &&
+    course.alumni_price !== undefined &&
+    course.alumni_price < course.price
+      ? course.alumni_price
+      : course.price;
+
+  if (effectivePrice === 0) {
+    // Alumni legacy course or free course — grant access directly, skip payment
+    await supabase.from("course_access").insert({
+      user_id: profile.id,
+      course_id: course.id,
+      access_type: profile.is_alumni ? "alumni" : "purchased",
+    });
+    return { freeGranted: true };
   }
 
   const merchantOrderNo = generateOrderNo();
   const baseUrl = getBaseUrl();
 
-  // Create pending order
+  // Create pending order with the effective (possibly discounted) price
   const { error: insertError } = await supabase.from("orders").insert({
     merchant_order_no: merchantOrderNo,
     user_id: profile.id,
     course_id: course.id,
     order_type: "course",
-    amount: course.price,
+    amount: effectivePrice,
     status: "pending",
   });
 
@@ -91,8 +106,10 @@ export async function createCourseOrder(courseId: string) {
   // Generate payment form
   const paymentForm = createPaymentForm({
     orderId: merchantOrderNo,
-    amount: course.price,
-    description: `牛津視界 — ${course.title}`,
+    amount: effectivePrice,
+    description: `牛津視界 — ${course.title}${
+      effectivePrice !== course.price ? "（老學員優惠價）" : ""
+    }`,
     email: profile.email || user.email || "",
     returnUrl: `${baseUrl}/api/payment/return`,
     notifyUrl: `${baseUrl}/api/webhooks/newebpay`,
