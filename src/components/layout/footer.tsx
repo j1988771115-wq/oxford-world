@@ -42,14 +42,6 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/insights"
-                  className="hover:text-[#00D2FF] transition-colors"
-                >
-                  最新內容
-                </Link>
-              </li>
-              <li>
-                <Link
                   href="/about"
                   className="hover:text-[#00D2FF] transition-colors"
                 >

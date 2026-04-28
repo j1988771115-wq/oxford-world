@@ -49,13 +49,15 @@ const jsonLd = {
   availableLanguage: "zh-TW",
   hasOfferCatalog: {
     "@type": "OfferCatalog",
-    name: "AI 學習課程",
+    name: "大師課",
     itemListElement: [
       {
         "@type": "Offer",
+        price: "28000",
+        priceCurrency: "TWD",
         itemOffered: {
           "@type": "Course",
-          name: "AI 驅動決策力：經理人的數據思維",
+          name: "太空時代的資本配置：下一個十年的產業革命",
           provider: { "@type": "Organization", name: "牛津視界 Oxford Vision" },
         },
       },
@@ -80,7 +82,7 @@ const faqJsonLd = {
       name: "牛津視界的課程多少錢？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "牛津視界提供免費課程試看，Pro 會員 NT$499/月或 NT$4,990/年，可解鎖所有課程、付費報告和 Discord 社群。",
+        text: "牛津視界目前提供大師課單課買斷，太空時代的資本配置由久方武院長親授，定價 NT$28,000，一次付費永久觀看。",
       },
     },
     {
@@ -88,7 +90,7 @@ const faqJsonLd = {
       name: "牛津視界有什麼 AI 功能？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "牛津視界提供 AI 助教即時問答、AI 個人化學習路徑測驗，以及基於課程內容的 RAG 語意搜尋，讓學習更有效率。",
+        text: "牛津視界提供 AI 助教 Eyesy 即時問答，能回答課程內容、Go 語言相關問題與客服詢問，並基於課程內容的 RAG 語意搜尋讓學習更有效率。",
       },
     },
   ],

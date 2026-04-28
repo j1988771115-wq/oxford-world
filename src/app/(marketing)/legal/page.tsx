@@ -27,7 +27,7 @@ export default function LegalPage() {
 
         <h3>1.1 事業概述</h3>
         <p>
-          牛津視界 Oxford Vision 為線上學習平台，由巨石文化有限公司營運，提供 AI 與科技領域之線上課程、市場分析報告、AI 學習助教、學習社群等服務，協助職場人士與學習者掌握 AI 時代所需的知識與技能。
+          牛津視界 Oxford Vision 為線上學習平台，由巨石文化有限公司營運，提供線上課程及 AI 學習助教等服務，協助職場人士與學習者掌握新時代所需的知識與技能。
         </p>
         <ul>
           <li><strong>經營者：</strong>巨石文化有限公司</li>
@@ -42,12 +42,10 @@ export default function LegalPage() {
             <tr><th>方案</th><th>內容</th><th>價格</th></tr>
           </thead>
           <tbody>
-            <tr><td>免費方案</td><td>課程試看、AI 工具分享文章、Email 週報訂閱</td><td>NT$0</td></tr>
-            <tr><td>Pro 訂閱</td><td>Vibe Coding 全系列課程、市場分析報告、Eyesy AI 助教、個人化學習路徑、Discord 社群</td><td>NT$999/月 或 NT$9,990/年</td></tr>
+            <tr><td>免費方案</td><td>課程試看章節、AI 助教 Eyesy 基本問答</td><td>NT$0</td></tr>
             <tr><td>大師課</td><td>頂尖講師深度獨立課程，單課買斷永久觀看</td><td>依課程定價</td></tr>
           </tbody>
         </table>
-        <p>Pro 訂閱方案提供 <strong>7 天免費試用</strong>，試用期間可隨時取消，不收取任何費用。</p>
 
         <h3>1.3 完整交易流程</h3>
 
@@ -57,8 +55,7 @@ export default function LegalPage() {
             { step: "2", title: "註冊 / 登入帳號", desc: "消費者以電子郵件註冊或登入帳號，填寫必要資料。" },
             { step: "3", title: "線上付款", desc: "系統導向藍新金流（NewebPay）第三方金流平台進行付款。支援信用卡（一次付清）、網路 ATM 轉帳、超商代碼繳費等付款方式。所有付款資訊由藍新金流加密處理，本平台不經手任何信用卡資訊。" },
             { step: "4", title: "訂單成立與通知", desc: "付款成功後，系統自動建立訂單並發送確認信至消費者電子信箱。課程或服務權限即時開通。" },
-            { step: "5", title: "開始使用服務", desc: "消費者可立即觀看課程影片、使用 AI 助教、參與社群等已購買之服務內容。" },
-            { step: "6", title: "訂閱管理", desc: "Pro 訂閱用戶可隨時於個人設定頁面管理訂閱狀態，包括取消續訂。取消後權益維持至當前計費週期結束。" },
+            { step: "5", title: "開始使用服務", desc: "消費者可立即觀看課程影片、使用 AI 助教等已購買之服務內容。" },
           ].map((item) => (
             <div key={item.step} className="flex gap-4 items-start bg-surface-container-low rounded-xl p-4">
               <div className="w-8 h-8 rounded-lg signature-gradient flex items-center justify-center text-white font-bold text-sm shrink-0">{item.step}</div>
@@ -98,7 +95,7 @@ export default function LegalPage() {
 
         <h3>3.1 服務內容與範圍</h3>
         <ol>
-          <li>本平台提供線上課程影片、AI 學習助教（Eyesy）、學習路徑測驗、市場分析報告、討論社群等學習服務。</li>
+          <li>本平台提供線上課程影片、AI 學習助教（Eyesy）等學習服務。</li>
           <li>各方案之服務內容依網站公告為準。</li>
           <li>課程內容僅供學習參考，不構成任何投資、法律或專業建議。</li>
           <li>AI 助教（Eyesy）的回答基於課程教材生成，可能包含不準確之內容，使用者應自行判斷。</li>
@@ -209,17 +206,10 @@ export default function LegalPage() {
         <h3>4.8 資料保存期限</h3>
         <p>您的個人資料將保存至服務目的達成後，依相關法規保存必要期間後刪除。訂單相關資料依法至少保存 5 年。</p>
 
-        {/* ==================== 五、退款與取消政策 ==================== */}
-        <h2 id="refund">五、退款與取消政策</h2>
+        {/* ==================== 五、退款政策 ==================== */}
+        <h2 id="refund">五、退款政策</h2>
 
-        <h3>5.1 Pro 訂閱方案</h3>
-        <ul>
-          <li><strong>7 天免費試用：</strong>試用期內取消訂閱，不收取任何費用。</li>
-          <li><strong>試用期結束後自動扣款：</strong>開始正式計費後，<strong>不提供退款</strong>。</li>
-          <li><strong>取消續訂：</strong>可隨時取消下期續訂，權益維持至當前計費週期結束。</li>
-        </ul>
-
-        <h3>5.2 大師課（單課購買）</h3>
+        <h3>5.1 大師課（單課購買）</h3>
         <div className="bg-surface-container-low rounded-xl p-6 not-prose my-6">
           <p className="text-on-surface font-bold text-sm">數位內容不退款聲明</p>
           <p className="text-on-surface-variant text-sm mt-2">
@@ -232,7 +222,7 @@ export default function LegalPage() {
           </p>
         </div>
 
-        <h3>5.3 例外情形</h3>
+        <h3>5.2 例外情形</h3>
         <p>若發生以下情形，消費者得聯繫客服協商處理：</p>
         <ul>
           <li>課程內容與網站描述嚴重不符。</li>
@@ -240,7 +230,7 @@ export default function LegalPage() {
           <li>重複扣款等系統錯誤。</li>
         </ul>
 
-        <h3>5.4 聯繫客服</h3>
+        <h3>5.3 聯繫客服</h3>
         <p>如有付款或訂閱相關問題，請寄信至 <a href="mailto:support@oxford-vision.com">support@oxford-vision.com</a>，我們將於 3 個工作日內回覆。</p>
 
         {/* ==================== 六、消費者權益 ==================== */}
@@ -251,7 +241,6 @@ export default function LegalPage() {
           <ul className="space-y-3 text-sm text-on-surface-variant">
             <li><strong className="text-on-surface">知情權：</strong>我們在網站清楚揭露所有方案內容、價格、服務流程及各項條款，確保您在消費前充分了解服務內容。</li>
             <li><strong className="text-on-surface">安全交易：</strong>所有付款透過藍新金流（NewebPay）第三方金流平台處理，交易資料經 SSL 加密，本平台不儲存任何敏感付款資訊。</li>
-            <li><strong className="text-on-surface">試用保障：</strong>Pro 訂閱方案提供 7 天免費試用，試用期間可隨時取消，不收取任何費用。</li>
             <li><strong className="text-on-surface">購前預覽：</strong>大師課提供免費試看章節，消費者可在購買前充分了解課程內容與品質。</li>
             <li><strong className="text-on-surface">個資保護：</strong>您的個人資料受本平台隱私權政策保護，不會用於非服務相關之用途。</li>
             <li><strong className="text-on-surface">申訴管道：</strong>如有任何問題或不滿，您可隨時透過電子信箱聯繫我們，我們將於 3 個工作日內回覆。</li>
