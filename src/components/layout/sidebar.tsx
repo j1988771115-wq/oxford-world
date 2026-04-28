@@ -4,28 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  Map,
-  Bot,
-  Trophy,
   Settings,
   HelpCircle,
   ChevronRight,
-  MessageSquare,
-  Swords,
-  Medal,
-  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "學習總覽", path: "/dashboard" },
-  { icon: Map, label: "學習路徑", path: "/path" },
-  { icon: Bot, label: "AI 助手", path: "/ai-assistant" },
-  { icon: FileText, label: "Insights", path: "/insights" },
-  { icon: Swords, label: "副本", path: "/dungeons" },
-  { icon: MessageSquare, label: "討論區", path: "/community" },
-  { icon: Medal, label: "排行榜", path: "/leaderboard" },
-  { icon: Trophy, label: "成就", path: "/achievements" },
   { icon: Settings, label: "設定", path: "/settings" },
 ];
 

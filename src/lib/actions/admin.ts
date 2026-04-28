@@ -144,6 +144,8 @@ export async function upsertChapter(formData: FormData) {
     parseInt(formData.get("duration_seconds") as string) || null;
   const muxPlaybackId =
     (formData.get("mux_playback_id") as string)?.trim() || null;
+  const youtubeUrl =
+    (formData.get("youtube_url") as string)?.trim() || null;
   const isFreePreview = formData.get("is_free_preview") === "on";
 
   const chapterData = {
@@ -152,6 +154,7 @@ export async function upsertChapter(formData: FormData) {
     sort_order: sortOrder,
     duration_seconds: durationSeconds,
     mux_playback_id: muxPlaybackId,
+    youtube_url: youtubeUrl,
     is_free_preview: isFreePreview,
   };
 

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { checkCourseAccess } from "@/lib/actions/courses";
 import { createClient } from "@/lib/supabase/server";
 import { VideoPlayer } from "@/components/courses/video-player";
+import { YouTubePlayer } from "@/components/courses/youtube-player";
 import Link from "next/link";
 import {
   PlayCircle,
@@ -62,13 +63,18 @@ export default async function LearnPage({ params, searchParams }: Props) {
       {/* Video Player */}
       <div className="w-full max-w-5xl mx-auto pt-8 px-4">
         <div className="aspect-video bg-primary-container rounded-xl overflow-hidden">
-          {canPlay && currentChapter?.mux_playback_id ? (
+          {canPlay && currentChapter?.youtube_url ? (
+            <YouTubePlayer
+              url={currentChapter.youtube_url}
+              title={currentChapter.title}
+            />
+          ) : canPlay && currentChapter?.mux_playback_id ? (
             <VideoPlayer
               playbackId={currentChapter.mux_playback_id}
               title={currentChapter.title}
               accentColor="#00d2ff"
             />
-          ) : canPlay && !currentChapter?.mux_playback_id ? (
+          ) : canPlay ? (
             <div className="w-full h-full flex items-center justify-center text-slate-400">
               <div className="text-center">
                 <span className="text-5xl block mb-4">🎬</span>

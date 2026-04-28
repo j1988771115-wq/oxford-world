@@ -10,6 +10,7 @@ interface Chapter {
   sort_order: number;
   duration_seconds: number | null;
   mux_playback_id: string | null;
+  youtube_url: string | null;
   is_free_preview: boolean;
 }
 
@@ -196,6 +197,21 @@ function ChapterForm({
             placeholder="影片上傳後填入"
           />
         </div>
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs font-bold text-gray-400">
+          YouTube 網址（unlisted 影片）
+        </label>
+        <input
+          name="youtube_url"
+          defaultValue={chapter?.youtube_url ?? ""}
+          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 ring-blue-600/50 focus:outline-none placeholder-gray-600"
+          placeholder="https://youtu.be/xxxxxxxxxxx 或 https://www.youtube.com/watch?v=xxxxxxxxxxx"
+        />
+        <p className="text-[10px] text-gray-500">
+          優先使用 YouTube；若同時有 Mux Playback ID 會以 YouTube 為準
+        </p>
       </div>
 
       <label className="flex items-center gap-3 cursor-pointer">

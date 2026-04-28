@@ -42,8 +42,6 @@ export function Navbar() {
           {[
             { href: "/courses", label: "課程" },
             { href: "/about", label: "關於我們" },
-            { href: "/insights", label: "最新內容" },
-            { href: "/pricing", label: "方案" },
           ].map((link) => (
             <Link
               key={link.href}
