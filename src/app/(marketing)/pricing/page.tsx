@@ -23,10 +23,22 @@ async function loadFeaturedCourse() {
   const supabase = getPublicClient();
   const { data } = await supabase
     .from("courses")
-    .select("title, description, price, original_price, pro_bundle_days, instructor")
+    .select(
+      "title, description, price, original_price, pro_bundle_days, instructor, sale_ends_at"
+    )
     .eq("slug", FEATURED_COURSE_SLUG)
     .maybeSingle();
   return data;
+}
+
+function fmtSaleEnd(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  // 台北時區顯示 M/D
+  const m = d.getMonth() + 1;
+  const dd = d.getDate();
+  return `${m}/${dd} 結束`;
 }
 
 export default async function PricingPage() {
@@ -34,6 +46,7 @@ export default async function PricingPage() {
   const price = course?.price ?? 24900;
   const originalPrice = course?.original_price;
   const bundleDays = course?.pro_bundle_days ?? 0;
+  const saleEndLabel = fmtSaleEnd(course?.sale_ends_at ?? null);
   const fmt = (n: number) => `NT$${n.toLocaleString()}`;
 
   return (
@@ -66,6 +79,12 @@ export default async function PricingPage() {
             <p className="text-on-surface-variant text-sm mb-6">
               下一個十年的產業革命 · {course?.instructor ?? "久方武"} 院長親授
             </p>
+            {originalPrice && originalPrice > price && (
+              <div className="inline-flex items-center gap-1.5 bg-red-500/15 text-red-600 dark:text-red-400 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-3">
+                <Sparkles size={12} />
+                {saleEndLabel ? `特價期間 · ${saleEndLabel}` : "特價期間"}
+              </div>
+            )}
             <div className="flex items-baseline justify-center gap-3">
               {originalPrice && originalPrice > price && (
                 <span className="text-2xl text-on-surface-variant line-through">
