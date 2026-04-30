@@ -63,16 +63,16 @@ export default async function LearnPage({ params, searchParams }: Props) {
       {/* Video Player */}
       <div className="w-full max-w-5xl mx-auto pt-8 px-4">
         <div className="aspect-video bg-primary-container rounded-xl overflow-hidden">
-          {canPlay && currentChapter?.youtube_url ? (
+          {canPlay && currentChapter?.mux_playback_id ? (
+            <VideoPlayer
+              chapterId={currentChapter.id}
+              title={currentChapter.title}
+              accentColor="#00d2ff"
+            />
+          ) : canPlay && currentChapter?.youtube_url ? (
             <YouTubePlayer
               url={currentChapter.youtube_url}
               title={currentChapter.title}
-            />
-          ) : canPlay && currentChapter?.mux_playback_id ? (
-            <VideoPlayer
-              playbackId={currentChapter.mux_playback_id}
-              title={currentChapter.title}
-              accentColor="#00d2ff"
             />
           ) : canPlay ? (
             <div className="w-full h-full flex items-center justify-center text-slate-400">

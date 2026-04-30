@@ -36,12 +36,19 @@ const SYSTEM_PROMPTS: Record<ChatContext, string> = {
 - 你不是硬銷售，是真心幫用戶搞懂課程內容、解決操作問題
 
 你目前能回答的範圍（其他話題請禮貌轉移）：
-1. **目前上架課程的內容問題**（系統會在下方提供當前課程清單，以那份為準）
+1. **目前上架課程的「介紹層級」資訊**（標題、章節大綱、講師、價格 — 系統會在下方提供清單）
 2. **Go 語言相關問題**（語法、套件、常見錯誤、最佳實踐）
 3. **客服問題**：註冊登入、付款流程、影片無法播放、發票、退款政策、聯絡方式
 
-如果用戶問的領域不在上述（例：股票分析、其他程式語言、AI 工具教學），就誠實說：
-「這部分我們之後產品線完整再支援，目前我能幫你的是太空課內容、Go 語言、或網站使用問題。需要我介紹太空課嗎？」
+**絕對不可透露**（這是付費內容隔離鐵則）：
+- 課程內**具體個股的分析結論**（譬如「久老師對 RKLB 的估值看法」「IRDM 護城河如何」「ASTS 跟 Starlink 比較」）
+- 課程內的**技術細節、財務數字、講師判斷**
+- 任何用戶自費購買後才能看到的內容
+若用戶問股票/個股/財務分析/估值/講師結論，**一律回**：
+「這是『太空時代的資本配置』課程內的付費內容，購買後可在課程內 AI 助教向 Eyesy 請教。要看課程介紹嗎？」**不要嘗試從你的訓練資料補答**。
+
+如果用戶問的領域不在上述（例：其他程式語言、AI 工具教學），就誠實說：
+「這部分我們之後產品線完整再支援，目前我能幫你的是太空課介紹、Go 語言、或網站使用問題。」
 
 推課技巧（不要硬銷售）：
 - 用戶先有具體問題或興趣再導購
@@ -122,9 +129,42 @@ export async function POST(req: Request) {
   const effectiveCourseId = courseId || parsed.courseId;
   const userQuery = parsed.cleanText || rawQuery;
 
-  // RAG: search for relevant content
+  // 權限 gate：teaching 模式存取 paid course 內容前，先驗證用戶有 course_access
+  let canAccessPaidContent = false;
+  if (chatContext === "teaching" && effectiveCourseId) {
+    const adminSupabase = createServiceClient();
+    // 查 user 對應的 profile.id
+    const { data: profile } = await adminSupabase
+      .from("profiles")
+      .select("id")
+      .eq("auth_id", user.id)
+      .maybeSingle();
+
+    if (profile) {
+      const { data: access } = await adminSupabase
+        .from("course_access")
+        .select("id")
+        .eq("user_id", profile.id)
+        .eq("course_id", effectiveCourseId)
+        .maybeSingle();
+      canAccessPaidContent = !!access;
+    }
+
+    if (!canAccessPaidContent) {
+      return new Response(
+        JSON.stringify({
+          error: "需要購買此課程才能使用課程內 AI 助教",
+          code: "COURSE_NOT_PURCHASED",
+        }),
+        { status: 403, headers: { "Content-Type": "application/json" } }
+      );
+    }
+  }
+
+  // RAG: 只有 teaching 模式（且已驗證有 access）才檢索付費課程內容
+  // customer-service / recommendation 完全不查 course_content，避免免費用戶藉提問挖內容
   let ragContext = "";
-  if (userQuery) {
+  if (userQuery && chatContext === "teaching" && canAccessPaidContent) {
     try {
       const queryEmbedding = await generateEmbedding(userQuery);
       const supabase = createServiceClient();
