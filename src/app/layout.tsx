@@ -21,10 +21,10 @@ const notoSansTC = Noto_Sans_TC({
 export const metadata: Metadata = {
   title: "牛津視界 Oxford Vision — 太空時代的資本配置",
   description:
-    "下一個十年的產業革命。久方武院長 8 章深度拆解，從 SpaceX 到台股太空概念股，一套完整投資框架。",
+    "下一個十年的產業革命。久方武院長 10 章深度拆解 SpaceX、Starlink、AST SpaceMobile 等美股太空標的，一套完整投資框架。",
   openGraph: {
     title: "太空時代的資本配置 — 牛津視界",
-    description: "久方武院長親授 · 8 章深度拆解 SpaceX 到台股太空概念股",
+    description: "久方武院長親授 · 10 章深度拆解美股太空標的",
     type: "website",
     locale: "zh_TW",
     images: [{ url: "/og", width: 1200, height: 630 }],

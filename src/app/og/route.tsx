@@ -65,7 +65,7 @@ export async function GET() {
               marginTop: "16px",
             }}
           >
-            久方武院長親授 · 8 章深度拆解
+            久方武院長親授 · 10 章深度拆解美股太空標的
           </div>
         </div>
       </div>

@@ -45,8 +45,8 @@ export default async function HomePage() {
               <span className="text-[#00D2FF]">下一個十年的產業革命</span>
             </h1>
             <p className="text-xl text-slate-300 leading-relaxed mb-12 max-w-xl">
-              久方武院長親授 · 8 章深度拆解<br />
-              從 SpaceX 到台股太空概念股，一套完整投資框架
+              久方武院長親授 · 10 章深度拆解<br />
+              SpaceX、Starlink、AST SpaceMobile 等美股太空標的，一套完整投資框架
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
