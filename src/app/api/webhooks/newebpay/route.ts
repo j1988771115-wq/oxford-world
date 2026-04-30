@@ -76,6 +76,47 @@ export async function POST(req: NextRequest) {
         console.error("Grant course access failed:", accessError);
         return NextResponse.json({ error: "Failed to grant access" }, { status: 500 });
       }
+
+      // 課程附贈 Pro 邏輯：course.pro_bundle_days 有值就延長 profile.pro_expires_at
+      const { data: course } = await supabase
+        .from("courses")
+        .select("pro_bundle_days")
+        .eq("id", updatedOrder.course_id)
+        .single();
+
+      if (course?.pro_bundle_days && course.pro_bundle_days > 0) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("pro_expires_at, discord_id")
+          .eq("id", updatedOrder.user_id)
+          .single();
+
+        const now = new Date();
+        const currentExpiry = profile?.pro_expires_at
+          ? new Date(profile.pro_expires_at)
+          : now;
+        // 如果還有未過期的 Pro，從那天起再加；否則從今天起加
+        const baseDate = currentExpiry > now ? currentExpiry : now;
+        const newExpiry = new Date(
+          baseDate.getTime() + course.pro_bundle_days * 86400000
+        );
+
+        const { error: tierError } = await supabase
+          .from("profiles")
+          .update({ tier: "pro", pro_expires_at: newExpiry.toISOString() })
+          .eq("id", updatedOrder.user_id);
+        if (tierError) {
+          console.error("Bundle Pro grant failed:", tierError);
+        }
+
+        // Discord Pro 身分組（best-effort）
+        if (profile?.discord_id) {
+          await addProRole(profile.discord_id);
+        }
+        console.log(
+          `Bundled Pro: +${course.pro_bundle_days} days, expires ${newExpiry.toISOString()}`
+        );
+      }
     } else if (updatedOrder.order_type === "subscription") {
       const { error: tierError } = await supabase
         .from("profiles")

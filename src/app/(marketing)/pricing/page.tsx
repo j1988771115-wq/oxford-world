@@ -4,13 +4,38 @@ import {
   Crown,
   ChevronDown,
   Infinity as InfinityIcon,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { createClient } from "@supabase/supabase-js";
 
 const FEATURED_COURSE_SLUG = "master-space-age-capital";
-const PRICE_LABEL = "NT$28,000";
+const PRO_MONTHLY_NTD = 999;
 
-export default function PricingPage() {
+function getPublicClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
+
+async function loadFeaturedCourse() {
+  const supabase = getPublicClient();
+  const { data } = await supabase
+    .from("courses")
+    .select("title, description, price, original_price, pro_bundle_days, instructor")
+    .eq("slug", FEATURED_COURSE_SLUG)
+    .maybeSingle();
+  return data;
+}
+
+export default async function PricingPage() {
+  const course = await loadFeaturedCourse();
+  const price = course?.price ?? 24900;
+  const originalPrice = course?.original_price;
+  const bundleDays = course?.pro_bundle_days ?? 0;
+  const fmt = (n: number) => `NT$${n.toLocaleString()}`;
+
   return (
     <main className="pt-12 pb-24 bg-surface">
       <div className="max-w-7xl mx-auto px-8 mb-16">
@@ -21,41 +46,56 @@ export default function PricingPage() {
             一次買斷，終身回看
           </h1>
           <p className="text-xl text-on-surface-variant leading-relaxed">
-            由久方武院長親授的太空時代資本配置課程。八堂深度內容，從 SpaceX 帝國解剖到台股太空概念股地圖，給你完整的投資框架。
+            由久方武院長親授的太空時代資本配置課程。從 SpaceX 帝國解剖到台股太空概念股，給你完整的投資框架。
           </p>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-8">
-        <div className="relative bg-surface-container-lowest rounded-2xl p-12 border-2 border-amber-500/30 shadow-[0_24px_48px_-12px_rgba(13,28,50,0.12)]">
+      <div className="max-w-5xl mx-auto px-8 grid md:grid-cols-2 gap-6 items-stretch">
+        {/* 大師課（主推） */}
+        <div className="relative bg-surface-container-lowest rounded-2xl p-10 border-2 border-amber-500/30 shadow-[0_24px_48px_-12px_rgba(13,28,50,0.12)] flex flex-col">
           <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-tighter flex items-center gap-1.5">
             <Crown size={14} />
             大師課
           </div>
 
-          <div className="mb-8 text-center">
+          <div className="mb-6 text-center">
             <h3 className="text-on-surface font-bold text-2xl mb-2">
-              太空時代的資本配置
+              {course?.title ?? "太空時代的資本配置"}
             </h3>
             <p className="text-on-surface-variant text-sm mb-6">
-              下一個十年的產業革命 · 久方武院長親授
+              下一個十年的產業革命 · {course?.instructor ?? "久方武"} 院長親授
             </p>
-            <div className="flex items-baseline justify-center gap-1">
+            <div className="flex items-baseline justify-center gap-3">
+              {originalPrice && originalPrice > price && (
+                <span className="text-2xl text-on-surface-variant line-through">
+                  {fmt(originalPrice)}
+                </span>
+              )}
               <span className="text-5xl font-black text-on-surface">
-                {PRICE_LABEL}
+                {fmt(price)}
               </span>
             </div>
             <p className="text-on-surface-variant text-xs mt-3">
               一次付費，終身觀看
             </p>
+            {bundleDays > 0 && (
+              <div className="mt-4 inline-flex items-center gap-2 bg-amber-500/15 text-amber-700 dark:text-amber-300 px-3 py-1.5 rounded-lg text-xs font-bold">
+                <Sparkles size={14} />
+                加贈 Pro 訂閱 {bundleDays} 天
+              </div>
+            )}
           </div>
 
-          <div className="space-y-4 mb-10">
+          <div className="space-y-3 mb-8 flex-1">
             {[
               "8 集深度課程內容",
               "從 SpaceX、Starlink 到台股太空概念股",
               "完整資本配置實戰框架",
               "永久回看，不定期更新補充",
+              ...(bundleDays > 0
+                ? [`含 ${bundleDays} 天 Pro 訂閱（持續更新內容、AI 助教全開）`]
+                : []),
               "課程相關問答支援",
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-3">
@@ -69,7 +109,48 @@ export default function PricingPage() {
             href={`/courses/${FEATURED_COURSE_SLUG}`}
             className="block w-full py-4 rounded-xl font-bold text-white signature-gradient hover:opacity-90 transition-opacity active:scale-[0.98] text-center"
           >
-            查看課程詳情
+            查看課程 · 立即購買
+          </Link>
+        </div>
+
+        {/* Pro 訂閱（次推） */}
+        <div className="bg-surface-container-low rounded-2xl p-10 border border-outline-variant/30 flex flex-col">
+          <div className="mb-6 text-center">
+            <h3 className="text-on-surface font-bold text-2xl mb-2">Pro 訂閱</h3>
+            <p className="text-on-surface-variant text-sm mb-6">
+              月付制 · 持續內容 + AI 助教
+            </p>
+            <div className="flex items-baseline justify-center gap-1">
+              <span className="text-5xl font-black text-on-surface">
+                {fmt(PRO_MONTHLY_NTD)}
+              </span>
+              <span className="text-on-surface-variant text-sm">/月</span>
+            </div>
+            <p className="text-on-surface-variant text-xs mt-3">
+              隨時可取消，下次扣款日前生效
+            </p>
+          </div>
+
+          <div className="space-y-3 mb-8 flex-1">
+            {[
+              "週更影片 + 文章持續發佈",
+              "AI 助教 Eyesy 全範圍開放",
+              "Discord 學員專屬頻道",
+              "Pro 限定電子報 + 內部洞察",
+              "（不含大師課影片，需另購）",
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Check size={18} className="text-on-surface-variant flex-shrink-0" />
+                <span className="text-on-surface text-sm">{item}</span>
+              </div>
+            ))}
+          </div>
+
+          <Link
+            href="/checkout?type=pro&billing=monthly"
+            className="block w-full py-4 rounded-xl font-bold text-on-surface bg-surface-container hover:bg-surface-container-high transition-colors active:scale-[0.98] text-center border border-outline-variant/30"
+          >
+            訂閱 Pro
           </Link>
         </div>
       </div>
@@ -96,12 +177,20 @@ export default function PricingPage() {
               a: "一次購買後永久觀看，沒有時間限制。我們也會不定期更新補充教材，購買者皆可取得。",
             },
             {
+              q: "送的 Pro 訂閱怎麼用？",
+              a: `購買大師課後自動開通 ${bundleDays || 90} 天 Pro 會籍，期間 AI 助教 Eyesy、Discord 專屬頻道、Pro 限定內容全開。期滿可選擇月費續訂。`,
+            },
+            {
+              q: "Pro 訂閱可以隨時取消嗎？",
+              a: "可以。在會員中心點取消，下個扣款日前不再扣款，當期已付週期繼續使用到期。",
+            },
+            {
               q: "有哪些付款方式？",
-              a: "目前支援藍新金流信用卡付款，所有金流交易皆透過藍新加密處理。",
+              a: "支援藍新金流信用卡付款（一次性 + 定期扣款），所有交易透過藍新加密處理。",
             },
             {
               q: "可以退款嗎？",
-              a: "依消費者保護法數位內容例外規定，課程一經開通即不退款。如有任何問題請先聯繫客服。",
+              a: "依消費者保護法數位內容例外規定，課程一經開通即不退款。Pro 訂閱可隨時取消但已扣款週期不退。",
             },
             {
               q: "適合什麼程度的學習者？",
