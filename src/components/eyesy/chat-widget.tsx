@@ -173,10 +173,10 @@ export function EyesyChatWidget() {
                       message.role !== "user" && "text-on-surface"
                     )}
                   >
-                    {message.parts
+                    {(message.parts
                       ?.filter((p) => p.type === "text")
                       .map((p) => (p as { type: "text"; text: string }).text)
-                      .join("") || ""}
+                      .join("") || "").replace(/^\[ctx:[^\]]+\]/, "")}
                   </p>
                 </div>
               </div>
@@ -205,7 +205,7 @@ export function EyesyChatWidget() {
           {messages.length === 0 && (
             <div className="px-4 pb-2 flex flex-wrap gap-2">
               {(context === "customer-service"
-                ? ["Pro 方案有什麼？", "課程怎麼選？", "可以免費試用嗎？"]
+                ? ["太空課在講什麼？", "Pro 方案有什麼？", "退款政策？"]
                 : context === "teaching"
                   ? ["幫我解釋這個概念", "給我一個實例", "下一步該學什麼？"]
                   : ["推薦適合我的課程", "我該從哪裡開始？"]

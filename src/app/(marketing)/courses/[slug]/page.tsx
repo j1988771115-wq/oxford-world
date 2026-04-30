@@ -13,6 +13,8 @@ import {
   Sparkles,
   Eye,
   Check,
+  X,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COURSE_DISCLAIMER } from "@/lib/constants";
@@ -64,6 +66,44 @@ export default async function CourseDetailPage({ params }: Props) {
     .eq("course_id", course.id)
     .order("sort_order", { ascending: true });
 
+  // 抓最近一次有進度的章節（讓 CTA 變「繼續學習」）
+  let resumeChapterId: string | null = null;
+  let resumePosition = 0;
+  let resumeChapterTitle: string | null = null;
+  if (hasAccess && userId) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("auth_id", userId)
+      .maybeSingle();
+    if (profile) {
+      const { data: lastProgress } = await supabase
+        .from("course_progress")
+        .select("chapter_id, last_position_seconds, completed")
+        .eq("user_id", profile.id)
+        .eq("course_id", course.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (
+        lastProgress &&
+        lastProgress.last_position_seconds > 5 &&
+        !lastProgress.completed
+      ) {
+        resumeChapterId = lastProgress.chapter_id;
+        resumePosition = lastProgress.last_position_seconds;
+        const ch = chapters?.find((c: any) => c.id === resumeChapterId);
+        resumeChapterTitle = ch?.title ?? null;
+      }
+    }
+  }
+
+  function fmtTime(s: number) {
+    const m = Math.floor(s / 60);
+    const ss = s % 60;
+    return `${m}:${ss.toString().padStart(2, "0")}`;
+  }
+
   return (
     <main className="pt-12 pb-20 px-8 max-w-[1440px] mx-auto">
       {/* Breadcrumb */}
@@ -108,6 +148,61 @@ export default async function CourseDetailPage({ params }: Props) {
             </p>
           </section>
 
+          {/* 本課給誰 — 邊界設定，過濾錯誤期待 */}
+          <section>
+            <h2 className="text-2xl font-bold text-on-surface mb-6">
+              這堂課給誰
+            </h2>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-6">
+                <h3 className="font-bold text-emerald-700 dark:text-emerald-300 mb-3 flex items-center gap-2 text-base">
+                  <Check size={18} /> 適合
+                </h3>
+                <ul className="space-y-2.5 text-sm text-on-surface leading-relaxed">
+                  <li>· 想建立太空產業投資框架的長期投資者</li>
+                  <li>· 願意花時間理解產業競爭結構,而不只買進股票代號</li>
+                  <li>· 有美股下單經驗,想擴張持股版圖到下一個十年</li>
+                  <li>· 對「為什麼 SpaceX 改寫產業」這類大敘事有興趣</li>
+                </ul>
+              </div>
+              <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-6">
+                <h3 className="font-bold text-rose-700 dark:text-rose-300 mb-3 flex items-center gap-2 text-base">
+                  <X size={18} /> 不適合
+                </h3>
+                <ul className="space-y-2.5 text-sm text-on-surface leading-relaxed">
+                  <li>· 想要明牌、買進賣出時機的短線投資者</li>
+                  <li>· 期待保證獲利或無風險回報的學員</li>
+                  <li>· 不打算實際投入資金、只想吸收財經新聞的人</li>
+                  <li>· 認為投資課等於「老師說買什麼我就買什麼」的學員</li>
+                </ul>
+              </div>
+            </div>
+            <p className="text-xs text-on-surface-variant mt-4 leading-relaxed">
+              我們把邊界寫清楚不是嚇你,是希望付費後你看的是真的能用的內容。
+            </p>
+          </section>
+
+          {/* 更新承諾 */}
+          <section className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <RefreshCw
+                size={20}
+                className="text-amber-700 dark:text-amber-300 mt-0.5 flex-shrink-0"
+              />
+              <div>
+                <h3 className="font-bold text-on-surface mb-2 text-base">
+                  季度更新承諾
+                </h3>
+                <p className="text-sm text-on-surface-variant leading-relaxed">
+                  太空產業每季變化大。我們承諾<strong className="text-on-surface">每 3 個月</strong>補充一支影片,回頭檢視「當下回看,各標的的 thesis 是否還成立?」 — 哪幾家估值漏了、哪些護城河被破、有什麼新進場者值得追蹤。
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mt-2 font-medium">
+                  購買者一次付費,終身收到所有更新。
+                </p>
+              </div>
+            </div>
+          </section>
+
           {/* Curriculum */}
           <section>
             <div className="flex justify-between items-end mb-6">
@@ -125,41 +220,55 @@ export default async function CourseDetailPage({ params }: Props) {
                   return (
                     <div
                       key={ch.id}
-                      className="bg-surface-container-lowest rounded-xl deep-diffusion p-5 flex items-center justify-between"
+                      className="bg-surface-container-lowest rounded-xl deep-diffusion p-5"
                     >
-                      <div className="flex items-center gap-4">
-                        <span className="w-8 h-8 rounded-lg bg-secondary-fixed text-on-secondary-fixed-variant flex items-center justify-center font-bold text-xs">
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
-                        <div>
-                          <h3 className="font-bold text-on-surface">
-                            {ch.title}
-                          </h3>
-                          <div className="flex flex-wrap items-center gap-2 mt-1">
-                            {ch.is_free_preview && (
-                              <span className="text-[10px] font-bold text-secondary-container bg-secondary-fixed px-1.5 py-0.5 rounded">
-                                免費試看
-                              </span>
-                            )}
-                            {isUpcoming && (
-                              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-1.5 py-0.5 rounded">
-                                兩週內上線
-                              </span>
-                            )}
-                            {ch.duration_seconds && !isUpcoming && (
-                              <span className="text-xs text-on-surface-variant">
-                                {Math.floor(ch.duration_seconds / 60)}:{String(ch.duration_seconds % 60).padStart(2, "0")}
-                              </span>
-                            )}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-4 flex-1 min-w-0">
+                          <span className="w-8 h-8 rounded-lg bg-secondary-fixed text-on-secondary-fixed-variant flex items-center justify-center font-bold text-xs shrink-0">
+                            {String(i + 1).padStart(2, "0")}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-on-surface leading-snug">
+                              {ch.title}
+                            </h3>
+                            <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                              {ch.is_free_preview && (
+                                <span className="text-[10px] font-bold text-secondary-container bg-secondary-fixed px-1.5 py-0.5 rounded">
+                                  免費試看
+                                </span>
+                              )}
+                              {isUpcoming && (
+                                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-1.5 py-0.5 rounded">
+                                  兩週內上線
+                                </span>
+                              )}
+                              {ch.duration_seconds && !isUpcoming && (
+                                <span className="text-xs text-on-surface-variant">
+                                  {Math.floor(ch.duration_seconds / 60)}:{String(ch.duration_seconds % 60).padStart(2, "0")}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
+                        <div className="shrink-0 mt-1">
+                          {isUpcoming ? (
+                            <Clock size={18} className="text-amber-700 dark:text-amber-300" />
+                          ) : ch.is_free_preview ? (
+                            <PlayCircle size={20} className="text-secondary-container fill-current" />
+                          ) : (
+                            <Lock size={18} className="text-on-surface-variant" />
+                          )}
+                        </div>
                       </div>
-                      {isUpcoming ? (
-                        <Clock size={18} className="text-amber-700 dark:text-amber-300" />
-                      ) : ch.is_free_preview ? (
-                        <PlayCircle size={20} className="text-secondary-container fill-current" />
-                      ) : (
-                        <Lock size={18} className="text-on-surface-variant" />
+                      {ch.takeaway_summary && (
+                        <div className="mt-3 ml-12 pt-3 border-t border-outline-variant/15">
+                          <p className="text-[11px] font-black text-secondary uppercase tracking-[0.18em] mb-1.5">
+                            你會帶走什麼
+                          </p>
+                          <p className="text-sm text-on-surface-variant leading-relaxed">
+                            {ch.takeaway_summary}
+                          </p>
+                        </div>
                       )}
                     </div>
                   );
@@ -264,12 +373,26 @@ export default async function CourseDetailPage({ params }: Props) {
                 {/* Actions */}
                 <div className="space-y-3">
                   {hasAccess ? (
-                    <Link
-                      href={`/learn/${course.id}`}
-                      className="block w-full text-center signature-gradient py-4 rounded-xl text-white font-extrabold text-lg deep-diffusion hover:brightness-110 transition-all active:scale-95"
-                    >
-                      開始學習
-                    </Link>
+                    resumeChapterId ? (
+                      <Link
+                        href={`/learn/${course.id}?chapter=${resumeChapterId}`}
+                        className="block w-full text-center signature-gradient py-4 rounded-xl text-white font-extrabold text-lg deep-diffusion hover:brightness-110 transition-all active:scale-95"
+                      >
+                        繼續學習 · 上次到 {fmtTime(resumePosition)}
+                        {resumeChapterTitle && (
+                          <div className="text-xs font-medium opacity-90 mt-1 truncate px-4">
+                            {resumeChapterTitle}
+                          </div>
+                        )}
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/learn/${course.id}`}
+                        className="block w-full text-center signature-gradient py-4 rounded-xl text-white font-extrabold text-lg deep-diffusion hover:brightness-110 transition-all active:scale-95"
+                      >
+                        開始學習
+                      </Link>
+                    )
                   ) : effectivePrice === 0 || course.is_free_preview ? (
                     <Link
                       href={
@@ -315,20 +438,26 @@ export default async function CourseDetailPage({ params }: Props) {
                   <div className="grid grid-cols-2 gap-4">
                     {[
                       {
+                        icon: Layers,
+                        label: "章節數",
+                        value: `${chapters?.length ?? 10} 章`,
+                      },
+                      {
                         icon: Clock,
                         label: "總時長",
-                        value: "12 小時",
+                        value: chapters && chapters.length > 0
+                          ? `約 ${Math.round((chapters.reduce((s: number, c: any) => s + (c.duration_seconds || 0), 0) / 3600) || 0)} 小時`
+                          : "陸續上線",
                       },
-                      { icon: Layers, label: "章節數", value: "45 課" },
                       {
                         icon: BarChart,
                         label: "難易度",
-                        value: "中級課程",
+                        value: "進階課程",
                       },
                       {
-                        icon: Award,
-                        label: "結業證書",
-                        value: "含結業證書",
+                        icon: RefreshCw,
+                        label: "持續更新",
+                        value: "每季補充",
                       },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-3">

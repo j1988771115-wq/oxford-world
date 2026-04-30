@@ -73,7 +73,7 @@ export default async function InsightDetailPage({
                   href="/pricing"
                   className="inline-block signature-gradient text-white px-8 py-3 rounded-xl font-bold text-sm shadow-lg hover:brightness-110 transition-all"
                 >
-                  免費試用 Pro 7 天
+                  訂閱 Pro 解鎖
                 </Link>
               </div>
             </div>

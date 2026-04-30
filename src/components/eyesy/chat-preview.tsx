@@ -166,7 +166,7 @@ export function ChatPreview() {
           showSuggestions ? "opacity-100" : "opacity-0"
         )}
       >
-        {["推薦適合的課程", "什麼是 Vibe Coding？"].map((s, i) => (
+        {["這堂課適合我嗎？", "Pro 訂閱包含什麼？"].map((s, i) => (
           <span
             key={i}
             className="text-[11px] px-3 py-1.5 rounded-full bg-secondary-fixed/80 text-on-secondary-fixed-variant font-medium"

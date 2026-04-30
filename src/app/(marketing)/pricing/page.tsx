@@ -56,121 +56,129 @@ export default async function PricingPage() {
           <h1 className="text-5xl md:text-6xl font-black text-on-surface tracking-tight mb-6 leading-tight">
             大師課
             <br />
-            一次買斷，終身回看
+            一次買斷,終身回看
           </h1>
           <p className="text-xl text-on-surface-variant leading-relaxed">
-            由久方武院長親授的太空時代資本配置課程。從 SpaceX 帝國解剖到台股太空概念股，給你完整的投資框架。
+            由久方武院長親授的太空時代資本配置課程,從 SpaceX 帝國解剖到 ASTS 等美股太空標的,給你完整的投資框架。
           </p>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-8 grid md:grid-cols-2 gap-6 items-stretch">
-        {/* 大師課（主推） */}
-        <div className="relative bg-surface-container-lowest rounded-2xl p-10 border-2 border-amber-500/30 shadow-[0_24px_48px_-12px_rgba(13,28,50,0.12)] flex flex-col">
-          <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-tighter flex items-center gap-1.5">
-            <Crown size={14} />
-            大師課
-          </div>
-
-          <div className="mb-6 text-center">
-            <h3 className="text-on-surface font-bold text-2xl mb-2">
-              {course?.title ?? "太空時代的資本配置"}
-            </h3>
-            <p className="text-on-surface-variant text-sm mb-6">
-              下一個十年的產業革命 · {course?.instructor ?? "久方武"} 院長親授
-            </p>
-            {originalPrice && originalPrice > price && (
-              <div className="inline-flex items-center gap-1.5 bg-red-500/15 text-red-600 dark:text-red-400 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-3">
-                <Sparkles size={12} />
-                {saleEndLabel ? `特價期間 · ${saleEndLabel}` : "特價期間"}
-              </div>
-            )}
-            <div className="flex items-baseline justify-center gap-3">
-              {originalPrice && originalPrice > price && (
-                <span className="text-2xl text-on-surface-variant line-through">
-                  {fmt(originalPrice)}
-                </span>
-              )}
-              <span className="text-5xl font-black text-on-surface">
-                {fmt(price)}
-              </span>
+        {/* 大師課 (主推) */}
+        <div className="relative bg-surface-container-lowest rounded-2xl border-2 border-amber-500/40 shadow-[0_24px_48px_-12px_rgba(13,28,50,0.18)] flex flex-col overflow-hidden">
+          {originalPrice && originalPrice > price && (
+            <div className="bg-amber-500 text-white text-center py-2.5 text-[11px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2">
+              <Sparkles size={12} />
+              限時特價{saleEndLabel ? ` · ${saleEndLabel}` : ""}
             </div>
-            <p className="text-on-surface-variant text-xs mt-3">
-              一次付費，終身觀看
-            </p>
-            {bundleDays > 0 && (
-              <div className="mt-4 inline-flex items-center gap-2 bg-amber-500/15 text-amber-700 dark:text-amber-300 px-3 py-1.5 rounded-lg text-xs font-bold">
-                <Sparkles size={14} />
-                加贈 Pro 訂閱 {bundleDays} 天
-              </div>
-            )}
-          </div>
+          )}
 
-          <div className="space-y-3 mb-8 flex-1">
-            {[
-              "8 集深度課程內容",
-              "從 SpaceX、Starlink 到台股太空概念股",
-              "完整資本配置實戰框架",
-              "永久回看，不定期更新補充",
-              ...(bundleDays > 0
-                ? [`含 ${bundleDays} 天 Pro 訂閱（持續更新內容、AI 助教全開）`]
-                : []),
-              "課程相關問答支援",
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Check size={18} className="text-amber-500 flex-shrink-0" />
-                <span className="text-on-surface text-sm">{item}</span>
+          <div className="p-10 flex flex-col flex-1">
+            <div className="mb-8 text-center">
+              <div className="inline-flex items-center gap-1.5 bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-[0.18em] mb-4">
+                <Crown size={11} />
+                大師課
               </div>
-            ))}
-          </div>
+              <h3 className="text-on-surface font-bold text-2xl mb-2 leading-snug">
+                {course?.title ?? "太空時代的資本配置"}
+              </h3>
+              <p className="text-on-surface-variant text-sm mb-7">
+                下一個十年的產業革命 · {course?.instructor ?? "久方武"} 院長親授
+              </p>
+              <div className="flex items-baseline justify-center gap-3 mb-2">
+                {originalPrice && originalPrice > price && (
+                  <span className="text-xl text-on-surface-variant line-through">
+                    {fmt(originalPrice)}
+                  </span>
+                )}
+                <span className="text-5xl font-black text-on-surface tracking-tight">
+                  {fmt(price)}
+                </span>
+              </div>
+              <p className="text-on-surface-variant text-xs">
+                一次付費 · 終身觀看
+                {bundleDays > 0 ? ` · 加贈 Pro ${bundleDays} 天` : ""}
+              </p>
+            </div>
 
-          <Link
-            href={`/courses/${FEATURED_COURSE_SLUG}`}
-            className="block w-full py-4 rounded-xl font-bold text-white signature-gradient hover:opacity-90 transition-opacity active:scale-[0.98] text-center"
-          >
-            查看課程 · 立即購買
-          </Link>
+            <div className="space-y-3 mb-8 flex-1">
+              {[
+                "10 章深度課程內容",
+                "SpaceX、Starlink 到 ASTS 等美股太空標的",
+                "完整資本配置實戰框架",
+                "永久回看,不定期更新補充",
+                ...(bundleDays > 0
+                  ? [`含 ${bundleDays} 天 Pro 訂閱(AI 助教全開)`]
+                  : []),
+                "課程相關問答支援",
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Check size={18} className="text-amber-500 flex-shrink-0" />
+                  <span className="text-on-surface text-sm">{item}</span>
+                </div>
+              ))}
+            </div>
+
+            <Link
+              href={`/courses/${FEATURED_COURSE_SLUG}`}
+              className="block w-full py-4 rounded-xl font-bold text-white signature-gradient hover:opacity-90 transition-opacity active:scale-[0.98] text-center"
+            >
+              查看課程 · 立即購買
+            </Link>
+          </div>
         </div>
 
-        {/* Pro 訂閱（次推） */}
-        <div className="bg-surface-container-low rounded-2xl p-10 border border-outline-variant/30 flex flex-col">
-          <div className="mb-6 text-center">
-            <h3 className="text-on-surface font-bold text-2xl mb-2">Pro 訂閱</h3>
-            <p className="text-on-surface-variant text-sm mb-6">
-              月付制 · 持續內容 + AI 助教
-            </p>
-            <div className="flex items-baseline justify-center gap-1">
-              <span className="text-5xl font-black text-on-surface">
-                {fmt(PRO_MONTHLY_NTD)}
-              </span>
-              <span className="text-on-surface-variant text-sm">/月</span>
-            </div>
-            <p className="text-on-surface-variant text-xs mt-3">
-              隨時可取消，下次扣款日前生效
-            </p>
+        {/* Pro 訂閱 (次推) */}
+        <div className="bg-surface-container-low rounded-2xl border border-outline-variant/30 flex flex-col overflow-hidden">
+          <div className="py-2.5 text-[11px] font-black uppercase tracking-[0.2em] text-on-surface-variant text-center border-b border-outline-variant/20">
+            訂閱方案
           </div>
 
-          <div className="space-y-3 mb-8 flex-1">
-            {[
-              "週更影片 + 文章持續發佈",
-              "AI 助教 Eyesy 全範圍開放",
-              "Discord 學員專屬頻道",
-              "Pro 限定電子報 + 內部洞察",
-              "（不含大師課影片，需另購）",
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Check size={18} className="text-on-surface-variant flex-shrink-0" />
-                <span className="text-on-surface text-sm">{item}</span>
+          <div className="p-10 flex flex-col flex-1">
+            <div className="mb-8 text-center">
+              <div className="inline-flex items-center gap-1.5 bg-surface-container text-on-surface-variant text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-[0.18em] mb-4">
+                Pro
               </div>
-            ))}
-          </div>
+              <h3 className="text-on-surface font-bold text-2xl mb-2 leading-snug">
+                Pro 訂閱
+              </h3>
+              <p className="text-on-surface-variant text-sm mb-7">
+                月付制 · 持續內容 + AI 助教
+              </p>
+              <div className="flex items-baseline justify-center gap-1 mb-2">
+                <span className="text-5xl font-black text-on-surface tracking-tight">
+                  {fmt(PRO_MONTHLY_NTD)}
+                </span>
+                <span className="text-on-surface-variant text-sm">/月</span>
+              </div>
+              <p className="text-on-surface-variant text-xs">
+                隨時可取消 · 下次扣款日前生效
+              </p>
+            </div>
 
-          <Link
-            href="/checkout?type=pro&billing=monthly"
-            className="block w-full py-4 rounded-xl font-bold text-on-surface bg-surface-container hover:bg-surface-container-high transition-colors active:scale-[0.98] text-center border border-outline-variant/30"
-          >
-            訂閱 Pro
-          </Link>
+            <div className="space-y-3 mb-8 flex-1">
+              {[
+                "週更影片 + 文章持續發佈",
+                "AI 助教 Eyesy 全範圍開放",
+                "Discord 學員專屬頻道",
+                "Pro 限定電子報",
+                "(不含大師課影片,需另購)",
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Check size={18} className="text-on-surface-variant flex-shrink-0" />
+                  <span className="text-on-surface text-sm">{item}</span>
+                </div>
+              ))}
+            </div>
+
+            <Link
+              href="/checkout?type=pro&billing=monthly"
+              className="block w-full py-4 rounded-xl font-bold text-on-surface bg-surface-container hover:bg-surface-container-high transition-colors active:scale-[0.98] text-center border border-outline-variant/30"
+            >
+              訂閱 Pro
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -192,28 +200,28 @@ export default async function PricingPage() {
         <div className="space-y-4">
           {[
             {
-              q: "課程影片可以看多久？",
-              a: "一次購買後永久觀看，沒有時間限制。我們也會不定期更新補充教材，購買者皆可取得。",
+              q: "課程影片可以看多久?",
+              a: "一次購買後永久觀看,沒有時間限制。我們也會不定期更新補充教材,購買者皆可取得。",
             },
             {
-              q: "送的 Pro 訂閱怎麼用？",
-              a: `購買大師課後自動開通 ${bundleDays || 90} 天 Pro 會籍，期間 AI 助教 Eyesy、Discord 專屬頻道、Pro 限定內容全開。期滿可選擇月費續訂。`,
+              q: "送的 Pro 訂閱怎麼用?",
+              a: `購買大師課後自動開通 ${bundleDays || 90} 天 Pro 會籍,期間 AI 助教 Eyesy、Discord 專屬頻道、Pro 限定內容全開。期滿可選擇月費續訂。`,
             },
             {
-              q: "Pro 訂閱可以隨時取消嗎？",
-              a: "可以。在會員中心點取消，下個扣款日前不再扣款，當期已付週期繼續使用到期。",
+              q: "Pro 訂閱可以隨時取消嗎?",
+              a: "可以。在會員中心點取消,下個扣款日前不再扣款,當期已付週期繼續使用到期。",
             },
             {
-              q: "有哪些付款方式？",
-              a: "支援藍新金流信用卡付款（一次性 + 定期扣款），所有交易透過藍新加密處理。",
+              q: "有哪些付款方式?",
+              a: "支援藍新金流信用卡付款 (一次性 + 定期扣款),所有交易透過藍新加密處理。",
             },
             {
-              q: "可以退款嗎？",
-              a: "依消費者保護法數位內容例外規定，課程一經開通即不退款。Pro 訂閱可隨時取消但已扣款週期不退。",
+              q: "可以退款嗎?",
+              a: "依消費者保護法數位內容例外規定,課程一經開通即不退款。Pro 訂閱可隨時取消但已扣款週期不退。",
             },
             {
-              q: "適合什麼程度的學習者？",
-              a: "課程以投資邏輯與產業分析為主，適合對太空科技與資本市場有興趣、希望建立系統性投資觀點的學習者。不需任何專業背景。",
+              q: "適合什麼程度的學習者?",
+              a: "課程以投資邏輯與產業分析為主,適合對太空科技與資本市場有興趣、希望建立系統性投資觀點的學習者。不需任何專業背景。",
             },
           ].map((faq, i) => (
             <details

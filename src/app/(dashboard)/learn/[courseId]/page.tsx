@@ -3,6 +3,7 @@ import { checkCourseAccess } from "@/lib/actions/courses";
 import { createClient } from "@/lib/supabase/server";
 import { VideoPlayer } from "@/components/courses/video-player";
 import { YouTubePlayer } from "@/components/courses/youtube-player";
+import { ChapterCheckin } from "@/components/courses/chapter-checkin";
 import Link from "next/link";
 import {
   PlayCircle,
@@ -16,6 +17,23 @@ import { cn } from "@/lib/utils";
 interface Props {
   params: Promise<{ courseId: string }>;
   searchParams: Promise<{ chapter?: string }>;
+}
+
+interface ChapterProgress {
+  chapter_id: string;
+  last_position_seconds: number;
+  duration_seconds: number | null;
+  completed: boolean;
+}
+
+function maskEmail(email: string | null | undefined): string {
+  if (!email) return "學員";
+  // 一律遮 — 不管輸入長什麼樣，最多露 2 字 + ***@***
+  // 不依賴 @ 解析；malformed/SSO/phone 也不會意外露出來
+  const safe = (email.match(/[A-Za-z0-9_.+-]/g) || [])
+    .slice(0, 2)
+    .join("");
+  return `${safe || "user"}***@***`;
 }
 
 export default async function LearnPage({ params, searchParams }: Props) {
@@ -43,6 +61,33 @@ export default async function LearnPage({ params, searchParams }: Props) {
   // Check access
   const hasAccess = await checkCourseAccess(courseId);
 
+  // Get user + progress
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const userEmail = user?.email;
+  const watermarkId = maskEmail(userEmail);
+
+  let progressByChapter = new Map<string, ChapterProgress>();
+  if (user) {
+    // user-scoped client → RLS 自動限定只讀自己的 profile + progress
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("auth_id", user.id)
+      .maybeSingle();
+    if (profile) {
+      const { data: rows } = await supabase
+        .from("course_progress")
+        .select("chapter_id, last_position_seconds, duration_seconds, completed")
+        .eq("user_id", profile.id)
+        .eq("course_id", courseId);
+      for (const r of (rows || []) as ChapterProgress[]) {
+        progressByChapter.set(r.chapter_id, r);
+      }
+    }
+  }
+
   // Current chapter
   const currentChapter = chapterId
     ? chapters?.find((ch: any) => ch.id === chapterId)
@@ -50,6 +95,12 @@ export default async function LearnPage({ params, searchParams }: Props) {
 
   const canPlay =
     currentChapter?.is_free_preview || hasAccess;
+
+  // Resume position for current chapter
+  const currentProgress = currentChapter
+    ? progressByChapter.get(currentChapter.id)
+    : undefined;
+  const resumeAt = currentProgress?.last_position_seconds ?? 0;
 
   function formatDuration(seconds: number | null) {
     if (!seconds) return "";
@@ -68,6 +119,8 @@ export default async function LearnPage({ params, searchParams }: Props) {
               chapterId={currentChapter.id}
               title={currentChapter.title}
               accentColor="#00d2ff"
+              startTime={resumeAt}
+              watermarkId={watermarkId}
             />
           ) : canPlay && currentChapter?.youtube_url ? (
             <YouTubePlayer
@@ -118,6 +171,15 @@ export default async function LearnPage({ params, searchParams }: Props) {
               </p>
             )}
 
+            {/* 學後 AI checkin — 僅在已購買 + 章節有影片時出現 */}
+            {canPlay && currentChapter && (currentChapter.mux_playback_id || currentChapter.youtube_url) && (
+              <ChapterCheckin
+                key={currentChapter.id}
+                chapterId={currentChapter.id}
+                chapterTitle={currentChapter.title}
+              />
+            )}
+
             {/* Quick actions */}
             <div className="flex gap-3">
               <Link
@@ -141,6 +203,10 @@ export default async function LearnPage({ params, searchParams }: Props) {
                 {chapters?.map((ch: any, i: number) => {
                   const isCurrent = ch.id === currentChapter?.id;
                   const isLocked = !ch.is_free_preview && !hasAccess;
+                  const progress = progressByChapter.get(ch.id);
+                  const hasProgress =
+                    !!progress && progress.last_position_seconds > 5;
+                  const isCompleted = !!progress?.completed;
 
                   return (
                     <Link
@@ -162,6 +228,11 @@ export default async function LearnPage({ params, searchParams }: Props) {
                           <Lock
                             size={16}
                             className="text-on-surface-variant"
+                          />
+                        ) : isCompleted ? (
+                          <CheckCircle2
+                            size={16}
+                            className="text-emerald-500 fill-emerald-500/20"
                           />
                         ) : isCurrent ? (
                           <PlayCircle
@@ -198,6 +269,15 @@ export default async function LearnPage({ params, searchParams }: Props) {
                               {formatDuration(ch.duration_seconds)}
                             </span>
                           )}
+                          {isCompleted ? (
+                            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                              已看完
+                            </span>
+                          ) : hasProgress ? (
+                            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                              上次到 {formatDuration(progress!.last_position_seconds)}
+                            </span>
+                          ) : null}
                         </div>
                       </div>
                     </Link>

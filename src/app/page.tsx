@@ -146,13 +146,13 @@ export default async function HomePage() {
               {
                 quote: "老師會補充很多相關內容，DC 也能隨時討論，學習不再孤單。整體體驗非常好！",
                 name: "K 同學",
-                role: "第一期區塊鏈學員",
+                role: "牛津視界學員",
                 rating: 10,
               },
               {
-                quote: "五天密集訓練效果最好，課程內容扎實，感謝 YC 老師跟行政團隊的努力。",
+                quote: "五天密集訓練效果最好，課程內容扎實，感謝講師跟行政團隊的努力。",
                 name: "W 同學",
-                role: "第一期區塊鏈學員",
+                role: "牛津視界學員",
                 rating: 9,
               },
               {
@@ -208,7 +208,7 @@ export default async function HomePage() {
                 精選課程
               </h2>
               <p className="text-on-surface-variant text-lg">
-                從 Vibe Coding 到投資趨勢，跨領域的 AI 賦能計畫
+                美股太空科技到 AI 趨勢，由業界院長親自拆解
               </p>
             </div>
             <Link
@@ -285,143 +285,117 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 4. Pro 方案 — 轉換 */}
+      {/* 4. 方案 — 轉換 */}
       <section className="py-32 bg-surface">
-        <div className="max-w-7xl mx-auto px-8">
+        <div className="max-w-5xl mx-auto px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-black text-on-surface mb-4 font-headline tracking-tight">
-              選擇你的學習方案
+              選擇你的方案
             </h2>
             <p className="text-on-surface-variant text-lg">
-              免費開始，Pro 解鎖全部潛力
+              大師課單堂買斷 · Pro 月費吃所有持續更新內容
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto items-start">
-            {/* 免費 */}
-            <div className="bg-surface-container-lowest rounded-xl p-10 flex flex-col h-full border border-transparent hover:border-surface-container-high transition-all deep-diffusion">
-              <div className="mb-8">
-                <h3 className="text-on-surface-variant font-bold text-sm uppercase tracking-widest mb-2">
-                  免費
-                </h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-black text-on-surface">
-                    NT$0
-                  </span>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+            {/* 大師課（主推） */}
+            <div className="relative bg-surface-container-lowest rounded-2xl border-2 border-amber-500/40 shadow-[0_24px_48px_-12px_rgba(13,28,50,0.18)] flex flex-col overflow-hidden">
+              <div className="bg-amber-500 text-white text-center py-2.5 text-[11px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2">
+                <Sparkles size={12} />
+                限時特價 · 5/14 結束
               </div>
-              <div className="space-y-5 mb-10 flex-grow">
-                {[
-                  "免費課程試看",
-                  "AI 工具分享文章",
-                  "Email 訂閱週報",
-                  "討論區參與",
-                  "等級升級（慢速）",
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <Check size={18} className="text-green-500" />
-                    <span className="text-on-surface text-sm">{item}</span>
+              <div className="p-10 flex flex-col flex-1">
+                <div className="mb-8">
+                  <div className="inline-flex items-center gap-1.5 bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-[0.18em] mb-4">
+                    <Crown size={11} />
+                    大師課
                   </div>
-                ))}
-              </div>
-              <Link
-                href="/sign-up"
-                className="block w-full py-4 rounded-xl font-bold bg-surface-container-highest text-on-surface hover:bg-surface-dim transition-colors active:scale-[0.98] text-center"
-              >
-                免費註冊
-              </Link>
-            </div>
-
-            {/* Pro */}
-            <div className="relative bg-surface-container-lowest rounded-xl p-10 flex flex-col h-full border-2 border-secondary-container shadow-[0_24px_48px_-12px_rgba(13,28,50,0.12)] scale-105 z-10">
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-secondary-container text-[#0A192F] text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-tighter">
-                最受歡迎
-              </div>
-              <div className="mb-8">
-                <h3 className="text-secondary font-bold text-sm uppercase tracking-widest mb-2">
-                  Pro
-                </h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-black text-on-surface">
-                    NT$999
-                  </span>
-                  <span className="text-on-surface-variant text-sm">/ 月</span>
-                </div>
-                <p className="text-secondary text-xs font-bold mt-2">
-                  前 7 天免費試用
-                </p>
-              </div>
-              <div className="space-y-5 mb-10 flex-grow">
-                {[
-                  "Vibe Coding 全系列課程",
-                  "市場分析報告",
-                  "Eyesy AI 助教",
-                  "個人化學習路徑",
-                  "Discord 社群",
-                  "副本解鎖（工作坊、圓桌）",
-                  "等級升級（加速）",
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <Check
-                      size={18}
-                      className={
-                        i < 3 ? "text-secondary" : "text-green-500"
-                      }
-                    />
-                    <span className="text-on-surface text-sm font-medium">
-                      {item}
+                  <h3 className="text-on-surface font-bold text-2xl mb-2 leading-snug">
+                    太空時代的資本配置
+                  </h3>
+                  <p className="text-on-surface-variant text-sm mb-6">
+                    久方武院長親授 · 10 章深度拆解美股太空標的
+                  </p>
+                  <div className="flex items-baseline gap-3 mb-2">
+                    <span className="text-xl text-on-surface-variant line-through">
+                      NT$30,000
+                    </span>
+                    <span className="text-4xl font-black text-on-surface tracking-tight">
+                      NT$24,900
                     </span>
                   </div>
-                ))}
+                  <p className="text-on-surface-variant text-xs">
+                    一次付費 · 終身觀看 · 加贈 Pro 90 天
+                  </p>
+                </div>
+                <div className="space-y-3 mb-8 flex-1">
+                  {[
+                    "10 章深度課程內容",
+                    "SpaceX、Starlink 到 ASTS",
+                    "完整資本配置實戰框架",
+                    "永久回看 + 不定期補充",
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <Check size={18} className="text-amber-500 flex-shrink-0" />
+                      <span className="text-on-surface text-sm">{item}</span>
+                    </div>
+                  ))}
+                </div>
+                <Link
+                  href="/courses/master-space-age-capital"
+                  className="block w-full py-4 rounded-xl font-bold text-white signature-gradient hover:opacity-90 transition-opacity active:scale-[0.98] text-center"
+                >
+                  立即購買
+                </Link>
               </div>
-              <Link
-                href="/sign-up?plan=pro"
-                className="block w-full py-4 rounded-xl font-bold text-white signature-gradient hover:opacity-90 transition-opacity active:scale-[0.98] text-center"
-              >
-                免費試用 7 天
-              </Link>
-              <p className="text-center text-xs text-on-surface-variant mt-3">
-                年繳 NT$9,990 省 17% · 隨時可取消
-              </p>
             </div>
 
-            {/* 大師課 */}
-            <div className="bg-surface-container-lowest rounded-xl p-10 flex flex-col h-full border border-transparent hover:border-surface-container-high transition-all deep-diffusion">
-              <div className="mb-8">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-on-surface-variant font-bold text-sm uppercase tracking-widest">
-                    大師課
-                  </h3>
-                  <Crown size={16} className="text-amber-500" />
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-black text-on-surface">
-                    依課程定價
-                  </span>
-                </div>
-                <p className="text-on-surface-variant text-xs mt-2">
-                  單課買斷，永久觀看
-                </p>
+            {/* Pro 訂閱 */}
+            <div className="bg-surface-container-low rounded-2xl border border-outline-variant/30 flex flex-col overflow-hidden">
+              <div className="py-2.5 text-[11px] font-black uppercase tracking-[0.2em] text-on-surface-variant text-center border-b border-outline-variant/20">
+                訂閱方案
               </div>
-              <div className="space-y-5 mb-10 flex-grow">
-                {[
-                  "頂尖講師深度課程",
-                  "投資趨勢 × 產業分析",
-                  "一次付費，終身回看",
-                  "不定期更新補充教材",
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <Check size={18} className="text-amber-500" />
-                    <span className="text-on-surface text-sm">{item}</span>
+              <div className="p-10 flex flex-col flex-1">
+                <div className="mb-8">
+                  <div className="inline-flex items-center gap-1.5 bg-surface-container text-on-surface-variant text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-[0.18em] mb-4">
+                    Pro
                   </div>
-                ))}
+                  <h3 className="text-on-surface font-bold text-2xl mb-2 leading-snug">
+                    Pro 訂閱
+                  </h3>
+                  <p className="text-on-surface-variant text-sm mb-6">
+                    月付制 · 持續內容 + AI 助教
+                  </p>
+                  <div className="flex items-baseline gap-1 mb-2">
+                    <span className="text-4xl font-black text-on-surface tracking-tight">
+                      NT$999
+                    </span>
+                    <span className="text-on-surface-variant text-sm">/月</span>
+                  </div>
+                  <p className="text-on-surface-variant text-xs">
+                    隨時可取消 · 下次扣款日前生效
+                  </p>
+                </div>
+                <div className="space-y-3 mb-8 flex-1">
+                  {[
+                    "週更影片 + 文章持續發佈",
+                    "AI 助教 Eyesy 全範圍開放",
+                    "Discord 學員專屬頻道",
+                    "Pro 限定電子報",
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <Check size={18} className="text-on-surface-variant flex-shrink-0" />
+                      <span className="text-on-surface text-sm">{item}</span>
+                    </div>
+                  ))}
+                </div>
+                <Link
+                  href="/pricing"
+                  className="block w-full py-4 rounded-xl font-bold text-on-surface bg-surface-container hover:bg-surface-container-high transition-colors active:scale-[0.98] text-center border border-outline-variant/30"
+                >
+                  了解 Pro 方案
+                </Link>
               </div>
-              <Link
-                href="/courses"
-                className="block w-full py-4 rounded-xl font-bold bg-surface-container-highest text-on-surface hover:bg-surface-dim transition-colors active:scale-[0.98] text-center"
-              >
-                瀏覽大師課
-              </Link>
             </div>
           </div>
 
@@ -429,11 +403,11 @@ export default async function HomePage() {
           <div className="mt-16 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 opacity-60">
             <div className="flex items-center gap-2 text-on-surface">
               <ShieldCheck size={20} />
-              <span className="text-sm font-bold">安全支付</span>
+              <span className="text-sm font-bold">藍新金流 · 安全支付</span>
             </div>
             <div className="flex items-center gap-2 text-on-surface">
               <RefreshCw size={20} />
-              <span className="text-sm font-bold">Pro 7 天免費試用</span>
+              <span className="text-sm font-bold">一次購買 · 終身觀看</span>
             </div>
           </div>
         </div>
