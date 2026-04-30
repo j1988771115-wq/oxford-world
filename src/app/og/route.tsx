@@ -27,13 +27,25 @@ export async function GET() {
         >
           <div
             style={{
+              fontSize: "16px",
+              fontWeight: 700,
+              color: "#94a3b8",
+              letterSpacing: "4px",
+              marginBottom: "8px",
+            }}
+          >
+            牛津視界 OXFORD VISION
+          </div>
+          <div
+            style={{
               fontSize: "72px",
               fontWeight: 900,
               color: "white",
               letterSpacing: "-2px",
+              textAlign: "center",
             }}
           >
-            牛津視界
+            太空時代的資本配置
           </div>
           <div
             style={{
@@ -44,16 +56,16 @@ export async function GET() {
               color: "transparent",
             }}
           >
-            Oxford Vision
+            下一個十年的產業革命
           </div>
           <div
             style={{
-              fontSize: "24px",
+              fontSize: "22px",
               color: "#94a3b8",
               marginTop: "16px",
             }}
           >
-            AI 時代，不再當無頭蒼蠅
+            久方武院長親授 · 8 章深度拆解
           </div>
         </div>
       </div>

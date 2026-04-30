@@ -19,20 +19,20 @@ const notoSansTC = Noto_Sans_TC({
 });
 
 export const metadata: Metadata = {
-  title: "牛津視界 Oxford Vision — AI 時代的學習夥伴",
+  title: "牛津視界 Oxford Vision — 太空時代的資本配置",
   description:
-    "系統化的 AI 學習路徑、講師 AI 助手、同儕社群。不再當無頭蒼蠅，找到你的方向。",
+    "下一個十年的產業革命。久方武院長 8 章深度拆解，從 SpaceX 到台股太空概念股，一套完整投資框架。",
   openGraph: {
-    title: "牛津視界 Oxford Vision",
-    description: "AI 時代的學習夥伴 — 系統化的 AI 學習路徑、講師 AI 助手、同儕社群",
+    title: "太空時代的資本配置 — 牛津視界",
+    description: "久方武院長親授 · 8 章深度拆解 SpaceX 到台股太空概念股",
     type: "website",
     locale: "zh_TW",
     images: [{ url: "/og", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "牛津視界 Oxford Vision",
-    description: "AI 時代的學習夥伴",
+    title: "太空時代的資本配置 — 牛津視界",
+    description: "下一個十年的產業革命 · 久方武院長親授",
     images: ["/og"],
   },
 };

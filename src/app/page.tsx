@@ -78,19 +78,19 @@ export default async function HomePage() {
                 </span>
               </div>
               <h2 className="text-4xl md:text-5xl font-black text-on-surface leading-tight tracking-tight mb-6 font-headline">
-                認識 Eyesy，
+                課程內 AI 助教
                 <br />
-                你的 AI 學習夥伴
+                Eyesy 隨時待命
               </h2>
               <p className="text-lg text-on-surface-variant leading-relaxed mb-8">
-                不只是聊天機器人。Eyesy
-                讀過所有講師的教材，能用你聽得懂的方式解釋概念、推薦課程、回答學習路上的每一個問題。
+                購買大師課後，Eyesy
+                讀過完整課程教材，能基於講師原話幫你深入提問、複習重點、回答你不敢在直播問的細節。
               </p>
               <div className="space-y-4 mb-8">
                 {[
-                  "24/7 隨時在線，不用等講師回覆",
-                  "基於課程內容回答，不是罐頭答案",
-                  "記住你的進度，給你個人化建議",
+                  "24/7 隨時在線，不用等下次直播",
+                  "基於講師原話回答，不是 ChatGPT 罐頭",
+                  "記住你看到哪一章，給你個人化複習",
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <Check size={18} className="text-green-500 shrink-0" />
@@ -101,27 +101,31 @@ export default async function HomePage() {
                 ))}
               </div>
 
-              {/* Pro callout */}
-              <div className="bg-secondary-fixed/10 border border-secondary/20 rounded-xl p-5 mb-8">
+              {/* Bundle callout */}
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-5 mb-8">
                 <div className="flex items-center gap-2 mb-2">
-                  <Sparkles size={16} className="text-secondary" />
-                  <span className="text-sm font-bold text-secondary">
-                    Pro 會員專屬
+                  <Sparkles size={16} className="text-amber-600 dark:text-amber-400" />
+                  <span className="text-sm font-bold text-amber-700 dark:text-amber-300">
+                    購買大師課加贈
                   </span>
                 </div>
                 <p className="text-sm text-on-surface-variant">
-                  Pro 會員享有 Eyesy AI
-                  助教、個人化學習路徑、市場分析報告。免費試用 7 天，隨時取消。
+                  購買「太空時代的資本配置」自動加贈 90 天 Pro 訂閱：Eyesy AI 助教全範圍開放、Pro 限定週更內容、Discord 學員專屬頻道。
                 </p>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <EyesyCTAButton />
                 <Link
-                  href="/quiz"
+                  href="/courses/master-space-age-capital"
+                  className="signature-gradient text-white px-8 py-4 rounded-xl font-bold text-lg hover:scale-[1.02] transition-transform text-center"
+                >
+                  查看大師課
+                </Link>
+                <Link
+                  href="/pricing"
                   className="border-2 border-outline-variant/30 text-on-surface px-8 py-4 rounded-xl font-bold text-lg hover:bg-surface-container-low transition-colors text-center"
                 >
-                  AI 學習路徑測驗
+                  比較 Pro 訂閱
                 </Link>
               </div>
             </div>
