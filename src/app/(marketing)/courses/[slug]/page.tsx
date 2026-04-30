@@ -14,7 +14,6 @@ import {
   Eye,
   Check,
   X,
-  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COURSE_DISCLAIMER } from "@/lib/constants";
@@ -180,24 +179,6 @@ export default async function CourseDetailPage({ params }: Props) {
             <p className="text-xs text-on-surface-variant mt-4 leading-relaxed">
               邊界寫清楚不是嚇你,是希望付費後你看的是真能用的內容。
             </p>
-          </section>
-
-          {/* 更新承諾 */}
-          <section className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-6 deep-diffusion">
-            <div className="flex items-start gap-4">
-              <RefreshCw
-                size={18}
-                className="text-on-surface-variant mt-0.5 flex-shrink-0"
-              />
-              <div>
-                <h3 className="font-bold text-on-surface mb-2 text-base">
-                  季度更新承諾
-                </h3>
-                <p className="text-sm text-on-surface-variant leading-relaxed">
-                  太空產業每季變化大。我們承諾<strong className="text-on-surface">每 3 個月</strong>補一支影片,回頭看各標的的 thesis 是否還成立 — 哪幾家估值漏了、哪些護城河被破、有什麼新進場者值得追蹤。一次付費,終身收到所有更新。
-                </p>
-              </div>
-            </div>
           </section>
 
           {/* Curriculum */}
@@ -448,9 +429,9 @@ export default async function CourseDetailPage({ params }: Props) {
                         value: "進階課程",
                       },
                       {
-                        icon: RefreshCw,
-                        label: "持續更新",
-                        value: "每季補充",
+                        icon: Award,
+                        label: "課程形式",
+                        value: "永久回看",
                       },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-3">
