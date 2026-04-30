@@ -51,16 +51,16 @@ COURSE_SLUG = "master-space-age-capital"
 PC_HOST = "jd@100.109.36.77"
 PC_OUT_DIR = "C:/Users/JD/oxford-autopilot/out"   # forward slashes for ssh
 
-# (sort_order, ticker) — 對應 course_chapters
+# (sort_order, ticker) — 對應 course_chapters（已 renumber 1-8，砍掉 placeholder ch1+ch10）
 CHAPTER_VIDEOS = [
-    (2, "RKLB"),
-    (3, "IRDM"),
-    (4, "ASTS"),
-    (5, "FLY"),
-    (6, "GLOBALSTAR"),
-    (7, "PLANET"),
-    (8, "REDWIRE"),
-    (9, "LUNA"),
+    (1, "RKLB"),
+    (2, "IRDM"),
+    (3, "ASTS"),
+    (4, "FLY"),
+    (5, "GLOBALSTAR"),
+    (6, "PLANET"),
+    (7, "REDWIRE"),
+    (8, "LUNA"),
 ]
 
 
