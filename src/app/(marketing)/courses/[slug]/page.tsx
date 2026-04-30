@@ -120,40 +120,50 @@ export default async function CourseDetailPage({ params }: Props) {
             </div>
             <div className="space-y-3">
               {chapters && chapters.length > 0 ? (
-                chapters.map((ch: any, i: number) => (
-                  <div
-                    key={ch.id}
-                    className="bg-surface-container-lowest rounded-xl deep-diffusion p-5 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className="w-8 h-8 rounded-lg bg-secondary-fixed text-on-secondary-fixed-variant flex items-center justify-center font-bold text-xs">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <div>
-                        <h3 className="font-bold text-on-surface">
-                          {ch.title}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          {ch.is_free_preview && (
-                            <span className="text-[10px] font-bold text-secondary-container bg-secondary-fixed px-1.5 py-0.5 rounded">
-                              免費試看
-                            </span>
-                          )}
-                          {ch.duration_seconds && (
-                            <span className="text-xs text-on-surface-variant">
-                              {Math.floor(ch.duration_seconds / 60)}:{String(ch.duration_seconds % 60).padStart(2, "0")}
-                            </span>
-                          )}
+                chapters.map((ch: any, i: number) => {
+                  const isUpcoming = !ch.mux_playback_id && !ch.youtube_url;
+                  return (
+                    <div
+                      key={ch.id}
+                      className="bg-surface-container-lowest rounded-xl deep-diffusion p-5 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className="w-8 h-8 rounded-lg bg-secondary-fixed text-on-secondary-fixed-variant flex items-center justify-center font-bold text-xs">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <div>
+                          <h3 className="font-bold text-on-surface">
+                            {ch.title}
+                          </h3>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            {ch.is_free_preview && (
+                              <span className="text-[10px] font-bold text-secondary-container bg-secondary-fixed px-1.5 py-0.5 rounded">
+                                免費試看
+                              </span>
+                            )}
+                            {isUpcoming && (
+                              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-1.5 py-0.5 rounded">
+                                兩週內上線
+                              </span>
+                            )}
+                            {ch.duration_seconds && !isUpcoming && (
+                              <span className="text-xs text-on-surface-variant">
+                                {Math.floor(ch.duration_seconds / 60)}:{String(ch.duration_seconds % 60).padStart(2, "0")}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
+                      {isUpcoming ? (
+                        <Clock size={18} className="text-amber-700 dark:text-amber-300" />
+                      ) : ch.is_free_preview ? (
+                        <PlayCircle size={20} className="text-secondary-container fill-current" />
+                      ) : (
+                        <Lock size={18} className="text-on-surface-variant" />
+                      )}
                     </div>
-                    {ch.is_free_preview ? (
-                      <PlayCircle size={20} className="text-secondary-container fill-current" />
-                    ) : (
-                      <Lock size={18} className="text-on-surface-variant" />
-                    )}
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="bg-surface-container-low p-8 rounded-xl text-center text-on-surface-variant">
                   課程章節即將上線
