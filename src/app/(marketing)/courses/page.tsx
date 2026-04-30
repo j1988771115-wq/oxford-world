@@ -8,24 +8,34 @@ export const metadata = {
 };
 
 export default async function CoursesPage() {
-  const coursesRaw = await getCourses();
-
-  // Legacy courses (巨石文化實體課) are only visible to alumni
+  const courses = await getCourses();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  let isAlumni = false;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("is_alumni")
-      .eq("auth_id", user.id)
-      .single();
-    isAlumni = !!profile?.is_alumni;
-  }
 
-  const courses = coursesRaw.filter(
-    (c: { slug: string }) => isAlumni || !c.slug.startsWith("legacy-")
-  );
+  // 抓每課程的章節數（用來判斷「預告中」— 沒影片的課程）
+  const { data: chapterCounts } = await supabase
+    .from("course_chapters")
+    .select("course_id, mux_playback_id, youtube_url");
+
+  const upcomingCourseIds = new Set<string>();
+  if (chapterCounts) {
+    const courseIdToHasVideo = new Map<string, boolean>();
+    for (const ch of chapterCounts as Array<{
+      course_id: string;
+      mux_playback_id: string | null;
+      youtube_url: string | null;
+    }>) {
+      if (ch.mux_playback_id || ch.youtube_url) {
+        courseIdToHasVideo.set(ch.course_id, true);
+      } else if (!courseIdToHasVideo.has(ch.course_id)) {
+        courseIdToHasVideo.set(ch.course_id, false);
+      }
+    }
+    for (const c of courses) {
+      if (!courseIdToHasVideo.has(c.id) || courseIdToHasVideo.get(c.id) === false) {
+        upcomingCourseIds.add(c.id);
+      }
+    }
+  }
 
   return (
     <main className="pt-12 pb-24 bg-surface">
@@ -63,48 +73,62 @@ export default async function CoursesPage() {
                 price: number;
                 category: string;
                 thumbnail_url?: string;
-              }) => (
-                <Link
-                  key={course.id}
-                  href={`/courses/${course.slug}`}
-                  className="bg-surface-container-lowest rounded-xl overflow-hidden group deep-diffusion hover:-translate-y-2 transition-all duration-300"
-                >
-                  <div className="aspect-video relative overflow-hidden">
-                    <div className="absolute inset-0 signature-gradient opacity-20" />
-                    {course.thumbnail_url && (
-                      <img
-                        src={course.thumbnail_url}
-                        alt={course.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                        referrerPolicy="no-referrer"
-                      />
-                    )}
-                    {course.category && (
-                      <div className="absolute top-4 left-4 bg-primary-container text-[#00D2FF] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter">
-                        {course.category}
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-8">
-                    <h4 className="text-xl font-bold text-on-surface mb-2 group-hover:text-secondary transition-colors">
-                      {course.title}
-                    </h4>
-                    <p className="text-on-surface-variant text-sm line-clamp-2 mb-4">
-                      {course.description}
-                    </p>
-                    <p className="text-on-surface-variant text-xs mb-6">
-                      講師：{course.instructor}
-                    </p>
-                    <div className="flex items-center justify-between pt-6 border-t border-outline-variant/30">
-                      <span className="text-2xl font-black text-on-surface tracking-tight">
-                        {course.price === 0
-                          ? "免費"
-                          : `NT$ ${course.price.toLocaleString()}`}
-                      </span>
+              }) => {
+                const isUpcoming = upcomingCourseIds.has(course.id);
+                return (
+                  <Link
+                    key={course.id}
+                    href={`/courses/${course.slug}`}
+                    className="bg-surface-container-lowest rounded-xl overflow-hidden group deep-diffusion hover:-translate-y-2 transition-all duration-300"
+                  >
+                    <div className="aspect-video relative overflow-hidden">
+                      <div className="absolute inset-0 signature-gradient opacity-20" />
+                      {course.thumbnail_url && (
+                        <img
+                          src={course.thumbnail_url}
+                          alt={course.title}
+                          className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ${isUpcoming ? "opacity-60" : ""}`}
+                          referrerPolicy="no-referrer"
+                        />
+                      )}
+                      {course.category && (
+                        <div className="absolute top-4 left-4 bg-primary-container text-[#00D2FF] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter">
+                          {course.category}
+                        </div>
+                      )}
+                      {isUpcoming && (
+                        <div className="absolute top-4 right-4 bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                          預告中
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </Link>
-              )
+                    <div className="p-8">
+                      <h4 className="text-xl font-bold text-on-surface mb-2 group-hover:text-secondary transition-colors">
+                        {course.title}
+                      </h4>
+                      <p className="text-on-surface-variant text-sm line-clamp-2 mb-4">
+                        {course.description}
+                      </p>
+                      <p className="text-on-surface-variant text-xs mb-6">
+                        講師：{course.instructor}
+                      </p>
+                      <div className="flex items-center justify-between pt-6 border-t border-outline-variant/30">
+                        {isUpcoming ? (
+                          <span className="text-base font-bold text-amber-700 dark:text-amber-300">
+                            敬請期待 · 訂閱電子報先收到通知
+                          </span>
+                        ) : (
+                          <span className="text-2xl font-black text-on-surface tracking-tight">
+                            {course.price === 0
+                              ? "免費"
+                              : `NT$ ${course.price.toLocaleString()}`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              }
             )}
           </div>
         )}
