@@ -100,6 +100,38 @@ export default function SignUpPage() {
               placeholder="密碼（至少 6 位）"
               className="w-full px-4 py-3 rounded-xl bg-surface-container border border-outline-variant/30 text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-secondary-container transition"
             />
+
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                name="newsletter"
+                type="checkbox"
+                defaultChecked
+                className="mt-0.5 w-4 h-4 rounded border-outline-variant/40 bg-surface-container text-secondary-container focus:ring-2 focus:ring-secondary-container"
+              />
+              <span className="text-sm text-on-surface-variant leading-relaxed">
+                訂閱牛津視界電子報（投資洞察、新課程通知，可隨時退訂）
+              </span>
+            </label>
+
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                name="agree_terms"
+                type="checkbox"
+                required
+                className="mt-0.5 w-4 h-4 rounded border-outline-variant/40 bg-surface-container text-secondary-container focus:ring-2 focus:ring-secondary-container"
+              />
+              <span className="text-sm text-on-surface-variant leading-relaxed">
+                我已閱讀並同意{" "}
+                <Link href="/terms" target="_blank" className="text-secondary hover:underline font-bold">
+                  服務條款
+                </Link>{" "}
+                與{" "}
+                <Link href="/privacy" target="_blank" className="text-secondary hover:underline font-bold">
+                  隱私權政策
+                </Link>
+              </span>
+            </label>
+
             {error && (
               <div className="bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm">
                 {error}

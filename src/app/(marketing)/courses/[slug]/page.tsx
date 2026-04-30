@@ -209,6 +209,17 @@ export default async function CourseDetailPage({ params }: Props) {
               <div className="p-8 space-y-6">
                 {/* Price */}
                 <div className="space-y-2">
+                  {course.original_price && course.original_price > effectivePrice && !hasAlumniDiscount && (
+                    <div className="inline-flex items-center gap-1.5 bg-red-500/15 text-red-600 dark:text-red-400 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
+                      <Sparkles size={10} />
+                      {course.sale_ends_at
+                        ? (() => {
+                            const d = new Date(course.sale_ends_at);
+                            return `特價期間 · ${d.getMonth() + 1}/${d.getDate()} 結束`;
+                          })()
+                        : "特價期間"}
+                    </div>
+                  )}
                   <div className="flex items-baseline gap-3 flex-wrap">
                     <span className="text-4xl font-extrabold text-on-surface">
                       {effectivePrice === 0
@@ -220,11 +231,22 @@ export default async function CourseDetailPage({ params }: Props) {
                         NT${course.price.toLocaleString()}
                       </span>
                     )}
+                    {!hasAlumniDiscount && course.original_price && course.original_price > effectivePrice && (
+                      <span className="text-xl text-on-surface-variant line-through">
+                        NT${course.original_price.toLocaleString()}
+                      </span>
+                    )}
                   </div>
                   {hasAlumniDiscount && (
                     <p className="text-sm text-secondary font-bold">
                       🎓 老學員專屬價（您已登入為老學員）
                     </p>
+                  )}
+                  {course.pro_bundle_days > 0 && (
+                    <div className="inline-flex items-center gap-2 bg-amber-500/15 text-amber-700 dark:text-amber-300 px-3 py-1.5 rounded-lg text-xs font-bold mt-2">
+                      <Sparkles size={14} />
+                      購買加贈 Pro 訂閱 {course.pro_bundle_days} 天
+                    </div>
                   )}
                 </div>
 

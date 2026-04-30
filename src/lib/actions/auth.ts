@@ -9,6 +9,12 @@ export async function signUp(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const name = formData.get("name") as string;
+  const newsletter = formData.get("newsletter") === "on";
+  const agreeTerms = formData.get("agree_terms") === "on";
+
+  if (!agreeTerms) {
+    return { error: "請先同意服務條款與隱私權政策" };
+  }
 
   const { error } = await supabase.auth.signUp({
     email,
@@ -21,6 +27,22 @@ export async function signUp(formData: FormData) {
 
   if (error) {
     return { error: error.message };
+  }
+
+  // 訂閱電子報（best-effort，失敗不擋註冊）
+  if (newsletter) {
+    try {
+      const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+      const admin = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      await admin
+        .from("email_subscribers")
+        .upsert({ email, source: "signup" }, { onConflict: "email" });
+    } catch (e) {
+      console.warn("Newsletter subscribe failed:", e);
+    }
   }
 
   return { success: "請檢查你的 Email 信箱確認註冊。" };
