@@ -154,50 +154,47 @@ export default async function CourseDetailPage({ params }: Props) {
               這堂課給誰
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-6">
-                <h3 className="font-bold text-emerald-700 dark:text-emerald-300 mb-3 flex items-center gap-2 text-base">
-                  <Check size={18} /> 適合
+              <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-6 deep-diffusion">
+                <h3 className="font-bold text-on-surface mb-4 flex items-center gap-2 text-base">
+                  <Check size={16} className="text-on-surface-variant" /> 適合
                 </h3>
-                <ul className="space-y-2.5 text-sm text-on-surface leading-relaxed">
-                  <li>· 想建立太空產業投資框架的長期投資者</li>
-                  <li>· 願意花時間理解產業競爭結構,而不只買進股票代號</li>
-                  <li>· 有美股下單經驗,想擴張持股版圖到下一個十年</li>
-                  <li>· 對「為什麼 SpaceX 改寫產業」這類大敘事有興趣</li>
+                <ul className="space-y-2.5 text-sm text-on-surface-variant leading-relaxed">
+                  <li>想建立太空產業投資框架的投資者(長線、波段、事件交易都用得上)</li>
+                  <li>願意花時間理解產業競爭結構,不只看股票代號</li>
+                  <li>有美股下單經驗,想擴張持股版圖到下一個十年</li>
+                  <li>對「為什麼 SpaceX 改寫產業」這類大敘事有興趣</li>
                 </ul>
               </div>
-              <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-6">
-                <h3 className="font-bold text-rose-700 dark:text-rose-300 mb-3 flex items-center gap-2 text-base">
-                  <X size={18} /> 不適合
+              <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-6 deep-diffusion">
+                <h3 className="font-bold text-on-surface mb-4 flex items-center gap-2 text-base">
+                  <X size={16} className="text-on-surface-variant" /> 不適合
                 </h3>
-                <ul className="space-y-2.5 text-sm text-on-surface leading-relaxed">
-                  <li>· 想要明牌、買進賣出時機的短線投資者</li>
-                  <li>· 期待保證獲利或無風險回報的學員</li>
-                  <li>· 不打算實際投入資金、只想吸收財經新聞的人</li>
-                  <li>· 認為投資課等於「老師說買什麼我就買什麼」的學員</li>
+                <ul className="space-y-2.5 text-sm text-on-surface-variant leading-relaxed">
+                  <li>只想要明牌、不想花時間理解產業邏輯的人</li>
+                  <li>期待保證獲利或無風險回報的學員</li>
+                  <li>不打算實際投入資金、只想吸收財經新聞的人</li>
+                  <li>認為投資課等於「老師說買什麼我就買什麼」的學員</li>
                 </ul>
               </div>
             </div>
             <p className="text-xs text-on-surface-variant mt-4 leading-relaxed">
-              我們把邊界寫清楚不是嚇你,是希望付費後你看的是真的能用的內容。
+              邊界寫清楚不是嚇你,是希望付費後你看的是真能用的內容。
             </p>
           </section>
 
           {/* 更新承諾 */}
-          <section className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6">
+          <section className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-6 deep-diffusion">
             <div className="flex items-start gap-4">
               <RefreshCw
-                size={20}
-                className="text-amber-700 dark:text-amber-300 mt-0.5 flex-shrink-0"
+                size={18}
+                className="text-on-surface-variant mt-0.5 flex-shrink-0"
               />
               <div>
                 <h3 className="font-bold text-on-surface mb-2 text-base">
                   季度更新承諾
                 </h3>
                 <p className="text-sm text-on-surface-variant leading-relaxed">
-                  太空產業每季變化大。我們承諾<strong className="text-on-surface">每 3 個月</strong>補充一支影片,回頭檢視「當下回看,各標的的 thesis 是否還成立?」 — 哪幾家估值漏了、哪些護城河被破、有什麼新進場者值得追蹤。
-                </p>
-                <p className="text-xs text-amber-700 dark:text-amber-300 mt-2 font-medium">
-                  購買者一次付費,終身收到所有更新。
+                  太空產業每季變化大。我們承諾<strong className="text-on-surface">每 3 個月</strong>補一支影片,回頭看各標的的 thesis 是否還成立 — 哪幾家估值漏了、哪些護城河被破、有什麼新進場者值得追蹤。一次付費,終身收到所有更新。
                 </p>
               </div>
             </div>
@@ -262,10 +259,8 @@ export default async function CourseDetailPage({ params }: Props) {
                       </div>
                       {ch.takeaway_summary && (
                         <div className="mt-3 ml-12 pt-3 border-t border-outline-variant/15">
-                          <p className="text-[11px] font-black text-secondary uppercase tracking-[0.18em] mb-1.5">
-                            你會帶走什麼
-                          </p>
                           <p className="text-sm text-on-surface-variant leading-relaxed">
+                            <span className="text-on-surface font-medium">你會帶走 — </span>
                             {ch.takeaway_summary}
                           </p>
                         </div>
@@ -358,16 +353,14 @@ export default async function CourseDetailPage({ params }: Props) {
                     )}
                   </div>
                   {hasAlumniDiscount && (
-                    <p className="text-sm text-secondary font-bold">
-                      🎓 老學員專屬價（您已登入為老學員）
+                    <p className="text-sm text-on-surface-variant">
+                      老學員專屬價（您已登入為老學員）
                     </p>
                   )}
-                  {course.pro_bundle_days > 0 && (
-                    <div className="inline-flex items-center gap-2 bg-amber-500/15 text-amber-700 dark:text-amber-300 px-3 py-1.5 rounded-lg text-xs font-bold mt-2">
-                      <Sparkles size={14} />
-                      購買加贈 Pro 訂閱 {course.pro_bundle_days} 天
-                    </div>
-                  )}
+                  <p className="text-sm text-on-surface-variant leading-relaxed">
+                    一次付費 · 終身觀看
+                    {course.pro_bundle_days > 0 ? ` · 加贈 Pro ${course.pro_bundle_days} 天` : ""}
+                  </p>
                 </div>
 
                 {/* Actions */}
