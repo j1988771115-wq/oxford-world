@@ -40,20 +40,20 @@ export default async function HomePage() {
               </span>
             </div>
             <h1 className="text-6xl md:text-7xl font-black text-white leading-[1.1] tracking-tight mb-8 font-headline">
-              AI 時代，
+              太空時代的資本配置
               <br />
-              <span className="text-[#00D2FF]">不再當無頭蒼蠅</span>
+              <span className="text-[#00D2FF]">下一個十年的產業革命</span>
             </h1>
             <p className="text-xl text-slate-300 leading-relaxed mb-12 max-w-xl">
-              專為職場菁英打造的個人化學習路徑。透過 AI
-              技術精準分析你的職涯缺口，量身定制最高效率的學習藍圖。
+              久方武院長親授 · 8 章深度拆解<br />
+              從 SpaceX 到台股太空概念股，一套完整投資框架
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
-                href="/sign-up?plan=pro"
+                href="/courses/master-space-age-capital"
                 className="signature-gradient text-white px-8 py-5 rounded-xl font-bold text-lg shadow-xl shadow-secondary/20 hover:scale-[1.02] transition-transform text-center"
               >
-                免費試用 Pro 7 天
+                立即購買 NT$24,900
               </Link>
               <Link
                 href="/courses"
