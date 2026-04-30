@@ -288,10 +288,13 @@ export default async function CourseDetailPage({ params }: Props) {
                   )}
                   <Link
                     href="/pricing"
-                    className="block w-full text-center border-2 border-secondary py-4 rounded-xl text-secondary font-bold text-lg hover:bg-secondary-fixed/20 transition-colors active:scale-95"
+                    className="block w-full text-center border-2 border-secondary py-4 rounded-xl text-secondary font-bold text-sm hover:bg-secondary-fixed/20 transition-colors active:scale-95"
                   >
-                    加入 Pro 會員免費看
+                    比較 Pro 訂閱方案
                   </Link>
+                  <p className="text-xs text-on-surface-variant text-center -mt-1 leading-relaxed">
+                    Pro 訂閱不含大師課影片，需另購
+                  </p>
                 </div>
 
                 {/* Details */}
