@@ -15,6 +15,7 @@ import {
   Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { COURSE_DISCLAIMER } from "@/lib/constants";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -346,6 +347,17 @@ export default async function CourseDetailPage({ params }: Props) {
                 <p className="text-on-secondary-fixed-variant/80 text-sm leading-relaxed">
                   根據您的興趣，這門課能幫助您提升專業能力。
                 </p>
+              </div>
+            </div>
+
+            <div className="bg-amber-500/10 border border-amber-500/30 p-6 rounded-xl">
+              <p className="text-amber-700 dark:text-amber-300 font-black text-xs uppercase tracking-wider mb-3">
+                {COURSE_DISCLAIMER.title} ({COURSE_DISCLAIMER.titleEn})
+              </p>
+              <div className="space-y-2 text-on-surface-variant text-xs leading-relaxed">
+                {COURSE_DISCLAIMER.paragraphs.map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
               </div>
             </div>
           </div>

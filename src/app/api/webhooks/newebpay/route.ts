@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { decryptTradeInfo, verifyTradeSha } from "@/lib/newebpay";
 import { addProRole } from "@/lib/discord";
+import { sendOrderConfirmation } from "@/lib/email";
 
 function getAdminClient() {
   return createClient(
@@ -153,6 +154,42 @@ export async function POST(req: NextRequest) {
             );
         }
       }
+    }
+
+    // 寄購買確認信（best-effort，失敗不擋 webhook）
+    try {
+      const { data: profileEmail } = await supabase
+        .from("profiles")
+        .select("email, display_name")
+        .eq("id", updatedOrder.user_id)
+        .single();
+
+      if (profileEmail?.email) {
+        let itemTitle = "牛津視界";
+        let proBundleDays: number | undefined;
+        if (updatedOrder.order_type === "course" && updatedOrder.course_id) {
+          const { data: c } = await supabase
+            .from("courses")
+            .select("title, pro_bundle_days")
+            .eq("id", updatedOrder.course_id)
+            .single();
+          if (c?.title) itemTitle = c.title;
+          if (c?.pro_bundle_days) proBundleDays = c.pro_bundle_days;
+        } else if (updatedOrder.order_type === "subscription") {
+          itemTitle = "Pro 訂閱";
+        }
+
+        await sendOrderConfirmation({
+          to: profileEmail.email,
+          orderType: updatedOrder.order_type as "course" | "subscription",
+          itemTitle,
+          amount: updatedOrder.amount,
+          merchantOrderNo: MerchantOrderNo,
+          proBundleDays,
+        });
+      }
+    } catch (emailErr) {
+      console.warn("Order confirmation email failed:", emailErr);
     }
 
     console.log("Payment processed:", MerchantOrderNo);

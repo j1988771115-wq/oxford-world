@@ -58,6 +58,40 @@ export async function sendChannelMessage(channelId: string, content: string) {
   });
 }
 
+interface OrderNotificationParams {
+  buyerEmail: string;
+  buyerName?: string | null;
+  itemTitle: string;
+  amount: number;
+  orderType: "course" | "subscription";
+  merchantOrderNo: string;
+  proBundleDays?: number;
+}
+
+/** 寄新訂單通知到內部 Discord 頻道。env: DISCORD_ORDER_CHANNEL_ID 未設定則 skip。 */
+export async function notifyOrderToDiscord(p: OrderNotificationParams): Promise<boolean> {
+  const channelId = process.env.DISCORD_ORDER_CHANNEL_ID;
+  if (!channelId || !DISCORD_BOT_TOKEN) {
+    console.warn("Discord order notification skipped (channel/bot not configured)");
+    return false;
+  }
+
+  const emoji = p.orderType === "course" ? "💎" : "✨";
+  const typeLabel = p.orderType === "course" ? "課程購買" : "Pro 訂閱";
+  const buyer = p.buyerName ? `${p.buyerName} <${p.buyerEmail}>` : p.buyerEmail;
+  const bundle = p.proBundleDays ? `\n🎁 加贈 Pro **${p.proBundleDays} 天**` : "";
+
+  const content =
+    `${emoji} **新${typeLabel}**\n` +
+    `**項目**：${p.itemTitle}\n` +
+    `**金額**：NT$${p.amount.toLocaleString()}\n` +
+    `**買家**：${buyer}\n` +
+    `**訂單**：\`${p.merchantOrderNo}\`${bundle}`;
+
+  const result = await sendChannelMessage(channelId, content);
+  return result !== null;
+}
+
 export function generateInviteUrl() {
   // Fallback invite URL — replace with your actual Discord invite
   return `https://discord.gg/your-invite`;
