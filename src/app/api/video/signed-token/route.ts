@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "請先登入" }, { status: 401 });
   }
 
-  let body: { chapterId?: string };
+  let body: { chapterId?: string; variant?: "main" | "bg" };
   try {
     body = await req.json();
   } catch {
@@ -40,20 +40,23 @@ export async function POST(req: Request) {
   if (!chapterId) {
     return NextResponse.json({ error: "chapterId required" }, { status: 400 });
   }
+  const variant = body.variant === "bg" ? "bg" : "main";
 
   const admin = createServiceClient();
 
-  // 拉章節 + 課程 id + playback id + free flag
+  // 拉章節 + 課程 id + playback id (主片或 bg) + free flag
   const { data: chapter } = await admin
     .from("course_chapters")
-    .select("id, course_id, mux_playback_id, is_free_preview, title")
+    .select("id, course_id, mux_playback_id, mux_playback_id_bg, is_free_preview, title")
     .eq("id", chapterId)
     .maybeSingle();
 
   if (!chapter) {
     return NextResponse.json({ error: "chapter not found" }, { status: 404 });
   }
-  if (!chapter.mux_playback_id) {
+  const playbackId =
+    variant === "bg" ? chapter.mux_playback_id_bg : chapter.mux_playback_id;
+  if (!playbackId) {
     return NextResponse.json(
       { error: "影片尚未上傳", code: "NO_MUX_VIDEO" },
       { status: 404 }
@@ -88,9 +91,9 @@ export async function POST(req: Request) {
 
   // 簽 token，60 min 有效
   try {
-    const token = await signPlaybackToken(chapter.mux_playback_id);
+    const token = await signPlaybackToken(playbackId);
     return NextResponse.json({
-      playbackId: chapter.mux_playback_id,
+      playbackId,
       token,
       expiresIn: 3600,
     });

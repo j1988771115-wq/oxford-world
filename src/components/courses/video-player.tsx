@@ -12,6 +12,8 @@ interface VideoPlayerProps {
   startTime?: number;
   /** 浮水印識別字（通常是 email 縮寫） */
   watermarkId?: string;
+  /** main = 久老師正片(預設) / bg = NotebookLM 背景影片 */
+  variant?: "main" | "bg";
 }
 
 interface SignedTokenResponse {
@@ -40,6 +42,7 @@ export function VideoPlayer({
   accentColor = "#2563eb",
   startTime,
   watermarkId,
+  variant = "main",
 }: VideoPlayerProps) {
   const [data, setData] = useState<SignedTokenResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +56,7 @@ export function VideoPlayer({
     fetch("/api/video/signed-token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chapterId }),
+      body: JSON.stringify({ chapterId, variant }),
     })
       .then(async (res) => {
         if (!alive) return;
@@ -76,6 +79,8 @@ export function VideoPlayer({
   }, [chapterId]);
 
   const saveProgress = async (positionSeconds: number, durationSeconds?: number) => {
+    // bg 影片不寫進度 — 進度只追蹤主片
+    if (variant === "bg") return;
     try {
       await fetch("/api/video/progress", {
         method: "POST",

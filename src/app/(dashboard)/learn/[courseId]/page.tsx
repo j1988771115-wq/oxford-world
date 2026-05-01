@@ -111,43 +111,95 @@ export default async function LearnPage({ params, searchParams }: Props) {
 
   return (
     <main className="lg:pl-64 flex flex-col min-h-screen bg-surface">
-      {/* Video Player */}
-      <div className="w-full max-w-5xl mx-auto pt-8 px-4">
-        <div className="aspect-video bg-primary-container rounded-xl overflow-hidden">
-          {canPlay && currentChapter?.mux_playback_id ? (
-            <VideoPlayer
-              chapterId={currentChapter.id}
-              title={currentChapter.title}
-              accentColor="#00d2ff"
-              startTime={resumeAt}
-              watermarkId={watermarkId}
-            />
-          ) : canPlay && currentChapter?.youtube_url ? (
-            <YouTubePlayer
-              url={currentChapter.youtube_url}
-              title={currentChapter.title}
-            />
-          ) : canPlay ? (
-            <div className="w-full h-full flex items-center justify-center text-slate-400">
-              <div className="text-center">
-                <span className="text-5xl block mb-4">🎬</span>
-                <p>影片即將上傳</p>
+      {/* Video Player(s) */}
+      <div className="w-full max-w-5xl mx-auto pt-8 px-4 space-y-6">
+        {/* 背景資料學習 — 有 bg 才顯示,放在主片上方(看主片前先聽背景) */}
+        {canPlay && currentChapter?.mux_playback_id_bg && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-secondary-container text-secondary text-xs font-bold">
+                  1
+                </span>
+                <h3 className="text-on-surface font-bold text-base">
+                  背景資料學習
+                </h3>
+                <span className="text-on-surface-variant text-xs">
+                  NotebookLM 鋪墊 · 建議先聽
+                </span>
               </div>
+              {currentChapter.duration_seconds_bg && (
+                <span className="text-on-surface-variant text-xs">
+                  {formatDuration(currentChapter.duration_seconds_bg)}
+                </span>
+              )}
             </div>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-primary-container">
-              <div className="text-center text-white">
-                <Lock size={48} className="mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-bold mb-2">需要購買才能觀看</p>
-                <Link
-                  href={`/courses/${course.slug}`}
-                  className="signature-gradient text-white px-6 py-3 rounded-xl font-bold inline-block hover:opacity-90 transition mt-2"
-                >
-                  前往購買
-                </Link>
-              </div>
+            <div className="aspect-video bg-primary-container rounded-xl overflow-hidden">
+              <VideoPlayer
+                key={`${currentChapter.id}-bg`}
+                chapterId={currentChapter.id}
+                title={`${currentChapter.title} - 背景`}
+                accentColor="#00d2ff"
+                watermarkId={watermarkId}
+                variant="bg"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 久老師正片 */}
+        <div>
+          {canPlay && currentChapter?.mux_playback_id_bg && (
+            <div className="flex items-center gap-2 mb-3">
+              <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary text-white text-xs font-bold">
+                2
+              </span>
+              <h3 className="text-on-surface font-bold text-base">
+                久老師正片
+              </h3>
+              {currentChapter.duration_seconds && (
+                <span className="text-on-surface-variant text-xs ml-auto">
+                  {formatDuration(currentChapter.duration_seconds)}
+                </span>
+              )}
             </div>
           )}
+          <div className="aspect-video bg-primary-container rounded-xl overflow-hidden">
+            {canPlay && currentChapter?.mux_playback_id ? (
+              <VideoPlayer
+                chapterId={currentChapter.id}
+                title={currentChapter.title}
+                accentColor="#00d2ff"
+                startTime={resumeAt}
+                watermarkId={watermarkId}
+              />
+            ) : canPlay && currentChapter?.youtube_url ? (
+              <YouTubePlayer
+                url={currentChapter.youtube_url}
+                title={currentChapter.title}
+              />
+            ) : canPlay ? (
+              <div className="w-full h-full flex items-center justify-center text-slate-400">
+                <div className="text-center">
+                  <span className="text-5xl block mb-4">🎬</span>
+                  <p>影片即將上傳</p>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-primary-container">
+                <div className="text-center text-white">
+                  <Lock size={48} className="mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-bold mb-2">需要購買才能觀看</p>
+                  <Link
+                    href={`/courses/${course.slug}`}
+                    className="signature-gradient text-white px-6 py-3 rounded-xl font-bold inline-block hover:opacity-90 transition mt-2"
+                  >
+                    前往購買
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
