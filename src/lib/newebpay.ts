@@ -84,3 +84,88 @@ export function decryptTradeInfo(encryptedData: string): Record<string, unknown>
   decrypted += decipher.final("utf8");
   return JSON.parse(decrypted);
 }
+
+/**
+ * 主動查藍新訂單狀態 — webhook 沒打進來時的後備驗證
+ * 回 { status: "SUCCESS"|"PENDING"|"FAILED"|"NOT_FOUND", paymentType?, tradeNo?, paidAt? }
+ * 文件:https://www.newebpay.com/developer (查詢訂單 API)
+ */
+export async function queryNewebPayOrder(
+  merchantOrderNo: string,
+  amount: number
+): Promise<{
+  status: string;
+  paymentType?: string;
+  tradeNo?: string;
+  paidAt?: string;
+  raw?: Record<string, unknown>;
+  error?: string;
+}> {
+  // CheckValue: SHA256("IV={HashIV}&Amt={Amt}&MerchantID={MID}&MerchantOrderNo={N}&Key={HashKey}")
+  // 注意:藍新查單 API 的 SHA 是 IV/Key 順序而不是 HashKey/HashIV(跟 mpg_gateway 不同)
+  const checkValue = sha256(
+    `IV=${HASH_IV}&Amt=${amount}&MerchantID=${MERCHANT_ID}&MerchantOrderNo=${merchantOrderNo}&Key=${HASH_KEY}`
+  );
+
+  const params = new URLSearchParams({
+    MerchantID: MERCHANT_ID,
+    Version: "1.3",
+    RespondType: "JSON",
+    CheckValue: checkValue,
+    TimeStamp: Math.floor(Date.now() / 1000).toString(),
+    MerchantOrderNo: merchantOrderNo,
+    Amt: amount.toString(),
+  });
+
+  // production: https://core.newebpay.com  / testing: https://ccore.newebpay.com
+  const queryUrl = `${API_URL}/API/QueryTradeInfo`;
+
+  try {
+    const resp = await fetch(queryUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
+    });
+    const text = await resp.text();
+    let body: Record<string, unknown>;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      return { status: "ERROR", error: `non-JSON response: ${text.slice(0, 200)}` };
+    }
+    // 藍新回應結構:{ Status, Message, Result: { TradeStatus, PaymentType, TradeNo, PayTime, ... } }
+    const Status = body.Status as string;
+    const Result = (body.Result || {}) as Record<string, unknown>;
+    if (Status !== "SUCCESS") {
+      // Status 不是 SUCCESS 通常是查不到單 / 訂單尚未付款
+      return {
+        status: "NOT_FOUND",
+        error: (body.Message as string) || "query failed",
+        raw: body,
+      };
+    }
+    // TradeStatus: 0=未付款 / 1=已付款 / 2=付款失敗 / 3=取消 / 6=退款
+    const tradeStatus = String(Result.TradeStatus || "");
+    const mapped =
+      tradeStatus === "1"
+        ? "SUCCESS"
+        : tradeStatus === "0"
+        ? "PENDING"
+        : tradeStatus === "2"
+        ? "FAILED"
+        : tradeStatus === "3"
+        ? "CANCELLED"
+        : tradeStatus === "6"
+        ? "REFUNDED"
+        : `UNKNOWN_${tradeStatus}`;
+    return {
+      status: mapped,
+      paymentType: Result.PaymentType as string | undefined,
+      tradeNo: Result.TradeNo as string | undefined,
+      paidAt: Result.PayTime as string | undefined,
+      raw: body,
+    };
+  } catch (e) {
+    return { status: "ERROR", error: e instanceof Error ? e.message : String(e) };
+  }
+}
