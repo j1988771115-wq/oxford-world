@@ -285,6 +285,25 @@ ${safeAnswer}
         feedback =
           "感謝你的答案!不過為了維持本助教只討論抽象框架的設定,這題的個別案例分析請回到課程影片中聽久老師的完整講解。建議你重看本章 60% 之後的關鍵段落,對照你寫的答案核心是否一致。";
       }
+
+      // XP: quiz_completed event(+50 XP)
+      try {
+        const { data: prof } = await admin
+          .from("profiles")
+          .select("id")
+          .eq("auth_id", user.id)
+          .maybeSingle();
+        if (prof) {
+          await admin.from("learning_events").insert({
+            user_id: prof.id,
+            course_id: chapter.course_id,
+            event_type: "quiz_completed",
+          });
+        }
+      } catch (e) {
+        console.warn("[xp] quiz event skip", e);
+      }
+
       return NextResponse.json({ feedback });
     } catch (e) {
       console.error("[quiz/grade] error:", e);

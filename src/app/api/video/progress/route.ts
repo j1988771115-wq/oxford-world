@@ -111,6 +111,16 @@ export async function POST(req: Request) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // XP: 第一次完成這一章 → fire video_watched event(+10 XP via learning_events 計算)
+  if (!existing?.completed && newCompleted) {
+    await supabase.from("learning_events").insert({
+      user_id: profile.id,
+      course_id: chapter.course_id,
+      event_type: "video_watched",
+    });
+  }
+
   return NextResponse.json({ ok: true, completed });
 }
 

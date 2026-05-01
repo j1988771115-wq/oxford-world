@@ -392,5 +392,30 @@ export async function POST(req: Request) {
     maxOutputTokens: 1000, // P0:單次回答硬上限,防被勒索式長回答
   });
 
+  // XP: 每次 chat 加 ai_chat event(+5 XP)
+  // 用 service role 寫(避免 user-scoped RLS 路徑錯誤)
+  try {
+    const admin = createServiceClient();
+    const { data: prof } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("auth_id", user.id)
+      .maybeSingle();
+    if (prof) {
+      admin
+        .from("learning_events")
+        .insert({
+          user_id: prof.id,
+          course_id: effectiveCourseId || null,
+          event_type: "ai_chat",
+        })
+        .then(({ error }) => {
+          if (error) console.warn("[xp] chat event insert failed", error.message);
+        });
+    }
+  } catch (e) {
+    console.warn("[xp] chat event skip", e);
+  }
+
   return result.toUIMessageStreamResponse();
 }

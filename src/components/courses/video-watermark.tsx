@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface Props {
   /** 顯示在浮水印上的識別字（通常是 email 或學號） */
@@ -28,6 +29,7 @@ export function VideoWatermark({ identifier }: Props) {
   ];
 
   const [posIdx, setPosIdx] = useState(() => Math.floor(Math.random() * positions.length));
+  const [fullscreenEl, setFullscreenEl] = useState<Element | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -41,16 +43,30 @@ export function VideoWatermark({ identifier }: Props) {
     return () => clearInterval(id);
   }, [positions.length]);
 
+  // 偵測 fullscreen → 用 portal 把 watermark 移到 fullscreen 元素裡,確保不被遮蔽
+  useEffect(() => {
+    const handler = () => setFullscreenEl(document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    document.addEventListener("webkitfullscreenchange", handler);
+    return () => {
+      document.removeEventListener("fullscreenchange", handler);
+      document.removeEventListener("webkitfullscreenchange", handler);
+    };
+  }, []);
+
   const pos = positions[posIdx];
   const now = new Date();
   const tsLabel = `${now.getMonth() + 1}/${now.getDate()} ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
-  return (
+  // Fullscreen 時用 fixed + 高 z-index 確保覆蓋(避免被 fullscreen layer 蓋掉)
+  const positionMode = fullscreenEl ? "fixed" : "absolute";
+
+  const watermark = (
     <div
       style={{
-        position: "absolute",
+        position: positionMode,
         ...pos,
-        zIndex: 30,
+        zIndex: 2147483647, // max int — fullscreen 也壓得住
         pointerEvents: "none",
         userSelect: "none",
         fontFamily: "system-ui, -apple-system, sans-serif",
@@ -67,4 +83,10 @@ export function VideoWatermark({ identifier }: Props) {
       牛津視界 · {identifier} · {tsLabel}
     </div>
   );
+
+  // Fullscreen 時把 watermark portal 進 fullscreenElement 內
+  if (fullscreenEl) {
+    return createPortal(watermark, fullscreenEl);
+  }
+  return watermark;
 }
