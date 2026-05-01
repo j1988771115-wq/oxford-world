@@ -304,12 +304,12 @@ export async function POST(req: Request) {
         .limit(20);
 
       if (courses && courses.length > 0) {
-        // P0 fix: 此 branch 是 customer-service / recommendation,不洩漏 takeaway。
-        // teaching 模式有自己的 RAG context block(在這之前的 if 裡),不走這。
+        // takeaway_summary 是公開行銷頁內容(/courses/[slug] 全部 visitor 可見 + 在 Course JSON-LD)
+        // 給 chat 客服當 context 不算洩漏付費內容。
         const courseIds = courses.map((c: { id: string }) => c.id);
         const { data: chapters } = await supabase
           .from("course_chapters")
-          .select("course_id, sort_order, title, duration_seconds")
+          .select("course_id, sort_order, title, takeaway_summary, duration_seconds")
           .in("course_id", courseIds)
           .order("sort_order", { ascending: true });
 
@@ -317,6 +317,7 @@ export async function POST(req: Request) {
           course_id: string;
           sort_order: number;
           title: string;
+          takeaway_summary: string | null;
           duration_seconds: number | null;
         };
         const chaptersByCourse: Record<string, ChapterRow[]> = {};
@@ -359,7 +360,8 @@ export async function POST(req: Request) {
                   ? `${Math.round(ch.duration_seconds / 60)} 分`
                   : "";
                 lines.push(
-                  `  ${ch.sort_order}. ${ch.title}${minStr ? `（${minStr}）` : ""}`
+                  `  ${ch.sort_order}. ${ch.title}${minStr ? `（${minStr}）` : ""}` +
+                    (ch.takeaway_summary ? `\n     帶走:${ch.takeaway_summary}` : "")
                 );
               }
             }
