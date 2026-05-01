@@ -46,7 +46,7 @@ export default async function HomePage() {
             </h1>
             <p className="text-xl text-slate-300 leading-relaxed mb-12 max-w-xl">
               久方武院長親授 · 10 章深度拆解<br />
-              SpaceX、Starlink、AST SpaceMobile 等美股太空標的，一套完整投資框架
+              從 SpaceX 大敘事到 8 隻精選美股，一套完整投資框架
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
@@ -331,7 +331,7 @@ export default async function HomePage() {
                 <div className="space-y-3 mb-8 flex-1">
                   {[
                     "10 章深度課程內容",
-                    "SpaceX、Starlink 到 ASTS",
+                    "SpaceX 等大敘事 + 8 隻精選個股",
                     "完整資本配置實戰框架",
                     "永久回看 + 不定期補充",
                   ].map((item, i) => (

@@ -59,7 +59,7 @@ export default async function PricingPage() {
             一次買斷,終身回看
           </h1>
           <p className="text-xl text-on-surface-variant leading-relaxed">
-            由久方武院長親授的太空時代資本配置課程,從 SpaceX 帝國解剖到 ASTS 等美股太空標的,給你完整的投資框架。
+            由久方武院長親授的太空時代資本配置課程,從 SpaceX 大敘事到 8 隻精選美股,給你完整的投資框架。
           </p>
         </div>
       </div>
@@ -105,7 +105,7 @@ export default async function PricingPage() {
             <div className="space-y-3 mb-8 flex-1">
               {[
                 "10 章深度課程內容",
-                "SpaceX、Starlink 到 ASTS 等美股太空標的",
+                "SpaceX 等大敘事 + 8 隻精選美股",
                 "完整資本配置實戰框架",
                 "永久回看,不定期更新補充",
                 ...(bundleDays > 0
