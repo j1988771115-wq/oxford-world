@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createPaymentForm } from "@/lib/newebpay";
 import { PRO_MONTHLY_PRICE, PRO_YEARLY_PRICE } from "@/lib/constants";
 
@@ -15,6 +16,31 @@ function generateOrderNo() {
   const ts = Date.now().toString(36).toUpperCase();
   const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `OV${ts}${rand}`;
+}
+
+/**
+ * 防止單一帳號 spam 建訂單(換 email 重試攻擊用):
+ * 同 user 1 小時內 pending 訂單超過 N 筆就拒新建,要他先付完成或等久一點。
+ */
+async function checkOrderRateLimit(profileId: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count } = await admin
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", profileId)
+    .eq("status", "pending")
+    .gte("created_at", oneHourAgo);
+  if ((count ?? 0) >= 8) {
+    return {
+      ok: false,
+      reason: `您 1 小時內已建立 ${count} 筆未完成訂單,請先完成付款或稍後再試`,
+    };
+  }
+  return { ok: true };
 }
 
 export async function createCourseOrder(courseId: string) {
@@ -53,6 +79,12 @@ export async function createCourseOrder(courseId: string) {
 
   if (existing && existing.length > 0) {
     return { error: "您已購買此課程" };
+  }
+
+  // Rate limit:同 user 1 小時 pending 訂單上限 8 筆
+  const rl = await checkOrderRateLimit(profile.id);
+  if (!rl.ok) {
+    return { error: rl.reason };
   }
 
   // Get course info (include alumni_price for server-side price computation)
