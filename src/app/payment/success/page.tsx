@@ -1,9 +1,62 @@
 import { decryptTradeInfo, verifyTradeSha } from "@/lib/newebpay";
+import { createClient } from "@supabase/supabase-js";
+import { sendOrderConfirmation } from "@/lib/email";
 import Link from "next/link";
 import { CheckCircle, XCircle } from "lucide-react";
 
 interface Props {
   searchParams: Promise<Record<string, string | undefined>>;
+}
+
+function getAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+// Browser-side fallback for webhook: NotifyURL 偶爾沒打進來,user 一回到 success 頁就把訂單補上
+async function reconcileOrder(merchantOrderNo: string, tradeNo: string) {
+  const supabase = getAdminClient();
+  const { data: order } = await supabase
+    .from("orders")
+    .update({
+      status: "paid",
+      newebpay_trade_no: tradeNo,
+      paid_at: new Date().toISOString(),
+    })
+    .eq("merchant_order_no", merchantOrderNo)
+    .eq("status", "pending")
+    .select("*, courses(title)")
+    .single();
+  if (!order) return; // already processed or not found
+
+  if (order.order_type === "course" && order.course_id) {
+    await supabase.from("course_access").upsert(
+      {
+        user_id: order.user_id,
+        course_id: order.course_id,
+        access_type: "purchased",
+      },
+      { onConflict: "user_id,course_id,access_type" }
+    );
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("id", order.user_id)
+      .single();
+    if (profile?.email) {
+      const courseTitle =
+        (order.courses as { title?: string } | null)?.title || "課程";
+      await sendOrderConfirmation({
+        to: profile.email,
+        orderType: "course",
+        itemTitle: courseTitle,
+        amount: order.amount,
+        merchantOrderNo: order.merchant_order_no,
+      }).catch((e) => console.error("[success-fallback] email failed", e));
+    }
+  }
 }
 
 export default async function PaymentResultPage({ searchParams }: Props) {
@@ -26,12 +79,17 @@ export default async function PaymentResultPage({ searchParams }: Props) {
           Result: {
             MerchantOrderNo: string;
             Amt: number;
+            TradeNo: string;
           };
         };
         if (result.Status === "SUCCESS") {
           success = true;
           orderNo = result.Result.MerchantOrderNo;
           amount = result.Result.Amt;
+          // Reconcile DB in case NotifyURL didn't fire — idempotent (atomic WHERE status=pending)
+          await reconcileOrder(orderNo, result.Result.TradeNo).catch((e) =>
+            console.error("[success] reconcile failed", e)
+          );
         }
       }
     } catch {
