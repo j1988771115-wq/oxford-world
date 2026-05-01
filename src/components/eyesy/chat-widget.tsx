@@ -10,30 +10,37 @@ function getContext(pathname: string): {
   context: string;
   courseId?: string;
   greeting: string;
+  modeLabel: string;
 } {
   if (pathname.startsWith("/learn/")) {
-    const courseId = pathname.split("/learn/")[1];
+    // 取 path 第一段(/learn/{id}/...) 並去掉 trailing slash / query
+    const raw = pathname.slice("/learn/".length).split("/")[0].split("?")[0];
+    const courseId = raw || undefined;
     return {
       context: "teaching",
       courseId,
-      greeting: "有什麼課程問題嗎？我可以幫你解答 🎓",
+      greeting: "看影片有問題隨時問我 — 我有完整課程逐字稿可以引用 🎓",
+      modeLabel: "課程 AI 助教",
     };
   }
   if (pathname.startsWith("/ai-assistant")) {
     return {
       context: "teaching",
       greeting: "嗨！我是 Eyesy，有什麼想學的，儘管問我 ✨",
+      modeLabel: "AI 學習助教",
     };
   }
   if (pathname.startsWith("/path") || pathname.startsWith("/quiz")) {
     return {
       context: "recommendation",
       greeting: "讓我幫你找到最適合的學習路徑！",
+      modeLabel: "學習顧問",
     };
   }
   return {
     context: "customer-service",
     greeting: "嗨！我是 Eyesy 👋 有任何問題都可以問我",
+    modeLabel: "客服助手",
   };
 }
 
@@ -46,20 +53,49 @@ export function EyesyChatWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { context, courseId, greeting } = getContext(pathname);
+  const { context, courseId, greeting, modeLabel } = getContext(pathname);
 
-  // Auto-show greeting bubble after 3 seconds (only once)
+  const [bubbleMsg, setBubbleMsg] = useState<string>("");
+
+  // Auto-show greeting bubble after 3s (first time per session)
   useEffect(() => {
     if (bubbleDismissed || isOpen) return;
     const seen = sessionStorage.getItem("eyesy_greeted");
     if (seen) return;
 
     const timer = setTimeout(() => {
+      setBubbleMsg(greeting);
       setShowBubble(true);
       sessionStorage.setItem("eyesy_greeted", "1");
     }, 3000);
     return () => clearTimeout(timer);
-  }, [bubbleDismissed, isOpen]);
+  }, [bubbleDismissed, isOpen, greeting]);
+
+  // 主動關心:在 /learn 頁面待 5 分鐘 → 提醒可問問題
+  useEffect(() => {
+    if (context !== "teaching" || !courseId || isOpen || bubbleDismissed) return;
+    const key = `eyesy_5min_${courseId}`;
+    if (sessionStorage.getItem(key)) return;
+    const timer = setTimeout(() => {
+      setBubbleMsg("看到一半了嗎?有不懂的概念我可以幫你整理一下 ✏️");
+      setShowBubble(true);
+      sessionStorage.setItem(key, "1");
+    }, 5 * 60 * 1000);
+    return () => clearTimeout(timer);
+  }, [context, courseId, isOpen, bubbleDismissed]);
+
+  // 主動關心:在 /learn 頁面待 15 分鐘 → 鼓勵思考題
+  useEffect(() => {
+    if (context !== "teaching" || !courseId || isOpen || bubbleDismissed) return;
+    const key = `eyesy_15min_${courseId}`;
+    if (sessionStorage.getItem(key)) return;
+    const timer = setTimeout(() => {
+      setBubbleMsg("看了一段時間了!可以挑一個剛學到的概念跟我聊聊,反芻會記更久 🧠");
+      setShowBubble(true);
+      sessionStorage.setItem(key, "1");
+    }, 15 * 60 * 1000);
+    return () => clearTimeout(timer);
+  }, [context, courseId, isOpen, bubbleDismissed]);
 
   const { messages, sendMessage, status, setMessages } = useChat();
 
@@ -109,10 +145,24 @@ export function EyesyChatWidget() {
               </div>
               <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-surface-container-lowest rounded-full" />
             </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-on-surface text-sm">Eyesy</h3>
-              <p className="text-[11px] text-on-surface-variant">
-                牛津視界 AI 助手 · 隨時為你服務
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <h3 className="font-bold text-on-surface text-sm truncate">Eyesy</h3>
+                <span
+                  className={cn(
+                    "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
+                    context === "teaching"
+                      ? "bg-secondary text-on-secondary"
+                      : "bg-surface-container-high text-on-surface-variant"
+                  )}
+                >
+                  {modeLabel}
+                </span>
+              </div>
+              <p className="text-[11px] text-on-surface-variant truncate">
+                {context === "teaching"
+                  ? "可引用課程逐字稿 · 看影片有疑問就問"
+                  : "牛津視界 AI 助手"}
               </p>
             </div>
             <button
@@ -259,7 +309,7 @@ export function EyesyChatWidget() {
               &times;
             </button>
             <p className="text-sm text-on-surface font-medium">
-              {greeting}
+              {bubbleMsg || greeting}
             </p>
             <button
               onClick={() => {
