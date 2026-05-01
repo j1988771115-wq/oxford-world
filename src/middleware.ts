@@ -4,6 +4,14 @@ import { NextResponse, type NextRequest } from "next/server";
 const protectedRoutes = ["/dashboard", "/learn", "/ai-assistant", "/quiz", "/path", "/achievements", "/settings", "/onboarding"];
 
 export async function middleware(request: NextRequest) {
+  // www → 非 www 自動 redirect(統一 cookie domain,session 不會分裂)
+  const host = request.headers.get("host") || "";
+  if (host.startsWith("www.")) {
+    const url = request.nextUrl.clone();
+    url.host = host.slice(4);
+    return NextResponse.redirect(url, 308);
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
