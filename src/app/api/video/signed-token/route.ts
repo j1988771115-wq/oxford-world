@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { signPlaybackToken } from "@/lib/mux";
+import crypto from "crypto";
 
 function createServiceClient() {
   return createClient(
@@ -9,6 +10,13 @@ function createServiceClient() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 }
+
+function hashStr(s: string): string {
+  return crypto.createHash("sha256").update(s).digest("hex").slice(0, 16);
+}
+
+// 多裝置封鎖閾值:同一帳號 60 分鐘內超過 N 個不同 device_key 就視為惡意分享
+const MAX_DEVICES_PER_HOUR = 3;
 
 /**
  * POST /api/video/signed-token
@@ -87,6 +95,66 @@ export async function POST(req: Request) {
       { error: "需要購買此課程才能觀看", code: "COURSE_NOT_PURCHASED" },
       { status: 403 }
     );
+  }
+
+  // 多裝置偵測 — 拿 IP + UA hash,查 60 分鐘內這個 user 用過幾個不同 device_key
+  // free preview 跳過(沒登入無 user_id 可記)
+  if (!chapter.is_free_preview) {
+    const fwd = req.headers.get("x-forwarded-for") || "";
+    const ip = fwd.split(",")[0].trim() || req.headers.get("x-real-ip") || "unknown";
+    const ua = req.headers.get("user-agent") || "unknown";
+    const ipHash = hashStr(ip);
+    const uaHash = hashStr(ua);
+    const deviceKey = `${ipHash}:${uaHash}`;
+
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("auth_id", user.id)
+      .maybeSingle();
+
+    if (profile) {
+      // 查 60 分鐘內所有 distinct device_key
+      const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: recent } = await admin
+        .from("video_sessions")
+        .select("device_key")
+        .eq("user_id", profile.id)
+        .gte("created_at", since);
+
+      const distinctDevices = new Set(
+        (recent || []).map((r: { device_key: string }) => r.device_key)
+      );
+      distinctDevices.add(deviceKey);
+
+      if (distinctDevices.size > MAX_DEVICES_PER_HOUR) {
+        console.warn(
+          `[multi-device] user=${profile.id} blocked: ${distinctDevices.size} devices in 60min`
+        );
+        return NextResponse.json(
+          {
+            error:
+              "偵測到此帳號於短時間內從多個裝置觀看,已暫停影片播放。請於 60 分鐘後重試,或聯絡客服確認帳號安全。",
+            code: "MULTI_DEVICE_BLOCK",
+          },
+          { status: 429 }
+        );
+      }
+
+      // 記錄這次 session(best-effort,失敗不擋 token 簽發)
+      admin
+        .from("video_sessions")
+        .insert({
+          user_id: profile.id,
+          ip_hash: ipHash,
+          ua_hash: uaHash,
+          device_key: deviceKey,
+          chapter_id: chapter.id,
+        })
+        .then(({ error }) => {
+          if (error) console.warn("[video_sessions] insert failed", error.message);
+        });
+    }
   }
 
   // 簽 token，60 min 有效

@@ -224,7 +224,7 @@ export default async function LearnPage({ params, searchParams }: Props) {
             <div className="text-[11px] text-on-surface-variant/80 leading-relaxed bg-surface-container-lowest rounded-lg px-4 py-3 border border-outline-variant/15">
               本內容著作權所有 © 2026 <strong className="text-on-surface">巨石文化有限公司</strong> · 講師 久方武 授權使用。畫面已浮水印標記登入帳號（{watermarkId}）。
               <br />
-              未經授權截錄、轉載、二次散播或用於商業培訓，依《著作權法》追訴並加計違約金 NT$200,000 起／件。
+              未經授權截錄、轉載、二次散播或用於商業培訓，依《著作權法》追訴。本平台偵測異常多裝置觀看將自動暫停播放。
             </div>
 
             {/* 下一段 button */}
