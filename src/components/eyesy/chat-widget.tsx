@@ -6,6 +6,12 @@ import { usePathname } from "next/navigation";
 import { MessageCircle, X, Send, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
+  return String(n);
+}
+
 function getContext(pathname: string): {
   context: string;
   courseId?: string;
@@ -54,6 +60,22 @@ export function EyesyChatWidget() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { context, courseId, greeting, modeLabel } = getContext(pathname);
+
+  // 課程內顯示 quota(Sonnet token 剩多少)
+  const [quota, setQuota] = useState<{
+    monthlyRemaining: number;
+    monthlyMax: number;
+    topupBalance: number;
+    inQ1: boolean;
+    resetsAt: string;
+  } | null>(null);
+  useEffect(() => {
+    if (context !== "teaching" || !isOpen) return;
+    fetch("/api/chat/usage")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setQuota(d))
+      .catch(() => {});
+  }, [context, isOpen]);
 
   const [bubbleMsg, setBubbleMsg] = useState<string>("");
 
@@ -160,7 +182,9 @@ export function EyesyChatWidget() {
                 </span>
               </div>
               <p className="text-[11px] text-on-surface-variant truncate">
-                {context === "teaching"
+                {context === "teaching" && quota
+                  ? `深度模式剩 ${formatTokens(quota.monthlyRemaining + quota.topupBalance)} · ${quota.inQ1 ? "Q1 期間" : "已過 Q1"}`
+                  : context === "teaching"
                   ? "可引用課程逐字稿 · 看影片有疑問就問"
                   : "牛津視界 AI 助手"}
               </p>
