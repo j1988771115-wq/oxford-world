@@ -137,8 +137,8 @@ export default async function LearnPage({ params, searchParams }: Props) {
   const currentIdx = currentChapter && chapters
     ? chapters.findIndex((c: { id: string }) => c.id === currentChapter.id)
     : -1;
-  const prevChapter = currentIdx > 0 ? chapters[currentIdx - 1] : null;
-  const nextChapter = currentIdx >= 0 && chapters && currentIdx + 1 < chapters.length
+  const prevChapter = chapters && currentIdx > 0 ? chapters[currentIdx - 1] : null;
+  const nextChapter = chapters && currentIdx >= 0 && currentIdx + 1 < chapters.length
     ? chapters[currentIdx + 1]
     : null;
   function chapterUrl(ch: { id: string; mux_playback_id_bg?: string | null }) {
