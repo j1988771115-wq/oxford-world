@@ -159,6 +159,28 @@ export default async function LearnPage({ params, searchParams }: Props) {
         </div>
       </header>
 
+      {/* 試看中提示 — 已登入但沒購買時最上方顯示 */}
+      {!hasAccess && currentChapter?.is_free_preview && (
+        <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/15 border-b border-amber-500/30 px-4 lg:px-8 py-3">
+          <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-amber-700 dark:text-amber-300 font-black text-xs uppercase tracking-widest shrink-0">
+                試看中
+              </span>
+              <p className="text-sm text-on-surface truncate">
+                您正在觀看免費試看章節 · 完整 9 章課程 + 90 天 Pro 一次解鎖
+              </p>
+            </div>
+            <Link
+              href={`/courses/${course.slug}`}
+              className="signature-gradient text-white font-extrabold px-5 py-2 rounded-lg text-sm shrink-0 active:scale-95 transition-transform whitespace-nowrap"
+            >
+              立即解鎖 NT$24,900
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-[1600px] mx-auto px-4 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Main column: video + checkin + course info */}
