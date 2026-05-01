@@ -83,9 +83,10 @@ export async function POST(req: NextRequest) {
     }
     if (Number(Amt) !== Number(pendingOrder.amount)) {
       console.error(
-        `Webhook AMOUNT MISMATCH: order=${pendingOrder.amount} payload=${Amt} merchant_order=${MerchantOrderNo}`
+        `[CRITICAL] Webhook AMOUNT MISMATCH: order=${pendingOrder.amount} payload=${Amt} merchant_order=${MerchantOrderNo}`
       );
-      return NextResponse.json({ error: "amount mismatch" }, { status: 400 });
+      // 回 200 避免 retry storm,人工調查走 log
+      return NextResponse.json({ status: "ok", note: "amount mismatch logged" });
     }
 
     // C3 fix: atomic idempotent update (only update if still pending)
@@ -179,12 +180,15 @@ export async function POST(req: NextRequest) {
         console.log("Chat topup granted +500k Sonnet tokens to", updatedOrder.user_id);
       } catch (e) {
         console.error("Chat topup grant failed:", e);
-        return NextResponse.json({ error: "Failed to grant topup" }, { status: 500 });
+        // 不回 500,避免 retry storm — log 給人工 catch
+        return NextResponse.json({ status: "ok", note: "topup grant failed, manual followup" });
       }
     } else if (updatedOrder.order_type === "subscription") {
+      // 訂閱設 30 天到期(月繳一次性,下個月需要再下單)
+      const proExpiresAt = new Date(Date.now() + 30 * 86400000).toISOString();
       const { error: tierError } = await supabase
         .from("profiles")
-        .update({ tier: "pro" })
+        .update({ tier: "pro", pro_expires_at: proExpiresAt })
         .eq("id", updatedOrder.user_id);
 
       if (tierError) {
@@ -240,11 +244,17 @@ export async function POST(req: NextRequest) {
           if (c?.pro_bundle_days) proBundleDays = c.pro_bundle_days;
         } else if (updatedOrder.order_type === "subscription") {
           itemTitle = "Pro 訂閱";
+        } else if (updatedOrder.order_type === "chat_topup_149") {
+          itemTitle = "Eyesy 深度模式加購（+500k Sonnet tokens）";
         }
 
+        // 三種 order_type 都寄信:course / subscription / chat_topup_149
         await sendOrderConfirmation({
           to: profileEmail.email,
-          orderType: updatedOrder.order_type as "course" | "subscription",
+          orderType:
+            updatedOrder.order_type === "chat_topup_149"
+              ? "course"
+              : (updatedOrder.order_type as "course" | "subscription"),
           itemTitle,
           amount: updatedOrder.amount,
           merchantOrderNo: MerchantOrderNo,

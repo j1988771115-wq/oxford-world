@@ -131,15 +131,35 @@ export async function GET(req: NextRequest) {
         courseSlug: course?.slug,
       }).catch((e) => console.warn("[cron-reconcile] alert fail", e));
     } else if (o.order_type === "subscription") {
+      const proExpiresAt = new Date(Date.now() + 30 * 86400000).toISOString();
       await supabase
         .from("profiles")
-        .update({ tier: "pro" })
+        .update({ tier: "pro", pro_expires_at: proExpiresAt })
         .eq("id", o.user_id);
-      const profile = justUpdated.profiles as { discord_id?: string } | null;
+      const profile = justUpdated.profiles as { discord_id?: string; email?: string | null; display_name?: string | null } | null;
       if (profile?.discord_id) await addProRole(profile.discord_id);
+      if (profile?.email) {
+        await sendOrderConfirmation({
+          to: profile.email,
+          orderType: "subscription",
+          itemTitle: "Pro 訂閱（30 天）",
+          amount: o.amount,
+          merchantOrderNo: o.merchant_order_no,
+        }).catch((e) => console.warn("[cron-reconcile] sub email fail", e));
+      }
     } else if (o.order_type === "chat_topup_149") {
       try {
         await addSonnetTopup(o.user_id, 1);
+        const profile = justUpdated.profiles as { email?: string | null } | null;
+        if (profile?.email) {
+          await sendOrderConfirmation({
+            to: profile.email,
+            orderType: "course",
+            itemTitle: "Eyesy 深度模式加購（+500k tokens）",
+            amount: o.amount,
+            merchantOrderNo: o.merchant_order_no,
+          }).catch((e) => console.warn("[cron-reconcile] topup email fail", e));
+        }
       } catch (e) {
         console.warn("[cron-reconcile] topup fail", e);
       }

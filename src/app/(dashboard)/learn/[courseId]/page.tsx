@@ -108,15 +108,11 @@ export default async function LearnPage({ params, searchParams }: Props) {
   // - 否則用 user 指定的 part
   const hasBg = !!currentChapter?.mux_playback_id_bg;
   const hasMain = !!currentChapter?.mux_playback_id;
+  // 兩段都有時預設 bg(JD 設計:背景先聽);只有一段時用該段
   let currentPart: "bg" | "main";
-  if (!hasBg) {
-    currentPart = "main";
-  } else if (!hasMain) {
-    currentPart = "bg";
-  } else {
-    currentPart = partRaw === "main" ? "main" : (partRaw === "bg" ? "bg" : "bg");
-    // 預設 bg(因為 JD 設計:背景先聽,順著看下來)
-  }
+  if (!hasBg) currentPart = "main";
+  else if (!hasMain) currentPart = "bg";
+  else currentPart = partRaw === "main" ? "main" : "bg";
 
   // 算「下一段」連結 — bg 完看 main, main 完看下章 bg(沒 bg 直接 main)
   function buildPartUrl(chId: string, part: "bg" | "main") {

@@ -71,7 +71,11 @@ export function verifyTradeSha(tradeInfo: string, receivedSha: string): boolean 
   const expectedSha = sha256(
     `HashKey=${HASH_KEY}&${tradeInfo}&HashIV=${HASH_IV}`
   );
-  return expectedSha === receivedSha;
+  // timing-safe — 比對 hex string 不能用 ===
+  const a = Buffer.from(expectedSha, "utf8");
+  const b = Buffer.from(receivedSha, "utf8");
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
 }
 
 export function decryptTradeInfo(encryptedData: string): Record<string, unknown> {

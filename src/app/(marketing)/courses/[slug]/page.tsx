@@ -515,7 +515,9 @@ export default async function CourseDetailPage({ params }: Props) {
                       </Link>
                       {firstFreeChapter && (
                         <Link
-                          href={`/sign-in?redirect=/learn/${course.id}?chapter=${firstFreeChapter.id}`}
+                          href={`/sign-in?redirect=${encodeURIComponent(
+                            `/learn/${course.id}?chapter=${firstFreeChapter.id}`
+                          )}`}
                           className="block w-full text-center border-2 border-secondary py-3 rounded-xl text-secondary font-bold text-sm hover:bg-secondary-fixed/20 transition-colors active:scale-95"
                         >
                           登入免費觀看試聽章節

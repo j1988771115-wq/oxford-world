@@ -219,26 +219,32 @@ export async function adminFulfillOrder(formData: FormData) {
       if (prof2?.discord_id) await addProRole(prof2.discord_id);
     }
   } else if (order.order_type === "subscription") {
+    const proExpiresAt = new Date(Date.now() + 30 * 86400000).toISOString();
     await supabase
       .from("profiles")
-      .update({ tier: "pro" })
+      .update({ tier: "pro", pro_expires_at: proExpiresAt })
       .eq("id", order.user_id);
     if (profile?.discord_id) await addProRole(profile.discord_id);
+    courseTitle = "Pro 訂閱（30 天）";
   } else if (order.order_type === "chat_topup_149") {
     try {
       await addSonnetTopup(order.user_id, 1);
+      courseTitle = "Eyesy 深度模式加購（+500k tokens）";
     } catch (e) {
       return { error: `topup: ${e instanceof Error ? e.message : String(e)}` };
     }
   }
 
-  // 通知 + 寄信(best-effort)
+  // 通知 + 寄信(三種 order_type 都寄)
   const notifications: string[] = [];
-  if (profile?.email && order.order_type !== "chat_topup_149") {
+  if (profile?.email) {
     try {
       await sendOrderConfirmation({
         to: profile.email,
-        orderType: order.order_type as "course" | "subscription",
+        orderType:
+          order.order_type === "chat_topup_149"
+            ? "course"
+            : (order.order_type as "course" | "subscription"),
         itemTitle: courseTitle,
         amount: order.amount,
         merchantOrderNo,
