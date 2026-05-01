@@ -220,26 +220,12 @@ export default async function LearnPage({ params, searchParams }: Props) {
               </div>
             )}
 
-            {/* 版權警告 — 影片下方,持續嚇阻 */}
-            <div className="text-[11px] text-on-surface-variant/80 leading-relaxed bg-surface-container-lowest rounded-lg px-4 py-3 border border-outline-variant/15">
-              本內容著作權所有 © 2026 <strong className="text-on-surface">巨石文化有限公司</strong> · 講師 久方武 授權使用。畫面已浮水印標記登入帳號（{watermarkId}）。
-              <br />
-              未經授權截錄、轉載、二次散播或用於商業培訓，依《著作權法》追訴。本平台偵測異常多裝置觀看將自動暫停播放。
-            </div>
+            {/* 版權聲明 — 縮成單行小字,不打斷視覺流 */}
+            <p className="text-[10.5px] text-on-surface-variant/60 leading-relaxed px-1">
+              © 2026 巨石文化有限公司 · 講師久方武授權 · 浮水印標記 {watermarkId} · 未經授權散播依《著作權法》追訴
+            </p>
 
-            {/* 下一段 button */}
-            {canPlay && nextPartUrl && (
-              <div className="flex justify-end">
-                <Link
-                  href={nextPartUrl}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl signature-gradient text-white font-bold text-sm hover:opacity-90 transition"
-                >
-                  {nextPartLabel}
-                </Link>
-              </div>
-            )}
-
-            {/* 學後思考題 — 只在看完正片後出現,背景階段先不打擾 */}
+            {/* 學後思考題 — 看完正片後才出現 */}
             {canPlay &&
               currentPart === "main" &&
               currentChapter &&
@@ -277,93 +263,130 @@ export default async function LearnPage({ params, searchParams }: Props) {
                       sort_order: number;
                       is_free_preview: boolean;
                       duration_seconds: number | null;
+                      duration_seconds_bg?: number | null;
+                      mux_playback_id?: string | null;
                       mux_playback_id_bg?: string | null;
                     }) => {
-                      const isCurrent = ch.id === currentChapter?.id;
+                      const isCurrentChapter = ch.id === currentChapter?.id;
                       const isLocked = !ch.is_free_preview && !hasAccess;
                       const progress = progressByChapter.get(ch.id);
                       const hasProgress =
                         !!progress && progress.last_position_seconds > 5;
                       const isCompleted = !!progress?.completed;
+                      const chHasBg = !!ch.mux_playback_id_bg;
+                      const chHasMain = !!ch.mux_playback_id;
 
                       return (
-                        <Link
-                          key={ch.id}
-                          href={
-                            isLocked
-                              ? `/courses/${course.slug}`
-                              : `/learn/${courseId}?chapter=${ch.id}`
-                          }
-                          className={cn(
-                            "flex items-center gap-3 p-3 transition-colors group",
-                            isCurrent
-                              ? "bg-secondary-fixed/20"
-                              : "hover:bg-surface-container"
-                          )}
-                        >
-                          <div className="shrink-0">
-                            {isLocked ? (
-                              <Lock
-                                size={16}
-                                className="text-on-surface-variant"
-                              />
-                            ) : isCompleted ? (
+                        <div key={ch.id} className="bg-surface-container-lowest">
+                          {/* 章節標題列(非 link, 視覺分組) */}
+                          <div
+                            className={cn(
+                              "px-3 pt-3 pb-1.5 flex items-center gap-2",
+                              isCurrentChapter && "bg-secondary-fixed/10"
+                            )}
+                          >
+                            <span className="text-xs font-bold text-on-surface-variant w-6 text-right">
+                              {ch.sort_order}
+                            </span>
+                            <p
+                              className={cn(
+                                "text-sm font-bold leading-snug flex-1 min-w-0 truncate",
+                                isCurrentChapter
+                                  ? "text-secondary"
+                                  : "text-on-surface"
+                              )}
+                            >
+                              {ch.title}
+                            </p>
+                            {ch.is_free_preview && (
+                              <span className="text-[9px] font-bold text-secondary bg-secondary-fixed px-1 py-0.5 rounded shrink-0">
+                                免費
+                              </span>
+                            )}
+                            {isCompleted && (
                               <CheckCircle2
-                                size={16}
-                                className="text-emerald-500 fill-emerald-500/20"
-                              />
-                            ) : isCurrent ? (
-                              <PlayCircle
-                                size={16}
-                                className="text-secondary fill-current"
-                              />
-                            ) : (
-                              <CheckCircle2
-                                size={16}
-                                className="text-on-surface-variant"
+                                size={14}
+                                className="text-emerald-500 fill-emerald-500/20 shrink-0"
                               />
                             )}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p
+
+                          {/* 背景 row(若有) */}
+                          {chHasBg && (
+                            <Link
+                              href={
+                                isLocked
+                                  ? `/courses/${course.slug}`
+                                  : `/learn/${courseId}?chapter=${ch.id}&part=bg`
+                              }
                               className={cn(
-                                "text-sm leading-snug line-clamp-2",
-                                isCurrent
-                                  ? "font-bold text-secondary"
-                                  : "text-on-surface group-hover:text-on-surface"
+                                "flex items-center gap-2 pl-11 pr-3 py-2 text-xs transition-colors group",
+                                isCurrentChapter && currentPart === "bg"
+                                  ? "bg-secondary-fixed/30 text-secondary font-bold"
+                                  : "text-on-surface-variant hover:bg-surface-container"
                               )}
                             >
-                              {ch.sort_order}. {ch.title}
-                            </p>
-                            <div className="flex flex-wrap items-center gap-2 mt-1">
-                              {ch.is_free_preview && (
-                                <span className="text-[10px] font-bold text-secondary bg-secondary-fixed px-1.5 py-0.5 rounded">
-                                  免費
+                              {isLocked ? (
+                                <Lock size={12} className="shrink-0" />
+                              ) : isCurrentChapter && currentPart === "bg" ? (
+                                <PlayCircle size={12} className="shrink-0 fill-current" />
+                              ) : (
+                                <span className="w-3 h-3 rounded-full border border-current opacity-40 shrink-0" />
+                              )}
+                              <span className="flex-1 truncate">背景資料學習</span>
+                              {ch.duration_seconds_bg && (
+                                <span className="opacity-70 shrink-0">
+                                  {formatDuration(ch.duration_seconds_bg)}
                                 </span>
                               )}
-                              {ch.mux_playback_id_bg && (
-                                <span className="text-[10px] text-on-surface-variant">
-                                  +背景
+                            </Link>
+                          )}
+
+                          {/* 正片 row */}
+                          {chHasMain ? (
+                            <Link
+                              href={
+                                isLocked
+                                  ? `/courses/${course.slug}`
+                                  : `/learn/${courseId}?chapter=${ch.id}&part=main`
+                              }
+                              className={cn(
+                                "flex items-center gap-2 pl-11 pr-3 py-2 text-xs transition-colors group",
+                                isCurrentChapter && currentPart === "main"
+                                  ? "bg-secondary-fixed/30 text-secondary font-bold"
+                                  : "text-on-surface-variant hover:bg-surface-container"
+                              )}
+                            >
+                              {isLocked ? (
+                                <Lock size={12} className="shrink-0" />
+                              ) : isCompleted ? (
+                                <CheckCircle2 size={12} className="text-emerald-500 fill-emerald-500/20 shrink-0" />
+                              ) : isCurrentChapter && currentPart === "main" ? (
+                                <PlayCircle size={12} className="shrink-0 fill-current" />
+                              ) : (
+                                <span className="w-3 h-3 rounded-full border border-current opacity-40 shrink-0" />
+                              )}
+                              <span className="flex-1 truncate">久老師正片</span>
+                              {hasProgress && !isCompleted && (
+                                <span className="text-amber-600 dark:text-amber-400 shrink-0">
+                                  到 {formatDuration(progress!.last_position_seconds)}
                                 </span>
                               )}
                               {ch.duration_seconds && (
-                                <span className="text-[10px] text-on-surface-variant flex items-center gap-1">
-                                  <Clock size={10} />
+                                <span className="opacity-70 shrink-0">
                                   {formatDuration(ch.duration_seconds)}
                                 </span>
                               )}
-                              {isCompleted ? (
-                                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                                  已看完
-                                </span>
-                              ) : hasProgress ? (
-                                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
-                                  到 {formatDuration(progress!.last_position_seconds)}
-                                </span>
-                              ) : null}
+                            </Link>
+                          ) : (
+                            <div className="pl-11 pr-3 py-2 text-xs text-on-surface-variant/50">
+                              影片即將上傳
                             </div>
-                          </div>
-                        </Link>
+                          )}
+
+                          {/* 章節間距 */}
+                          <div className="h-1.5" />
+                        </div>
                       );
                     }
                   )}
