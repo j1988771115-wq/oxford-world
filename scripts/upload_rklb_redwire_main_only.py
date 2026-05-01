@@ -117,10 +117,17 @@ def del_asset(aid):
         print(f"  del fail: {e}")
         return False
 
-JOBS = [
+import sys as _sys
+JOBS_ALL = [
     ("RKLB",    "59857619-a32e-4c16-8896-432feff745de", "C:/Users/JD/oxford-autopilot/out/RKLB_long.mp4"),
     ("REDWIRE", "ce431430-b2ca-477f-91f7-2148710b96c9", "C:/Users/JD/oxford-autopilot/out/REDWIRE_long.mp4"),
 ]
+# 命令列指定 ticker 過濾,例如 --tickers REDWIRE
+filter_tickers = []
+for i, a in enumerate(_sys.argv):
+    if a == "--tickers" and i + 1 < len(_sys.argv):
+        filter_tickers = _sys.argv[i + 1].split(",")
+JOBS = [j for j in JOBS_ALL if not filter_tickers or j[0] in filter_tickers]
 
 for ticker, chap, remote in JOBS:
     print(f"\n=== {ticker} main ===")

@@ -1,9 +1,10 @@
 import crypto from "crypto";
 
-const MERCHANT_ID = process.env.NEWEBPAY_MERCHANT_ID!;
-const HASH_KEY = process.env.NEWEBPAY_HASH_KEY!;
-const HASH_IV = process.env.NEWEBPAY_HASH_IV!;
-const API_URL = process.env.NEWEBPAY_API_URL || "https://ccore.newebpay.com";
+// .trim() 防 Vercel env 尾巴有 \n / 空白 — 之前 Mux token 踩過同樣的雷
+const MERCHANT_ID = (process.env.NEWEBPAY_MERCHANT_ID || "").trim();
+const HASH_KEY = (process.env.NEWEBPAY_HASH_KEY || "").trim();
+const HASH_IV = (process.env.NEWEBPAY_HASH_IV || "").trim();
+const API_URL = (process.env.NEWEBPAY_API_URL || "https://ccore.newebpay.com").trim();
 
 interface PaymentParams {
   orderId: string;

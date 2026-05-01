@@ -14,33 +14,55 @@ function getAdminClient() {
 }
 
 export async function POST(req: NextRequest) {
+  // 即使內部錯也回 200,避免 NewebPay retry storm 把錯誤訊號淹沒
+  // 真實狀況靠 log + 後台補單
   try {
     const formData = await req.formData();
     const tradeInfo = formData.get("TradeInfo") as string;
     const tradeSha = formData.get("TradeSha") as string;
+    const formMerchantOrderNo = formData.get("MerchantOrderNo") as string | null;
+
+    console.log("[newebpay-webhook] received", {
+      hasTradeInfo: !!tradeInfo,
+      tradeInfoLen: tradeInfo?.length,
+      hasTradeSha: !!tradeSha,
+      tradeShaLen: tradeSha?.length,
+      formMerchantOrderNo,
+    });
 
     if (!tradeInfo || !tradeSha) {
-      return NextResponse.json({ error: "Missing TradeInfo or TradeSha" }, { status: 400 });
+      console.error("[newebpay-webhook] missing TradeInfo/TradeSha");
+      return NextResponse.json({ status: "ok" });
     }
 
-    // C2 fix: verify TradeSha before processing
-    if (!verifyTradeSha(tradeInfo, tradeSha)) {
-      console.error("TradeSha verification failed");
-      return NextResponse.json({ error: "Signature verification failed" }, { status: 403 });
+    const shaOk = verifyTradeSha(tradeInfo, tradeSha);
+    if (!shaOk) {
+      console.error("[newebpay-webhook] TradeSha verification failed", {
+        tradeInfo: tradeInfo.slice(0, 100),
+      });
+      return NextResponse.json({ status: "ok" });
     }
 
-    const result = decryptTradeInfo(tradeInfo) as {
-      Status: string;
-      Result: {
-        MerchantOrderNo: string;
-        Amt: number;
-        TradeNo: string;
-      };
-    };
+    let result:
+      | {
+          Status: string;
+          Result: { MerchantOrderNo: string; Amt: number; TradeNo: string };
+        }
+      | null = null;
+    try {
+      result = decryptTradeInfo(tradeInfo) as typeof result;
+    } catch (decErr) {
+      // 解密失敗:log 完整內容,但回 200 避免 retry storm
+      console.error("[newebpay-webhook] decrypt failed, but SHA verified — env key/IV mismatch?", {
+        err: decErr instanceof Error ? decErr.message : String(decErr),
+        tradeInfo,
+      });
+      return NextResponse.json({ status: "ok", note: "decrypt failed, manual fulfillment required" });
+    }
 
-    if (result.Status !== "SUCCESS") {
-      console.error("Payment failed:", result);
-      return NextResponse.json({ error: "Payment failed" }, { status: 400 });
+    if (!result || result.Status !== "SUCCESS") {
+      console.error("[newebpay-webhook] payment not success:", result);
+      return NextResponse.json({ status: "ok" });
     }
 
     const { MerchantOrderNo, Amt, TradeNo } = result.Result;
