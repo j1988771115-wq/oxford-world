@@ -41,8 +41,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Payment failed" }, { status: 400 });
     }
 
-    const { MerchantOrderNo, TradeNo } = result.Result;
+    const { MerchantOrderNo, Amt, TradeNo } = result.Result;
     const supabase = getAdminClient();
+
+    // P0 fix: 驗 Amt 與本地 order.amount 一致 — 防偽造 MerchantOrderNo + 挪用其他訂單簽章
+    const { data: pendingOrder } = await supabase
+      .from("orders")
+      .select("amount, status")
+      .eq("merchant_order_no", MerchantOrderNo)
+      .single();
+    if (!pendingOrder) {
+      console.error("Webhook: order not found", MerchantOrderNo);
+      return NextResponse.json({ status: "ok" }); // idempotent silent
+    }
+    if (pendingOrder.status === "paid") {
+      console.log("Webhook: already paid", MerchantOrderNo);
+      return NextResponse.json({ status: "ok" });
+    }
+    if (Number(Amt) !== Number(pendingOrder.amount)) {
+      console.error(
+        `Webhook AMOUNT MISMATCH: order=${pendingOrder.amount} payload=${Amt} merchant_order=${MerchantOrderNo}`
+      );
+      return NextResponse.json({ error: "amount mismatch" }, { status: 400 });
+    }
 
     // C3 fix: atomic idempotent update (only update if still pending)
     const { data: updatedOrder, error: updateError } = await supabase

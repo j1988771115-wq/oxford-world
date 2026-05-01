@@ -50,6 +50,25 @@ function containsStocks(text: string): boolean {
  *
  * 權限:必須購買該章節所屬課程或章節是 free preview。
  */
+// P0: in-memory rate limit
+const RATE_BUCKET = new Map<string, number[]>();
+function checkRate(userId: string, max = 20, windowMs = 60_000): boolean {
+  const now = Date.now();
+  const recent = (RATE_BUCKET.get(userId) || []).filter((t) => now - t < windowMs);
+  if (recent.length >= max) return false;
+  recent.push(now);
+  RATE_BUCKET.set(userId, recent);
+  if (RATE_BUCKET.size > 5000) {
+    for (const [k, v] of RATE_BUCKET.entries()) {
+      if (v.every((t) => now - t > windowMs * 5)) RATE_BUCKET.delete(k);
+    }
+  }
+  return true;
+}
+
+const MAX_QUESTION_LEN = 800;
+const MAX_ANSWER_LEN = 4000;
+
 export async function POST(req: Request) {
   const supabase = await createServerClient();
   const {
@@ -57,6 +76,10 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "請先登入" }, { status: 401 });
+  }
+
+  if (!checkRate(user.id)) {
+    return NextResponse.json({ error: "太快了,請稍候" }, { status: 429 });
   }
 
   let body: {
@@ -73,6 +96,13 @@ export async function POST(req: Request) {
   const { chapterId, action } = body;
   if (!chapterId || !action) {
     return NextResponse.json({ error: "invalid input" }, { status: 400 });
+  }
+  // 長度限制 — 防 token bomb
+  if (typeof body.question === "string" && body.question.length > MAX_QUESTION_LEN) {
+    return NextResponse.json({ error: "question too long" }, { status: 400 });
+  }
+  if (typeof body.answer === "string" && body.answer.length > MAX_ANSWER_LEN) {
+    return NextResponse.json({ error: "answer too long" }, { status: 400 });
   }
 
   const admin = createServiceClient();
@@ -189,8 +219,8 @@ ${context}
       }
       return NextResponse.json({ question });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "AI 失敗";
-      return NextResponse.json({ error: msg }, { status: 500 });
+      console.error("[quiz/question] error:", e);
+      return NextResponse.json({ error: "AI 暫時不可用" }, { status: 500 });
     }
   }
 
@@ -257,8 +287,8 @@ ${safeAnswer}
       }
       return NextResponse.json({ feedback });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "AI 失敗";
-      return NextResponse.json({ error: msg }, { status: 500 });
+      console.error("[quiz/grade] error:", e);
+      return NextResponse.json({ error: "AI 暫時不可用" }, { status: 500 });
     }
   }
 

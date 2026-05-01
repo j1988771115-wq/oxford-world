@@ -16,8 +16,27 @@ function getAdminClient() {
 }
 
 // Browser-side fallback for webhook: NotifyURL 偶爾沒打進來,user 一回到 success 頁就把訂單補上
-async function reconcileOrder(merchantOrderNo: string, tradeNo: string) {
+async function reconcileOrder(
+  merchantOrderNo: string,
+  tradeNo: string,
+  amtFromGateway: number
+) {
   const supabase = getAdminClient();
+  // P0 fix: 驗 Amt 對應本地 order.amount
+  const { data: pending } = await supabase
+    .from("orders")
+    .select("amount, status")
+    .eq("merchant_order_no", merchantOrderNo)
+    .single();
+  if (!pending) return;
+  if (pending.status === "paid") return;
+  if (Number(amtFromGateway) !== Number(pending.amount)) {
+    console.error(
+      `[success-fallback] AMOUNT MISMATCH: order=${pending.amount} gateway=${amtFromGateway}`
+    );
+    return;
+  }
+
   const { data: order } = await supabase
     .from("orders")
     .update({
@@ -87,7 +106,7 @@ export default async function PaymentResultPage({ searchParams }: Props) {
           orderNo = result.Result.MerchantOrderNo;
           amount = result.Result.Amt;
           // Reconcile DB in case NotifyURL didn't fire — idempotent (atomic WHERE status=pending)
-          await reconcileOrder(orderNo, result.Result.TradeNo).catch((e) =>
+          await reconcileOrder(orderNo, result.Result.TradeNo, result.Result.Amt).catch((e) =>
             console.error("[success] reconcile failed", e)
           );
         }

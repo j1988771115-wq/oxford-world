@@ -94,6 +94,28 @@ function parseContextHint(text: string): {
   return { context: "customer-service", courseId: null, cleanText: text };
 }
 
+// P0: in-memory rate limit(每個 lambda instance 自己一份;Vercel scale 時不完美但有檔)
+const RATE_BUCKET = new Map<string, number[]>();
+function checkRate(userId: string, max = 30, windowMs = 60_000): boolean {
+  const now = Date.now();
+  const recent = (RATE_BUCKET.get(userId) || []).filter((t) => now - t < windowMs);
+  if (recent.length >= max) return false;
+  recent.push(now);
+  RATE_BUCKET.set(userId, recent);
+  // 清掉舊 user 避免 memory grow
+  if (RATE_BUCKET.size > 5000) {
+    for (const [k, v] of RATE_BUCKET.entries()) {
+      if (v.every((t) => now - t > windowMs * 5)) RATE_BUCKET.delete(k);
+    }
+  }
+  return true;
+}
+
+const MAX_BODY_BYTES = 32 * 1024;
+const MAX_MESSAGES = 30;
+const MAX_TEXT_LEN = 4000;
+const VALID_CONTEXTS: ChatContext[] = ["teaching", "customer-service", "recommendation"];
+
 export async function POST(req: Request) {
   // Auth check
   const supabase = await createServerClient();
@@ -108,25 +130,93 @@ export async function POST(req: Request) {
     });
   }
 
-  const { messages, context, courseId, quizAnswers } = await req.json();
+  // Rate limit per user
+  if (!checkRate(user.id)) {
+    return new Response(JSON.stringify({ error: "太快了,請稍候" }), {
+      status: 429,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Body size guard
+  const raw = await req.text();
+  if (raw.length > MAX_BODY_BYTES) {
+    return new Response(JSON.stringify({ error: "請求過大" }), {
+      status: 413,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  let parsed_body: { messages?: unknown; context?: unknown; courseId?: unknown; quizAnswers?: unknown };
+  try {
+    parsed_body = JSON.parse(raw);
+  } catch {
+    return new Response(JSON.stringify({ error: "bad json" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const { messages: rawMessages, context, courseId, quizAnswers } = parsed_body;
+
+  // 訊息陣列驗證 + 長度限制
+  if (!Array.isArray(rawMessages) || rawMessages.length === 0) {
+    return new Response(JSON.stringify({ error: "messages required" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  if (rawMessages.length > MAX_MESSAGES) {
+    return new Response(JSON.stringify({ error: `messages 上限 ${MAX_MESSAGES}` }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  // 過濾只保留 user/assistant role,丟掉 system/tool/developer 等可能的 prompt injection
+  const messages = (rawMessages as Array<Record<string, unknown>>)
+    .filter((m) => m && (m.role === "user" || m.role === "assistant"))
+    .map((m) => {
+      // 限制 text 長度
+      if (Array.isArray(m.parts)) {
+        const parts = (m.parts as Array<{ type?: string; text?: string }>)
+          .filter((p) => p?.type === "text")
+          .map((p) => ({ type: "text" as const, text: String(p.text ?? "").slice(0, MAX_TEXT_LEN) }));
+        return { ...m, parts };
+      }
+      if (typeof m.content === "string") {
+        return { ...m, content: m.content.slice(0, MAX_TEXT_LEN) };
+      }
+      return m;
+    });
+  if (messages.length === 0) {
+    return new Response(JSON.stringify({ error: "no valid messages" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   // Get the last user message for RAG search + context detection
-  const lastUserMessage = messages
-    .filter((m: { role: string }) => m.role === "user")
-    .pop();
+  const lastUserMessage = (messages as Array<Record<string, unknown>>)
+    .filter((m) => m?.role === "user")
+    .pop() as Record<string, unknown> | undefined;
 
-  const rawQuery =
-    lastUserMessage?.content ||
-    lastUserMessage?.parts
-      ?.filter((p: { type: string }) => p.type === "text")
-      .map((p: { text: string }) => p.text)
-      .join("") ||
-    "";
+  const lumContent = typeof lastUserMessage?.content === "string"
+    ? lastUserMessage.content
+    : "";
+  const lumParts = Array.isArray(lastUserMessage?.parts)
+    ? (lastUserMessage.parts as Array<{ type?: string; text?: string }>)
+        .filter((p) => p?.type === "text")
+        .map((p) => p.text || "")
+        .join("")
+    : "";
+  const rawQuery = lumContent || lumParts;
 
   // Parse context from message hint or use explicit param
   const parsed = parseContextHint(rawQuery);
-  const chatContext: ChatContext = context || parsed.context;
-  const effectiveCourseId = courseId || parsed.courseId;
+  const ctxCandidate = (typeof context === "string" ? context : parsed.context) as ChatContext;
+  const chatContext: ChatContext = VALID_CONTEXTS.includes(ctxCandidate)
+    ? ctxCandidate
+    : "customer-service";
+  const effectiveCourseId =
+    typeof courseId === "string" ? courseId : parsed.courseId;
   const userQuery = parsed.cleanText || rawQuery;
 
   // 權限 gate：teaching 模式存取 paid course 內容前，先驗證用戶有 course_access
@@ -214,19 +304,23 @@ export async function POST(req: Request) {
         .limit(20);
 
       if (courses && courses.length > 0) {
-        // 順便抓章節大綱（標題 + takeaway）
+        // P0 fix: 此 branch 是 customer-service / recommendation,不洩漏 takeaway。
+        // teaching 模式有自己的 RAG context block(在這之前的 if 裡),不走這。
         const courseIds = courses.map((c: { id: string }) => c.id);
         const { data: chapters } = await supabase
           .from("course_chapters")
-          .select("course_id, sort_order, title, takeaway_summary, duration_seconds")
+          .select("course_id, sort_order, title, duration_seconds")
           .in("course_id", courseIds)
           .order("sort_order", { ascending: true });
 
-        const chaptersByCourse: Record<
-          string,
-          Array<{ sort_order: number; title: string; takeaway_summary: string | null; duration_seconds: number | null }>
-        > = {};
-        for (const ch of chapters || []) {
+        type ChapterRow = {
+          course_id: string;
+          sort_order: number;
+          title: string;
+          duration_seconds: number | null;
+        };
+        const chaptersByCourse: Record<string, ChapterRow[]> = {};
+        for (const ch of (chapters as ChapterRow[] | null) || []) {
           (chaptersByCourse[ch.course_id] ||= []).push(ch);
         }
 
@@ -265,8 +359,7 @@ export async function POST(req: Request) {
                   ? `${Math.round(ch.duration_seconds / 60)} 分`
                   : "";
                 lines.push(
-                  `  ${ch.sort_order}. ${ch.title}${minStr ? `（${minStr}）` : ""}` +
-                    (ch.takeaway_summary ? `\n     帶走：${ch.takeaway_summary}` : "")
+                  `  ${ch.sort_order}. ${ch.title}${minStr ? `（${minStr}）` : ""}`
                 );
               }
             }
@@ -280,7 +373,9 @@ export async function POST(req: Request) {
     }
   }
 
-  const modelMessages = await convertToModelMessages(messages);
+  // 過濾後的 messages 已經只剩 user/assistant + parts(text only),cast 給 AI SDK
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const modelMessages = await convertToModelMessages(messages as any);
   const result = streamText({
     model: anthropic("claude-sonnet-4-6"),
     system: systemPrompt,
