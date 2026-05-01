@@ -56,7 +56,7 @@ export default async function HomePage() {
                 href="/courses/master-space-age-capital"
                 className="signature-gradient text-white px-8 py-5 rounded-xl font-bold text-lg shadow-xl shadow-secondary/20 hover:scale-[1.02] transition-transform text-center"
               >
-                立即購買 NT$24,900
+                限時 NT$24,900 <span className="text-white/50 line-through font-normal text-sm align-middle ml-1">原價 NT$30,000</span>
               </Link>
               <Link
                 href="/courses"
