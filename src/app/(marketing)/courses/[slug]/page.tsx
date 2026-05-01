@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getCourseBySlug, checkCourseAccess } from "@/lib/actions/courses";
 import Link from "next/link";
 import {
@@ -32,6 +32,11 @@ export default async function CourseDetailPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id ?? null;
   const hasAccess = userId ? await checkCourseAccess(course.id) : false;
+
+  // 已購買 → 直接帶到收看頁,不停在銷售頁
+  if (hasAccess) {
+    redirect(`/learn/${course.id}`);
+  }
 
   // Fetch alumni status for pricing + visibility
   let isAlumni = false;
