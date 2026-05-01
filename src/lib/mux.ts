@@ -11,16 +11,17 @@
  */
 import Mux from "@mux/mux-node";
 
-const SIGNING_KEY_ID = process.env.MUX_SIGNING_KEY;
-const SIGNING_KEY_PRIVATE = process.env.MUX_SIGNING_KEY_PRIVATE;
+// .trim() 防 Vercel env 帶 \n
+const SIGNING_KEY_ID = (process.env.MUX_SIGNING_KEY || "").trim();
+const SIGNING_KEY_PRIVATE = (process.env.MUX_SIGNING_KEY_PRIVATE || "").trim();
 
 let mux: Mux | null = null;
 
 function getMux(): Mux {
   if (!mux) {
     mux = new Mux({
-      tokenId: process.env.MUX_TOKEN_ID,
-      tokenSecret: process.env.MUX_TOKEN_SECRET,
+      tokenId: (process.env.MUX_TOKEN_ID || "").trim(),
+      tokenSecret: (process.env.MUX_TOKEN_SECRET || "").trim(),
     });
   }
   return mux;

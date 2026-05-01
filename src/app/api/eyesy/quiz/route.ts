@@ -292,7 +292,9 @@ ${safeAnswer}
       }
 
       // XP: quiz_completed event(+50 XP)
-      // 防刷:同 user 同章節一輩子最多 1 個 quiz_completed event(章節思考題答過一次就夠了,不用重複拿 XP)
+      // 防刷:同 user 同 course 1 小時內最多 1 個 quiz_completed event
+      // (learning_events 沒 chapter_id 欄位,所以章節級 dedup 暫用 1 小時時窗;
+      // 9 章 × 50 XP = 450 XP 上限的設計藉由「答完一輪要等 9 小時」達成)
       try {
         const { data: prof } = await admin
           .from("profiles")
@@ -300,12 +302,14 @@ ${safeAnswer}
           .eq("auth_id", user.id)
           .maybeSingle();
         if (prof) {
+          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
           const { data: existing } = await admin
             .from("learning_events")
             .select("id")
             .eq("user_id", prof.id)
             .eq("course_id", chapter.course_id)
             .eq("event_type", "quiz_completed")
+            .gte("created_at", oneHourAgo)
             .limit(1)
             .maybeSingle();
           if (!existing) {

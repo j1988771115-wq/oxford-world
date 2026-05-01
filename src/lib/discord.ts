@@ -1,6 +1,7 @@
-const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
-const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID;
-const DISCORD_PRO_ROLE_ID = process.env.DISCORD_PRO_ROLE_ID;
+// .trim() 防 Vercel env 帶 \n
+const DISCORD_BOT_TOKEN = (process.env.DISCORD_BOT_TOKEN || "").trim();
+const DISCORD_GUILD_ID = (process.env.DISCORD_GUILD_ID || "").trim();
+const DISCORD_PRO_ROLE_ID = (process.env.DISCORD_PRO_ROLE_ID || "").trim();
 
 const DISCORD_API = "https://discord.com/api/v10";
 

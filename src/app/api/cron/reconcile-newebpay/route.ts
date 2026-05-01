@@ -20,12 +20,15 @@ function getAdminClient() {
  * 這是 webhook fail safe — 即使 NotifyURL 永遠打不到,30 分鐘內客戶仍會自動開課。
  */
 export async function GET(req: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  // 強制 CRON_SECRET 驗證 — env 沒設直接 503,不允許「沒 secret 就放行」
+  const cronSecret = (process.env.CRON_SECRET || "").trim();
+  if (!cronSecret) {
+    console.error("[cron-reconcile] CRON_SECRET not set, refusing");
+    return NextResponse.json({ error: "service unconfigured" }, { status: 503 });
+  }
+  const auth = req.headers.get("authorization");
+  if (auth !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const supabase = getAdminClient();
