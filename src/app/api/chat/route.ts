@@ -3,6 +3,11 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { createClient } from "@supabase/supabase-js";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { generateEmbedding } from "@/lib/embeddings";
+import {
+  getChatQuota,
+  consumeSonnetTokens,
+  addHaikuUsage,
+} from "@/lib/chat-quota";
 
 type ChatContext = "teaching" | "customer-service" | "recommendation";
 
@@ -383,17 +388,51 @@ export async function POST(req: Request) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const modelMessages = await convertToModelMessages(messages as any);
 
-  // 模型分流:teaching 走 Sonnet 4.6(深度問答),客服/推薦走 Haiku 4.5(便宜 4x)
-  const modelId =
-    chatContextResolved === "teaching"
-      ? "claude-sonnet-4-6"
-      : "claude-haiku-4-5-20251001";
+  // 模型分流 + quota check:
+  //   teaching + 已購買 + 還有 Sonnet quota → Sonnet 4.6
+  //   teaching 但 Sonnet quota 用完 → 自動降 Haiku 4.5
+  //   客服/推薦 → 一律 Haiku 4.5
+  // 拿用戶 profile.id(寫 quota 用)
+  let profileId: string | null = null;
+  let useSonnet = false;
+  if (chatContextResolved === "teaching") {
+    const adminS = createServiceClient();
+    const { data: prof } = await adminS
+      .from("profiles")
+      .select("id")
+      .eq("auth_id", user.id)
+      .maybeSingle();
+    profileId = prof?.id || null;
+    if (profileId) {
+      const q = await getChatQuota(profileId);
+      useSonnet = !!q && q.totalSonnetAvailable > 0;
+    }
+  }
+  const modelId = useSonnet
+    ? "claude-sonnet-4-6"
+    : "claude-haiku-4-5-20251001";
 
   const result = streamText({
     model: anthropic(modelId),
     system: systemPrompt,
     messages: modelMessages,
     maxOutputTokens: 1000, // P0:單次回答硬上限,防被勒索式長回答
+    onFinish: async ({ usage }) => {
+      // 扣 quota:onFinish 拿真實 usage tokens
+      try {
+        const tokens =
+          (usage?.inputTokens ?? 0) + (usage?.outputTokens ?? 0);
+        if (tokens > 0 && profileId) {
+          if (useSonnet) {
+            await consumeSonnetTokens(profileId, tokens);
+          } else {
+            await addHaikuUsage(profileId, tokens);
+          }
+        }
+      } catch (e) {
+        console.warn("[quota] onFinish failed:", e);
+      }
+    },
   });
 
   // XP: 每次 chat 加 ai_chat event(+5 XP)

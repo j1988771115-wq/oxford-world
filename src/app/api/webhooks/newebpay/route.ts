@@ -4,6 +4,7 @@ import { decryptTradeInfo, verifyTradeSha } from "@/lib/newebpay";
 import { addProRole } from "@/lib/discord";
 import { sendOrderConfirmation } from "@/lib/email";
 import { sendCoursePurchaseAlert } from "@/lib/donate-alert";
+import { addSonnetTopup } from "@/lib/chat-quota";
 
 function getAdminClient() {
   return createClient(
@@ -149,6 +150,15 @@ export async function POST(req: NextRequest) {
         console.log(
           `Bundled Pro: +${course.pro_bundle_days} days, expires ${newExpiry.toISOString()}`
         );
+      }
+    } else if (updatedOrder.order_type === "chat_topup_149") {
+      // Eyesy 深度模式加購:+500k Sonnet tokens(永不過期)
+      try {
+        await addSonnetTopup(updatedOrder.user_id, 1);
+        console.log("Chat topup granted +500k Sonnet tokens to", updatedOrder.user_id);
+      } catch (e) {
+        console.error("Chat topup grant failed:", e);
+        return NextResponse.json({ error: "Failed to grant topup" }, { status: 500 });
       }
     } else if (updatedOrder.order_type === "subscription") {
       const { error: tierError } = await supabase

@@ -176,6 +176,50 @@ export async function createProSubscription(billing: "monthly" | "yearly") {
   return { paymentForm, orderId: merchantOrderNo };
 }
 
+/** 加購 NT$149 = +500k Sonnet tokens */
+export async function createChatTopupOrder() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "請先登入" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, email")
+    .eq("auth_id", user.id)
+    .single();
+  if (!profile) return { error: "找不到 profile" };
+
+  const merchantOrderNo = generateOrderNo();
+  const baseUrl = getBaseUrl();
+  const amount = 149;
+
+  const { error: insertError } = await supabase.from("orders").insert({
+    merchant_order_no: merchantOrderNo,
+    user_id: profile.id,
+    course_id: null,
+    order_type: "chat_topup_149",
+    amount,
+    status: "pending",
+  });
+  if (insertError) {
+    console.error("Create chat topup order error:", insertError);
+    return { error: "建立訂單失敗" };
+  }
+
+  const paymentForm = createPaymentForm({
+    orderId: merchantOrderNo,
+    amount,
+    description: "牛津視界 — Eyesy 深度模式加購（+500k tokens）",
+    email: profile.email || user.email || "",
+    returnUrl: `${baseUrl}/api/payment/return`,
+    notifyUrl: `${baseUrl}/api/webhooks/newebpay`,
+  });
+
+  return { paymentForm, orderId: merchantOrderNo };
+}
+
 export async function getOrderStatus(merchantOrderNo: string) {
   const supabase = await createClient();
   const {
