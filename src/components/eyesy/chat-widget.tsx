@@ -5,6 +5,8 @@ import { useChat } from "@ai-sdk/react";
 import { usePathname } from "next/navigation";
 import { MessageCircle, X, Send, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/auth-provider";
+import Link from "next/link";
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -58,6 +60,7 @@ export function EyesyChatWidget() {
   const pathname = usePathname();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { user, loading: authLoading } = useAuth();
 
   const { context, courseId, greeting, modeLabel } = getContext(pathname);
 
@@ -206,8 +209,36 @@ export function EyesyChatWidget() {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 no-scrollbar">
-            {/* Welcome message */}
-            {messages.length === 0 && (
+            {/* 未登入提示 */}
+            {!authLoading && !user && (
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg signature-gradient flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm">
+                  E
+                </div>
+                <div className="bg-surface-container-low dark:bg-surface-container-high rounded-2xl rounded-tl-none px-4 py-3 max-w-[85%] space-y-2">
+                  <p className="text-sm text-on-surface leading-relaxed">
+                    嗨！我先請你登入再聊 — 這樣我才能依你的學習進度回答 ✨
+                  </p>
+                  <div className="flex gap-2">
+                    <Link
+                      href={`/sign-in?redirect=${encodeURIComponent(pathname)}`}
+                      className="text-xs font-bold signature-gradient text-white px-3 py-1.5 rounded-lg"
+                    >
+                      登入
+                    </Link>
+                    <Link
+                      href={`/sign-up?redirect=${encodeURIComponent(pathname)}`}
+                      className="text-xs font-bold border border-secondary text-secondary px-3 py-1.5 rounded-lg"
+                    >
+                      註冊免費試看
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Welcome message — 已登入才顯示 */}
+            {!authLoading && user && messages.length === 0 && (
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-lg signature-gradient flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm">
                   E
@@ -275,8 +306,8 @@ export function EyesyChatWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Suggestions */}
-          {messages.length === 0 && (
+          {/* Quick Suggestions — 已登入才出 */}
+          {user && messages.length === 0 && (
             <div className="px-4 pb-2 flex flex-wrap gap-2">
               {(context === "customer-service"
                 ? ["太空課在講什麼？", "Pro 方案有什麼？", "退款政策？"]
@@ -295,7 +326,7 @@ export function EyesyChatWidget() {
             </div>
           )}
 
-          {/* Input */}
+          {/* Input — 未登入禁用,提示先登入 */}
           <form
             onSubmit={handleFormSubmit}
             className="px-4 py-3 border-t border-outline-variant/15 flex items-center gap-2 shrink-0"
@@ -304,13 +335,13 @@ export function EyesyChatWidget() {
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="輸入訊息..."
-              className="flex-1 bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-2.5 text-sm text-on-surface placeholder-on-surface-variant/50 focus:ring-2 ring-secondary/30 focus:outline-none transition-all"
-              disabled={isLoading}
+              placeholder={user ? "輸入訊息..." : "請先登入再聊"}
+              className="flex-1 bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-2.5 text-sm text-on-surface placeholder-on-surface-variant/50 focus:ring-2 ring-secondary/30 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading || !user}
             />
             <button
               type="submit"
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || !input.trim() || !user}
               className="w-10 h-10 signature-gradient text-white rounded-xl flex items-center justify-center shadow-md active:scale-95 transition-transform shrink-0 disabled:opacity-40"
             >
               <Send size={16} className="fill-current" />

@@ -1,17 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Moon, Sun, LogOut } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/components/auth-provider";
+import { signOut as signOutAction } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
   const pathname = usePathname();
-  const router = useRouter();
   const { theme, toggle } = useTheme();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const isDark =
     pathname === "/" || pathname === "/pricing" || theme === "dark";
 
@@ -85,21 +85,20 @@ export function Navbar() {
               >
                 我的學習
               </Link>
-              <button
-                onClick={async () => {
-                  await signOut();
-                  router.refresh();
-                }}
-                className={cn(
-                  "p-2 rounded-lg transition-colors",
-                  isDark
-                    ? "text-slate-300 hover:text-[#00D2FF]"
-                    : "text-on-surface-variant hover:text-secondary"
-                )}
-                aria-label="Sign out"
-              >
-                <LogOut size={18} />
-              </button>
+              <form action={signOutAction}>
+                <button
+                  type="submit"
+                  className={cn(
+                    "p-2 rounded-lg transition-colors",
+                    isDark
+                      ? "text-slate-300 hover:text-[#00D2FF]"
+                      : "text-on-surface-variant hover:text-secondary"
+                  )}
+                  aria-label="Sign out"
+                >
+                  <LogOut size={18} />
+                </button>
+              </form>
             </>
           ) : (
             <Link
