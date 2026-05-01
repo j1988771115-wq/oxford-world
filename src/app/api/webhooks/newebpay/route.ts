@@ -43,14 +43,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: "ok" });
     }
 
-    let result:
-      | {
-          Status: string;
-          Result: { MerchantOrderNo: string; Amt: number; TradeNo: string };
-        }
-      | null = null;
+    type NewebPayResult = {
+      Status: string;
+      Result: { MerchantOrderNo: string; Amt: number; TradeNo: string };
+    };
+    let result: NewebPayResult | null = null;
     try {
-      result = decryptTradeInfo(tradeInfo) as typeof result;
+      result = decryptTradeInfo(tradeInfo) as unknown as NewebPayResult;
     } catch (decErr) {
       // 解密失敗:log 完整內容,但回 200 避免 retry storm
       console.error("[newebpay-webhook] decrypt failed, but SHA verified — env key/IV mismatch?", {
