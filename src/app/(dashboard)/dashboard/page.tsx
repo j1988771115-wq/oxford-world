@@ -112,7 +112,7 @@ export default async function DashboardPage({
         {/* Persistent alumni badge */}
         {isAlumni && !showLegacyWelcome && (
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant text-xs font-bold">
-            🎓 巨石文化老學員｜新課享專屬價 NT$1,490
+            🎓 巨石文化老學員
           </div>
         )}
 
