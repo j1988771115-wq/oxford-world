@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   params: Promise<{ courseId: string }>;
-  searchParams: Promise<{ chapter?: string; part?: "bg" | "main" }>;
+  searchParams: Promise<{ chapter?: string; part?: "bg" | "main"; preview?: string }>;
 }
 
 interface ChapterProgress {
@@ -44,8 +44,9 @@ function formatDuration(seconds: number | null): string {
 
 export default async function LearnPage({ params, searchParams }: Props) {
   const { courseId } = await params;
-  const { chapter: chapterId, part: partRaw } = await searchParams;
+  const { chapter: chapterId, part: partRaw, preview: previewRaw } = await searchParams;
   const partRequested: "bg" | "main" = partRaw === "bg" ? "bg" : "main";
+  const forcePreviewBanner = previewRaw === "1"; // QA / demo:加 ?preview=1 強制顯示試看橫幅
 
   const supabase = await createClient();
 
@@ -159,8 +160,8 @@ export default async function LearnPage({ params, searchParams }: Props) {
         </div>
       </header>
 
-      {/* 試看中提示 — 已登入但沒購買時最上方顯示 */}
-      {!hasAccess && currentChapter?.is_free_preview && (
+      {/* 試看中提示 — 已登入但沒購買時最上方顯示(?preview=1 可強制顯示用於 demo) */}
+      {(forcePreviewBanner || (!hasAccess && currentChapter?.is_free_preview)) && (
         <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/15 border-b border-amber-500/30 px-4 lg:px-8 py-3">
           <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
