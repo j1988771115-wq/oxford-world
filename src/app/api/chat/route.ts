@@ -1,4 +1,4 @@
-import { streamText } from "ai";
+import { streamText, convertToModelMessages } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { createClient } from "@supabase/supabase-js";
 import { createClient as createServerClient } from "@/lib/supabase/server";
@@ -231,11 +231,12 @@ export async function POST(req: Request) {
     }
   }
 
+  const modelMessages = await convertToModelMessages(messages);
   const result = streamText({
     model: anthropic("claude-sonnet-4-6"),
     system: systemPrompt,
-    messages,
+    messages: modelMessages,
   });
 
-  return result.toTextStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
