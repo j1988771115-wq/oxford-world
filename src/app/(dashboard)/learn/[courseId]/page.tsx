@@ -220,10 +220,15 @@ export default async function LearnPage({ params, searchParams }: Props) {
               </div>
             )}
 
-            {/* 版權聲明 — 縮成單行小字,不打斷視覺流 */}
-            <p className="text-[10.5px] text-on-surface-variant/60 leading-relaxed px-1">
-              © 2026 巨石文化有限公司 · 講師久方武授權 · 浮水印標記 {watermarkId} · 未經授權散播依《著作權法》追訴
-            </p>
+            {/* 版權 + 免責聲明 — 縮成小字 group,不打斷視覺流 */}
+            <div className="space-y-1.5 px-1">
+              <p className="text-[10.5px] text-on-surface-variant/60 leading-relaxed">
+                © 2026 巨石文化有限公司 · 講師久方武授權 · 浮水印標記 {watermarkId} · 未經授權散播依《著作權法》追訴
+              </p>
+              <p className="text-[10.5px] text-on-surface-variant/60 leading-relaxed">
+                <strong className="text-on-surface-variant">免責聲明</strong>:本影片內容僅供教學與學術探討之用,不構成任何買賣推薦或投資建議。太空與航太微型股票具備極高波動性與流動性風險,包含本金完全損失風險。投資人應自行審慎評估財務狀況,並對所有投資決策自負盈虧。
+              </p>
+            </div>
 
             {/* 學後思考題 — 看完正片後才出現 */}
             {canPlay &&
