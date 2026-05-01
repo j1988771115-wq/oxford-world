@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { checkCourseAccess } from "@/lib/actions/courses";
 import { createClient } from "@/lib/supabase/server";
-import { VideoTabs } from "@/components/courses/video-tabs";
+import { VideoPlayer } from "@/components/courses/video-player";
 import { YouTubePlayer } from "@/components/courses/youtube-player";
 import { ChapterCheckin } from "@/components/courses/chapter-checkin";
 import { CourseInfoCollapse } from "@/components/courses/course-info-collapse";
@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   params: Promise<{ courseId: string }>;
-  searchParams: Promise<{ chapter?: string }>;
+  searchParams: Promise<{ chapter?: string; part?: "bg" | "main" }>;
 }
 
 interface ChapterProgress {
@@ -44,7 +44,8 @@ function formatDuration(seconds: number | null): string {
 
 export default async function LearnPage({ params, searchParams }: Props) {
   const { courseId } = await params;
-  const { chapter: chapterId } = await searchParams;
+  const { chapter: chapterId, part: partRaw } = await searchParams;
+  const partRequested: "bg" | "main" = partRaw === "bg" ? "bg" : "main";
 
   const supabase = await createClient();
 
@@ -100,6 +101,41 @@ export default async function LearnPage({ params, searchParams }: Props) {
     : undefined;
   const resumeAt = currentProgress?.last_position_seconds ?? 0;
 
+  // 決定當下播哪個 part:
+  // - 如果章節沒 bg,只能 main
+  // - 如果章節有 bg 但 user 沒指定 part,預設 bg(背景先聽)
+  // - 否則用 user 指定的 part
+  const hasBg = !!currentChapter?.mux_playback_id_bg;
+  const hasMain = !!currentChapter?.mux_playback_id;
+  let currentPart: "bg" | "main";
+  if (!hasBg) {
+    currentPart = "main";
+  } else if (!hasMain) {
+    currentPart = "bg";
+  } else {
+    currentPart = partRaw === "main" ? "main" : (partRaw === "bg" ? "bg" : "bg");
+    // 預設 bg(因為 JD 設計:背景先聽,順著看下來)
+  }
+
+  // 算「下一段」連結 — bg 完看 main, main 完看下章 bg(沒 bg 直接 main)
+  function buildPartUrl(chId: string, part: "bg" | "main") {
+    return `/learn/${courseId}?chapter=${chId}&part=${part}`;
+  }
+  let nextPartUrl: string | null = null;
+  let nextPartLabel = "";
+  if (currentChapter && chapters) {
+    const idx = chapters.findIndex((c: { id: string }) => c.id === currentChapter.id);
+    if (currentPart === "bg" && hasMain) {
+      nextPartUrl = buildPartUrl(currentChapter.id, "main");
+      nextPartLabel = "看久老師正片 →";
+    } else if (idx >= 0 && idx + 1 < chapters.length) {
+      const next = chapters[idx + 1];
+      const nextHasBg = !!next.mux_playback_id_bg;
+      nextPartUrl = buildPartUrl(next.id, nextHasBg ? "bg" : "main");
+      nextPartLabel = `下一章:${next.title.slice(0, 20)} →`;
+    }
+  }
+
   return (
     <main className="lg:pl-64 min-h-screen bg-surface">
       {/* Top Header */}
@@ -127,28 +163,34 @@ export default async function LearnPage({ params, searchParams }: Props) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Main column: video + checkin + course info */}
           <div className="lg:col-span-8 space-y-6 min-w-0">
-            {/* Chapter title */}
+            {/* Chapter title + 段落標示 */}
             <div>
               <p className="text-xs text-on-surface-variant mb-1">
-                第 {currentChapter?.sort_order || "-"} 章
+                第 {currentChapter?.sort_order || "-"} 章 ·{" "}
+                {currentPart === "bg" ? "背景資料學習" : "久老師正片"}
               </p>
               <h2 className="text-2xl font-bold text-on-surface">
                 {currentChapter?.title || course.title}
               </h2>
             </div>
 
-            {/* Video area: Tab if has bg, else single player */}
-            {canPlay && currentChapter?.mux_playback_id ? (
-              <VideoTabs
-                chapterId={currentChapter.id}
-                chapterTitle={currentChapter.title}
-                hasMain={!!currentChapter.mux_playback_id}
-                hasBg={!!currentChapter.mux_playback_id_bg}
-                durationMain={currentChapter.duration_seconds}
-                durationBg={currentChapter.duration_seconds_bg}
-                resumeAt={resumeAt}
-                watermarkId={watermarkId}
-              />
+            {/* Video player — 單一,根據 part 決定 main / bg */}
+            {canPlay && (currentPart === "bg" ? hasBg : hasMain) ? (
+              <div className="aspect-video bg-primary-container rounded-xl overflow-hidden">
+                <VideoPlayer
+                  key={`${currentChapter.id}-${currentPart}`}
+                  chapterId={currentChapter.id}
+                  title={
+                    currentPart === "bg"
+                      ? `${currentChapter.title} - 背景`
+                      : currentChapter.title
+                  }
+                  accentColor="#00d2ff"
+                  startTime={currentPart === "main" ? resumeAt : undefined}
+                  watermarkId={watermarkId}
+                  variant={currentPart}
+                />
+              </div>
             ) : canPlay && currentChapter?.youtube_url ? (
               <div className="aspect-video bg-primary-container rounded-xl overflow-hidden">
                 <YouTubePlayer
@@ -178,8 +220,28 @@ export default async function LearnPage({ params, searchParams }: Props) {
               </div>
             )}
 
-            {/* 學後思考題 */}
+            {/* 版權警告 — 影片下方,持續嚇阻 */}
+            <div className="text-[11px] text-on-surface-variant/80 leading-relaxed bg-surface-container-lowest rounded-lg px-4 py-3 border border-outline-variant/15">
+              本內容著作權所有 © 2026 <strong className="text-on-surface">巨石文化有限公司</strong> · 講師 久方武 授權使用。畫面已浮水印標記登入帳號（{watermarkId}）。
+              <br />
+              未經授權截錄、轉載、二次散播或用於商業培訓，依《著作權法》追訴並加計違約金 NT$200,000 起／件。
+            </div>
+
+            {/* 下一段 button */}
+            {canPlay && nextPartUrl && (
+              <div className="flex justify-end">
+                <Link
+                  href={nextPartUrl}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl signature-gradient text-white font-bold text-sm hover:opacity-90 transition"
+                >
+                  {nextPartLabel}
+                </Link>
+              </div>
+            )}
+
+            {/* 學後思考題 — 只在看完正片後出現,背景階段先不打擾 */}
             {canPlay &&
+              currentPart === "main" &&
               currentChapter &&
               (currentChapter.mux_playback_id ||
                 currentChapter.youtube_url) && (
