@@ -364,32 +364,53 @@ export default async function CourseDetailPage({ params }: Props) {
         <div className="lg:col-span-5">
           <div className="sticky top-28 space-y-6">
             <div className="bg-surface-container-lowest rounded-xl overflow-hidden deep-diffusion">
-              {/* Video Preview */}
-              <div className="relative aspect-video group cursor-pointer overflow-hidden">
-                {course.thumbnail_url ? (
-                  <img
-                    src={course.thumbnail_url}
-                    alt="Video Preview"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-primary-container flex items-center justify-center">
-                    <PlayCircle size={64} className="text-white/50" />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-primary-container/40 flex items-center justify-center">
-                  <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 group-hover:scale-110 transition-transform">
-                    <PlayCircle
-                      size={40}
-                      className="text-white fill-current"
-                    />
-                  </div>
-                </div>
-                <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-sm px-3 py-1 rounded text-white text-xs inline-flex items-center gap-2 w-fit">
-                  <Eye size={14} />
-                  預覽免費試看章節
-                </div>
-              </div>
+              {/* Video Preview — 點擊帶到第一個免費試看章節（未登入導去登入） */}
+              {(() => {
+                const previewHref = firstFreeChapter
+                  ? userId
+                    ? `/learn/${course.id}?chapter=${firstFreeChapter.id}`
+                    : `/sign-in?redirect=${encodeURIComponent(
+                        `/learn/${course.id}?chapter=${firstFreeChapter.id}`
+                      )}`
+                  : userId
+                  ? `/checkout?type=course&courseId=${course.id}`
+                  : `/sign-in?redirect=/courses/${course.slug}`;
+                const previewLabel = firstFreeChapter
+                  ? userId
+                    ? "預覽免費試看章節"
+                    : "登入後免費試看"
+                  : "立即購買";
+                return (
+                  <Link
+                    href={previewHref}
+                    className="relative aspect-video group cursor-pointer overflow-hidden block"
+                  >
+                    {course.thumbnail_url ? (
+                      <img
+                        src={course.thumbnail_url}
+                        alt="Video Preview"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-primary-container flex items-center justify-center">
+                        <PlayCircle size={64} className="text-white/50" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-primary-container/40 flex items-center justify-center">
+                      <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 group-hover:scale-110 transition-transform">
+                        <PlayCircle
+                          size={40}
+                          className="text-white fill-current"
+                        />
+                      </div>
+                    </div>
+                    <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-sm px-3 py-1 rounded text-white text-xs inline-flex items-center gap-2 w-fit">
+                      <Eye size={14} />
+                      {previewLabel}
+                    </div>
+                  </Link>
+                );
+              })()}
 
               <div className="p-8 space-y-6">
                 {/* Price */}
