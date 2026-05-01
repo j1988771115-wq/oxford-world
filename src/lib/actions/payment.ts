@@ -175,6 +175,12 @@ export async function createProSubscription(billing: "monthly" | "yearly") {
     return { error: "您已經是 Pro 會員" };
   }
 
+  // Rate limit:同 user 1 小時 pending 訂單上限 8 筆(防換 endpoint spam)
+  const rl = await checkOrderRateLimit(profile.id);
+  if (!rl.ok) {
+    return { error: rl.reason };
+  }
+
   const amount = billing === "yearly" ? PRO_YEARLY_PRICE : PRO_MONTHLY_PRICE;
   const desc = billing === "yearly" ? "Pro 年繳方案" : "Pro 月繳方案";
   const merchantOrderNo = generateOrderNo();
@@ -222,6 +228,12 @@ export async function createChatTopupOrder() {
     .eq("auth_id", user.id)
     .single();
   if (!profile) return { error: "找不到 profile" };
+
+  // Rate limit:同 user 1 小時 pending 訂單上限 8 筆
+  const rl = await checkOrderRateLimit(profile.id);
+  if (!rl.ok) {
+    return { error: rl.reason };
+  }
 
   const merchantOrderNo = generateOrderNo();
   const baseUrl = getBaseUrl();
