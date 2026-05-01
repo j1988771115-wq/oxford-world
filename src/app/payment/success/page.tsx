@@ -47,7 +47,7 @@ async function reconcileOrder(
     })
     .eq("merchant_order_no", merchantOrderNo)
     .eq("status", "pending")
-    .select("*, courses(title)")
+    .select("*, courses(title, slug)")
     .single();
   if (!order) return; // already processed or not found
 

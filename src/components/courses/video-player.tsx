@@ -76,7 +76,7 @@ export function VideoPlayer({
     return () => {
       alive = false;
     };
-  }, [chapterId]);
+  }, [chapterId, variant]);
 
   const saveProgress = async (positionSeconds: number, durationSeconds?: number) => {
     // bg 影片不寫進度 — 進度只追蹤主片

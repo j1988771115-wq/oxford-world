@@ -52,7 +52,7 @@ export async function sendCoursePurchaseAlert(p: CoursePurchaseAlert) {
         type: "course_purchase",
       }),
       // 短 timeout 避免擋住付款流程
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(1500),
     });
     if (!resp.ok) {
       const text = await resp.text().catch(() => "");

@@ -97,6 +97,10 @@ export async function POST(req: Request) {
   if (!chapterId || !action) {
     return NextResponse.json({ error: "invalid input" }, { status: 400 });
   }
+  // codex P0:在跑 embedding/RPC 前先 validate action,防惡意 action 燒成本
+  if (action !== "question" && action !== "grade") {
+    return NextResponse.json({ error: "invalid action" }, { status: 400 });
+  }
   // 長度限制 — 防 token bomb
   if (typeof body.question === "string" && body.question.length > MAX_QUESTION_LEN) {
     return NextResponse.json({ error: "question too long" }, { status: 400 });

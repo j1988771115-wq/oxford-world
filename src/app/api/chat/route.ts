@@ -219,42 +219,46 @@ export async function POST(req: Request) {
     typeof courseId === "string" ? courseId : parsed.courseId;
   const userQuery = parsed.cleanText || rawQuery;
 
-  // 權限 gate：teaching 模式存取 paid course 內容前，先驗證用戶有 course_access
+  // 權限 gate:teaching 模式存取 paid course 內容前,先驗證用戶有 course_access
+  // codex P0 fix: teaching 沒帶 courseId 一律降 customer-service(防免費 user 偷打 Sonnet)
   let canAccessPaidContent = false;
-  if (chatContext === "teaching" && effectiveCourseId) {
-    const adminSupabase = createServiceClient();
-    // 查 user 對應的 profile.id
-    const { data: profile } = await adminSupabase
-      .from("profiles")
-      .select("id")
-      .eq("auth_id", user.id)
-      .maybeSingle();
-
-    if (profile) {
-      const { data: access } = await adminSupabase
-        .from("course_access")
+  let chatContextResolved: ChatContext = chatContext;
+  if (chatContextResolved === "teaching") {
+    if (!effectiveCourseId) {
+      // 沒指定課程 → 不能教學模式,降客服
+      chatContextResolved = "customer-service";
+    } else {
+      const adminSupabase = createServiceClient();
+      const { data: profile } = await adminSupabase
+        .from("profiles")
         .select("id")
-        .eq("user_id", profile.id)
-        .eq("course_id", effectiveCourseId)
+        .eq("auth_id", user.id)
         .maybeSingle();
-      canAccessPaidContent = !!access;
-    }
-
-    if (!canAccessPaidContent) {
-      return new Response(
-        JSON.stringify({
-          error: "需要購買此課程才能使用課程內 AI 助教",
-          code: "COURSE_NOT_PURCHASED",
-        }),
-        { status: 403, headers: { "Content-Type": "application/json" } }
-      );
+      if (profile) {
+        const { data: access } = await adminSupabase
+          .from("course_access")
+          .select("id")
+          .eq("user_id", profile.id)
+          .eq("course_id", effectiveCourseId)
+          .maybeSingle();
+        canAccessPaidContent = !!access;
+      }
+      if (!canAccessPaidContent) {
+        return new Response(
+          JSON.stringify({
+            error: "需要購買此課程才能使用課程內 AI 助教",
+            code: "COURSE_NOT_PURCHASED",
+          }),
+          { status: 403, headers: { "Content-Type": "application/json" } }
+        );
+      }
     }
   }
 
   // RAG: 只有 teaching 模式（且已驗證有 access）才檢索付費課程內容
   // customer-service / recommendation 完全不查 course_content，避免免費用戶藉提問挖內容
   let ragContext = "";
-  if (userQuery && chatContext === "teaching" && canAccessPaidContent) {
+  if (userQuery && chatContextResolved === "teaching" && canAccessPaidContent) {
     try {
       const queryEmbedding = await generateEmbedding(userQuery);
       const supabase = createServiceClient();
@@ -281,7 +285,7 @@ export async function POST(req: Request) {
   }
 
   // Build system prompt
-  let systemPrompt = SYSTEM_PROMPTS[chatContext];
+  let systemPrompt = SYSTEM_PROMPTS[chatContextResolved];
 
   if (ragContext) {
     systemPrompt += `\n\n以下是相關的知識庫內容，請基於這些內容回答：\n<context>\n${ragContext}\n</context>`;
@@ -292,7 +296,7 @@ export async function POST(req: Request) {
   }
 
   // Fetch available courses for recommendation context
-  if (chatContext === "recommendation" || chatContext === "customer-service") {
+  if (chatContextResolved !== "teaching") {
     try {
       const supabase = createServiceClient();
       const { data: courses } = await supabase
@@ -381,7 +385,7 @@ export async function POST(req: Request) {
 
   // 模型分流:teaching 走 Sonnet 4.6(深度問答),客服/推薦走 Haiku 4.5(便宜 4x)
   const modelId =
-    chatContext === "teaching"
+    chatContextResolved === "teaching"
       ? "claude-sonnet-4-6"
       : "claude-haiku-4-5-20251001";
 
