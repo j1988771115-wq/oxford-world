@@ -7,11 +7,15 @@ import {
   Settings,
   HelpCircle,
   ChevronRight,
+  Home,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "學習總覽", path: "/dashboard" },
+  { icon: BookOpen, label: "課程目錄", path: "/courses" },
+  { icon: Home, label: "回首頁", path: "/" },
   { icon: Settings, label: "設定", path: "/settings" },
 ];
 
