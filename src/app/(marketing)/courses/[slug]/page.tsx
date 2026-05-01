@@ -22,6 +22,33 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+export async function generateMetadata({ params }: Props) {
+  const { slug } = await params;
+  const course = await getCourseBySlug(slug);
+  if (!course) return {};
+  const title = `${course.title} — 牛津視界`;
+  const desc = course.description?.slice(0, 160) || "";
+  return {
+    title,
+    description: desc,
+    openGraph: {
+      title,
+      description: desc,
+      type: "website",
+      locale: "zh_TW",
+      url: `https://oxford-vision.com/courses/${course.slug}`,
+      images: [{ url: course.thumbnail_url || "/og", width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: desc,
+      images: [course.thumbnail_url || "/og"],
+    },
+    alternates: { canonical: `https://oxford-vision.com/courses/${course.slug}` },
+  };
+}
+
 export default async function CourseDetailPage({ params }: Props) {
   const { slug } = await params;
   const course = await getCourseBySlug(slug);
@@ -108,8 +135,59 @@ export default async function CourseDetailPage({ params }: Props) {
     return `${m}:${ss.toString().padStart(2, "0")}`;
   }
 
+  // Course JSON-LD(SEO 富結果 + AEO 引用必備)
+  const courseUrl = `https://oxford-vision.com/courses/${course.slug}`;
+  const totalDurationSec = (chapters || []).reduce(
+    (sum: number, c: { duration_seconds?: number | null }) => sum + (c.duration_seconds || 0),
+    0
+  );
+  const totalDurationISO =
+    totalDurationSec > 0 ? `PT${Math.floor(totalDurationSec / 60)}M` : undefined;
+  const courseJsonLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    name: course.title,
+    description: course.description,
+    url: courseUrl,
+    inLanguage: "zh-TW",
+    provider: {
+      "@type": "Organization",
+      name: "牛津視界 Oxford Vision",
+      sameAs: "https://oxford-vision.com",
+    },
+    offers: {
+      "@type": "Offer",
+      price: String(course.price),
+      priceCurrency: "TWD",
+      availability: "https://schema.org/InStock",
+      url: courseUrl,
+    },
+    hasCourseInstance: {
+      "@type": "CourseInstance",
+      courseMode: "Online",
+      courseWorkload: totalDurationISO,
+    },
+  };
+  if (course.instructor) {
+    courseJsonLd.instructor = { "@type": "Person", name: course.instructor };
+  }
+  if (chapters && chapters.length > 0) {
+    courseJsonLd.numberOfCredits = chapters.length;
+    courseJsonLd.syllabusSections = chapters.map(
+      (ch: { sort_order: number; title: string; takeaway_summary?: string | null }) => ({
+        "@type": "Syllabus",
+        name: `第 ${ch.sort_order} 章 ${ch.title}`,
+        description: ch.takeaway_summary || undefined,
+      })
+    );
+  }
+
   return (
     <main className="pt-12 pb-20 px-8 max-w-[1440px] mx-auto">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(courseJsonLd) }}
+      />
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-on-surface-variant text-sm mb-8">
         <Link href="/" className="hover:text-secondary transition-colors">

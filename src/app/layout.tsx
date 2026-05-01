@@ -21,7 +21,7 @@ const notoSansTC = Noto_Sans_TC({
 export const metadata: Metadata = {
   title: "牛津視界 Oxford Vision — 太空時代的資本配置",
   description:
-    "下一個十年的產業革命。久方武院長 10 章深度拆解 SpaceX、Starlink、AST SpaceMobile 等美股太空標的，一套完整投資框架。",
+    "下一個十年的產業革命。久方武院長 10 章深度拆解 8 隻精選美股太空標的，從 SpaceX 大敘事到實戰資本配置框架。",
   openGraph: {
     title: "太空時代的資本配置 — 牛津視界",
     description: "久方武院長親授 · 10 章深度拆解美股太空標的",
@@ -53,8 +53,9 @@ const jsonLd = {
     itemListElement: [
       {
         "@type": "Offer",
-        price: "28000",
+        price: "24900",
         priceCurrency: "TWD",
+        url: "https://oxford-vision.com/courses/master-space-age-capital",
         itemOffered: {
           "@type": "Course",
           name: "太空時代的資本配置：下一個十年的產業革命",
@@ -82,7 +83,7 @@ const faqJsonLd = {
       name: "牛津視界的課程多少錢？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "牛津視界目前提供大師課單課買斷，太空時代的資本配置由久方武院長親授，定價 NT$28,000，一次付費永久觀看。",
+        text: "牛津視界目前提供大師課單課買斷,太空時代的資本配置由久方武院長親授,定價 NT$24,900,一次付費永久觀看,加贈 Pro 90 天。",
       },
     },
     {
