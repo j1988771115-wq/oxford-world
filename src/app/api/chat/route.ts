@@ -207,24 +207,73 @@ export async function POST(req: Request) {
       const supabase = createServiceClient();
       const { data: courses } = await supabase
         .from("courses")
-        .select("title, slug, description, price, category, level")
+        .select(
+          "id, title, slug, description, price, alumni_price, original_price, category, instructor, pro_bundle_days, sale_ends_at"
+        )
         .order("created_at", { ascending: false })
         .limit(20);
 
       if (courses && courses.length > 0) {
+        // 順便抓章節大綱（標題 + takeaway）
+        const courseIds = courses.map((c: { id: string }) => c.id);
+        const { data: chapters } = await supabase
+          .from("course_chapters")
+          .select("course_id, sort_order, title, takeaway_summary, duration_seconds")
+          .in("course_id", courseIds)
+          .order("sort_order", { ascending: true });
+
+        const chaptersByCourse: Record<
+          string,
+          Array<{ sort_order: number; title: string; takeaway_summary: string | null; duration_seconds: number | null }>
+        > = {};
+        for (const ch of chapters || []) {
+          (chaptersByCourse[ch.course_id] ||= []).push(ch);
+        }
+
         const courseList = courses
-          .map(
-            (c: {
-              title: string;
-              price: number;
-              category?: string;
-              level?: string;
-              description: string;
-            }) =>
-              `- ${c.title}（NT$${c.price.toLocaleString()}）${c.category ? `[${c.category}]` : ""} ${c.level ? `${c.level}` : ""}\n  ${c.description}`
-          )
-          .join("\n");
-        systemPrompt += `\n\n目前提供的課程：\n${courseList}`;
+          .map((c: {
+            id: string;
+            title: string;
+            slug?: string;
+            price: number;
+            alumni_price?: number;
+            original_price?: number;
+            category?: string;
+            instructor?: string;
+            description: string;
+            pro_bundle_days?: number;
+            sale_ends_at?: string;
+          }) => {
+            const lines = [`### ${c.title}（slug: ${c.slug ?? c.id}）`];
+            if (c.instructor) lines.push(`講師：${c.instructor}`);
+            if (c.category) lines.push(`類別：${c.category}`);
+            const priceParts = [`定價 NT$${c.price.toLocaleString()}`];
+            if (c.original_price && c.original_price > c.price)
+              priceParts.push(`原價 NT$${c.original_price.toLocaleString()}`);
+            if (c.alumni_price)
+              priceParts.push(`老學員價 NT$${c.alumni_price.toLocaleString()}`);
+            if (c.pro_bundle_days)
+              priceParts.push(`購買加贈 Pro ${c.pro_bundle_days} 天`);
+            lines.push(priceParts.join(" / "));
+            if (c.sale_ends_at) lines.push(`優惠截止：${c.sale_ends_at}`);
+            lines.push(`簡介：${c.description}`);
+            const chs = chaptersByCourse[c.id] || [];
+            if (chs.length > 0) {
+              lines.push(`章節大綱（${chs.length} 章）：`);
+              for (const ch of chs) {
+                const minStr = ch.duration_seconds
+                  ? `${Math.round(ch.duration_seconds / 60)} 分`
+                  : "";
+                lines.push(
+                  `  ${ch.sort_order}. ${ch.title}${minStr ? `（${minStr}）` : ""}` +
+                    (ch.takeaway_summary ? `\n     帶走：${ch.takeaway_summary}` : "")
+                );
+              }
+            }
+            return lines.join("\n");
+          })
+          .join("\n\n");
+        systemPrompt += `\n\n## 目前上架的課程\n${courseList}`;
       }
     } catch (e) {
       console.error("Fetch courses error:", e);
