@@ -12,6 +12,8 @@ import { createClient } from "@supabase/supabase-js";
 const FEATURED_COURSE_SLUG = "master-space-age-capital";
 const PRO_MONTHLY_NTD = 999;
 
+export const revalidate = 60;
+
 function getPublicClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

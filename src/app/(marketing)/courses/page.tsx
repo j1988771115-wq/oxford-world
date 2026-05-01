@@ -7,6 +7,8 @@ export const metadata = {
   description: "系統化的 AI 時代學習課程，從入門到進階",
 };
 
+export const revalidate = 60;
+
 export default async function CoursesPage() {
   const courses = await getCourses();
   const supabase = await createClient();

@@ -17,6 +17,9 @@ import { Footer } from "@/components/layout/footer";
 import { EmailCaptureForm } from "@/components/email-capture-form";
 import { getCourses } from "@/lib/actions/courses";
 
+// 行銷首頁 ISR — 每 60 秒重生成,跨海 lambda 不必每次跑
+export const revalidate = 60;
+
 export default async function HomePage() {
   const dbCourses = await getCourses();
   const courses = dbCourses.length > 0 ? dbCourses : [];
