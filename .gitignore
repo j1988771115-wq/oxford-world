@@ -49,3 +49,4 @@ supabase/.temp/
 
 # Sentry source maps
 .sentryclirc
+.env*.local
