@@ -6,7 +6,8 @@ import { sendOrderConfirmation } from "@/lib/email";
 import { sendCoursePurchaseAlert } from "@/lib/donate-alert";
 import { addProRole } from "@/lib/discord";
 import { addSonnetTopup } from "@/lib/chat-quota";
-import { queryNewebPayOrder } from "@/lib/newebpay";
+import { queryNewebPayOrder, aesEncrypt, decryptTradeInfo } from "@/lib/newebpay";
+import crypto from "crypto";
 import { revalidatePath } from "next/cache";
 
 function getAdminClient() {
@@ -14,6 +15,66 @@ function getAdminClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
+}
+
+/**
+ * 自我測試:用我們手上的 KEY/IV 加密一段假 payload,再解密回來。
+ * 如果 round-trip 通就證明 KEY/IV 沒 \n / 空白問題。
+ * 如果只有藍新→我們的 webhook decrypt 失敗,代表藍新後台 KEY 跟我們的 KEY 對不上。
+ */
+export async function adminTestNewebPayRoundtrip() {
+  if (!(await isAdmin())) return { error: "unauthorized" };
+  const HASH_KEY = (process.env.NEWEBPAY_HASH_KEY || "").trim();
+  const HASH_IV = (process.env.NEWEBPAY_HASH_IV || "").trim();
+  const MID = (process.env.NEWEBPAY_MERCHANT_ID || "").trim();
+
+  const result: Record<string, unknown> = {
+    keyLen: HASH_KEY.length,
+    ivLen: HASH_IV.length,
+    midLen: MID.length,
+    keyHasWhitespace: /\s/.test(HASH_KEY) || HASH_KEY.includes("\\n"),
+    ivHasWhitespace: /\s/.test(HASH_IV) || HASH_IV.includes("\\n"),
+  };
+
+  // 同 NewebPay 回應格式構造 fake payload(模擬 webhook 收到的東西)
+  const fakeResult = {
+    Status: "SUCCESS",
+    Message: "test",
+    Result: {
+      MerchantOrderNo: "TEST_" + Date.now(),
+      Amt: 24900,
+      TradeNo: "TEST_TRADE",
+    },
+  };
+
+  try {
+    const encrypted = aesEncrypt(JSON.stringify(fakeResult));
+    result.encryptOk = true;
+    result.encryptedLen = encrypted.length;
+    try {
+      const decrypted = decryptTradeInfo(encrypted);
+      result.decryptOk = true;
+      result.roundtripMatch =
+        JSON.stringify(decrypted) === JSON.stringify(fakeResult);
+    } catch (decErr) {
+      result.decryptOk = false;
+      result.decryptError =
+        decErr instanceof Error ? decErr.message : String(decErr);
+    }
+
+    // 驗 SHA — 模擬藍新計算方式
+    const sha = crypto
+      .createHash("sha256")
+      .update(`HashKey=${HASH_KEY}&${encrypted}&HashIV=${HASH_IV}`)
+      .digest("hex")
+      .toUpperCase();
+    result.sha256Sample = sha.slice(0, 16) + "...";
+  } catch (e) {
+    result.encryptOk = false;
+    result.encryptError = e instanceof Error ? e.message : String(e);
+  }
+
+  return { ok: true, result };
 }
 
 /**

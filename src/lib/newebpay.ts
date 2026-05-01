@@ -15,7 +15,7 @@ interface PaymentParams {
   notifyUrl: string;
 }
 
-function aesEncrypt(data: string): string {
+export function aesEncrypt(data: string): string {
   const cipher = crypto.createCipheriv(
     "aes-256-cbc",
     Buffer.from(HASH_KEY),

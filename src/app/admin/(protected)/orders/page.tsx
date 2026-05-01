@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { adminFulfillOrder, adminBulkReconcileNewebPay } from "@/lib/actions/admin-fulfill";
+import { adminFulfillOrder, adminBulkReconcileNewebPay, adminTestNewebPayRoundtrip } from "@/lib/actions/admin-fulfill";
 
 function getAdminClient() {
   return createClient(
@@ -21,6 +21,13 @@ async function runBulkReconcile() {
   "use server";
   const r = await adminBulkReconcileNewebPay();
   console.log("[admin-bulk-reconcile]", JSON.stringify(r, null, 2));
+}
+
+async function runRoundtripTest() {
+  "use server";
+  const r = await adminTestNewebPayRoundtrip();
+  console.log("[admin-roundtrip-test]", JSON.stringify(r, null, 2));
+  // 結果在 Vercel log 看,result 物件裡會有完整資訊
 }
 
 export default async function AdminOrdersPage({ searchParams }: SearchParams) {
@@ -72,6 +79,25 @@ export default async function AdminOrdersPage({ searchParams }: SearchParams) {
             className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-lg text-sm"
           >
             開始對帳（log 在 Vercel）
+          </button>
+        </form>
+      </section>
+
+      {/* 自我測試 KEY/IV roundtrip */}
+      <section className="bg-gray-900 border border-gray-800 rounded-lg p-6">
+        <h2 className="text-lg font-bold mb-2">🧪 webhook KEY/IV 自我測試</h2>
+        <p className="text-gray-400 text-sm mb-4">
+          用我們手上的 NEWEBPAY_HASH_KEY/IV 加密一段假 payload,再解密回來。
+          通過 = KEY/IV 自身沒問題,藍新→我們的 decrypt 失敗就是後台 KEY 跟我們不一樣。
+          沒通過 = KEY/IV 有 \n/空白等格式問題,要修 env。
+          結果在 Vercel logs 看(查 [admin-roundtrip-test])。
+        </p>
+        <form action={runRoundtripTest}>
+          <button
+            type="submit"
+            className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-5 py-2.5 rounded-lg text-sm"
+          >
+            跑自我測試
           </button>
         </form>
       </section>
