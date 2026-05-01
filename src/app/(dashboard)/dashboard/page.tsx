@@ -40,7 +40,7 @@ export default async function DashboardPage({
     getUserCourses() as Promise<
       {
         course_id: string;
-        courses: { title: string; instructor: string; slug: string };
+        courses: { title: string; instructor: string; slug: string; thumbnail_url?: string | null };
       }[]
     >,
     getActivityData(),
@@ -188,13 +188,15 @@ export default async function DashboardPage({
           </div>
         </div>
 
-        {/* Activity Grid */}
-        <section className="bg-surface-container-lowest rounded-2xl p-6 deep-diffusion border border-outline-variant/10">
-          <h2 className="text-base font-bold text-on-surface mb-4">
-            學習足跡
-          </h2>
-          <ActivityGrid activityData={activityData} />
-        </section>
+        {/* Activity Grid 暫時隱藏 — 等學習資料夠豐富再開 */}
+        {false && (
+          <section className="bg-surface-container-lowest rounded-2xl p-6 deep-diffusion border border-outline-variant/10">
+            <h2 className="text-base font-bold text-on-surface mb-4">
+              學習足跡
+            </h2>
+            <ActivityGrid activityData={activityData} />
+          </section>
+        )}
 
         <div className="grid grid-cols-12 gap-6">
           {/* Main Content */}
@@ -210,16 +212,26 @@ export default async function DashboardPage({
                     <Link
                       key={access.course_id}
                       href={`/learn/${access.course_id}`}
-                      className="bg-surface-container-low p-5 rounded-xl hover:bg-surface-container transition-colors group"
+                      className="bg-surface-container-low rounded-xl overflow-hidden hover:bg-surface-container transition-colors group flex flex-col"
                     >
-                      <h3 className="font-bold text-on-surface text-sm group-hover:text-secondary transition-colors">
-                        {access.courses?.title}
-                      </h3>
-                      <p className="text-xs text-on-surface-variant mt-1">
-                        {access.courses?.instructor}
-                      </p>
-                      <div className="mt-3 text-xs text-secondary font-bold">
-                        繼續學習 →
+                      {access.courses?.thumbnail_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={access.courses.thumbnail_url}
+                          alt={access.courses?.title || ""}
+                          className="w-full aspect-video object-cover"
+                        />
+                      )}
+                      <div className="p-5 flex-1 flex flex-col">
+                        <h3 className="font-bold text-on-surface text-sm group-hover:text-secondary transition-colors">
+                          {access.courses?.title}
+                        </h3>
+                        <p className="text-xs text-on-surface-variant mt-1">
+                          {access.courses?.instructor}
+                        </p>
+                        <div className="mt-3 text-xs text-secondary font-bold">
+                          繼續學習 →
+                        </div>
                       </div>
                     </Link>
                   ))}
