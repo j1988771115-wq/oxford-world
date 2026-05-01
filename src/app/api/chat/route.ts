@@ -436,7 +436,7 @@ export async function POST(req: Request) {
   });
 
   // XP: 每次 chat 加 ai_chat event(+5 XP)
-  // 用 service role 寫(避免 user-scoped RLS 路徑錯誤)
+  // 防刷 XP:同 user 同 course 1 小時內最多 1 個 ai_chat event(spam chat 不會無限堆 XP)
   try {
     const admin = createServiceClient();
     const { data: prof } = await admin
@@ -445,16 +445,33 @@ export async function POST(req: Request) {
       .eq("auth_id", user.id)
       .maybeSingle();
     if (prof) {
-      admin
+      // 看 1 小時內這個 user+course 有沒有 ai_chat event,有就不再記
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const recentQuery = admin
         .from("learning_events")
-        .insert({
-          user_id: prof.id,
-          course_id: effectiveCourseId || null,
-          event_type: "ai_chat",
-        })
-        .then(({ error }) => {
-          if (error) console.warn("[xp] chat event insert failed", error.message);
-        });
+        .select("id")
+        .eq("user_id", prof.id)
+        .eq("event_type", "ai_chat")
+        .gte("created_at", oneHourAgo)
+        .limit(1);
+      if (effectiveCourseId) {
+        recentQuery.eq("course_id", effectiveCourseId);
+      } else {
+        recentQuery.is("course_id", null);
+      }
+      const { data: recent } = await recentQuery.maybeSingle();
+      if (!recent) {
+        admin
+          .from("learning_events")
+          .insert({
+            user_id: prof.id,
+            course_id: effectiveCourseId || null,
+            event_type: "ai_chat",
+          })
+          .then(({ error }) => {
+            if (error) console.warn("[xp] chat event insert failed", error.message);
+          });
+      }
     }
   } catch (e) {
     console.warn("[xp] chat event skip", e);

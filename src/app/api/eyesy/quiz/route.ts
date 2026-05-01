@@ -292,6 +292,7 @@ ${safeAnswer}
       }
 
       // XP: quiz_completed event(+50 XP)
+      // 防刷:同 user 同章節一輩子最多 1 個 quiz_completed event(章節思考題答過一次就夠了,不用重複拿 XP)
       try {
         const { data: prof } = await admin
           .from("profiles")
@@ -299,11 +300,21 @@ ${safeAnswer}
           .eq("auth_id", user.id)
           .maybeSingle();
         if (prof) {
-          await admin.from("learning_events").insert({
-            user_id: prof.id,
-            course_id: chapter.course_id,
-            event_type: "quiz_completed",
-          });
+          const { data: existing } = await admin
+            .from("learning_events")
+            .select("id")
+            .eq("user_id", prof.id)
+            .eq("course_id", chapter.course_id)
+            .eq("event_type", "quiz_completed")
+            .limit(1)
+            .maybeSingle();
+          if (!existing) {
+            await admin.from("learning_events").insert({
+              user_id: prof.id,
+              course_id: chapter.course_id,
+              event_type: "quiz_completed",
+            });
+          }
         }
       } catch (e) {
         console.warn("[xp] quiz event skip", e);

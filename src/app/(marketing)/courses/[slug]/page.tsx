@@ -550,13 +550,19 @@ export default async function CourseDetailPage({ params }: Props) {
                         icon: Clock,
                         label: "總時長",
                         value: chapters && chapters.length > 0
-                          ? `約 ${Math.round((chapters.reduce((s: number, c: any) => s + (c.duration_seconds || 0), 0) / 3600) || 0)} 小時`
+                          ? `約 ${(
+                              chapters.reduce(
+                                (s: number, c: { duration_seconds?: number | null; duration_seconds_bg?: number | null }) =>
+                                  s + (c.duration_seconds || 0) + (c.duration_seconds_bg || 0),
+                                0
+                              ) / 3600
+                            ).toFixed(1)} 小時`
                           : "陸續上線",
                       },
                       {
                         icon: BarChart,
                         label: "難易度",
-                        value: "進階課程",
+                        value: "中階課程",
                       },
                       {
                         icon: Award,
