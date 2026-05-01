@@ -13,7 +13,8 @@ function createServiceClient() {
 
 const anthropic = new Anthropic();
 const MODEL_QUESTION = "claude-haiku-4-5-20251001"; // 出題夠用,省成本
-const MODEL_GRADE = "claude-sonnet-4-6"; // 評分需要更強的細微差別判斷
+const MODEL_GRADE_PAID = "claude-sonnet-4-6"; // 付費章節 grade 用 Sonnet,深度判斷
+const MODEL_GRADE_FREE = "claude-haiku-4-5-20251001"; // 免費試看 grade 降 Haiku,防 Sonnet 燒錢
 
 // 個股 + 公司名 denylist — 進 LLM 前先 redact
 // 避免 RAG 內容 / 學員輸入 / prompt injection 害模型在 abstract-only 場景吐出個股名
@@ -277,7 +278,7 @@ ${safeAnswer}
 
     try {
       const response = await anthropic.messages.create({
-        model: MODEL_GRADE,
+        model: chapter.is_free_preview ? MODEL_GRADE_FREE : MODEL_GRADE_PAID,
         max_tokens: 800,
         system: systemPrompt,
         messages: [{ role: "user", content: userPrompt }],
