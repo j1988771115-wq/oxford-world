@@ -252,7 +252,7 @@ export default async function LearnPage({ params, searchParams }: Props) {
           </div>
 
           {/* Right rail: chapter list (sticky on desktop) */}
-          <aside className="lg:col-span-4">
+          <aside id="chapter-list" className="lg:col-span-4 scroll-mt-16">
             <div className="lg:sticky lg:top-20">
               <div className="bg-surface-container-lowest rounded-xl deep-diffusion overflow-hidden border border-outline-variant/15">
                 <div className="p-4 bg-surface-container-low border-b border-outline-variant/15">
@@ -406,6 +406,26 @@ export default async function LearnPage({ params, searchParams }: Props) {
           </aside>
         </div>
       </div>
+
+      {/* 手機底部固定操作列 — 章節列表 + 下一段 */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-container-lowest/95 backdrop-blur-xl border-t border-outline-variant/15 px-3 py-2.5 flex items-center gap-2 shadow-2xl">
+        <a
+          href="#chapter-list"
+          className="flex-1 text-center bg-surface-container border border-outline-variant/20 text-on-surface font-bold py-2.5 rounded-lg text-sm active:scale-95 transition-transform"
+        >
+          章節列表（{chapters?.length || 0}）
+        </a>
+        {nextPartUrl && (
+          <Link
+            href={nextPartUrl}
+            className="flex-1 text-center signature-gradient text-white font-bold py-2.5 rounded-lg text-sm active:scale-95 transition-transform truncate"
+          >
+            {nextPartLabel}
+          </Link>
+        )}
+      </div>
+      {/* 手機版底部 padding 防被 fixed bar 蓋住 */}
+      <div className="lg:hidden h-16" />
     </main>
   );
 }

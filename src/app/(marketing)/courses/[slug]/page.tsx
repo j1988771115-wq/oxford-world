@@ -609,6 +609,44 @@ export default async function CourseDetailPage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      {/* 手機 sticky bottom buy bar — 只在沒購買時顯示 */}
+      {!hasAccess && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-container-lowest/95 backdrop-blur-xl border-t border-outline-variant/15 px-4 py-3 shadow-2xl">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">
+                限時特價
+              </p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl font-black text-on-surface">
+                  NT${effectivePrice.toLocaleString()}
+                </span>
+                {course.original_price && course.original_price > effectivePrice && (
+                  <span className="text-xs text-on-surface-variant line-through">
+                    NT${course.original_price.toLocaleString()}
+                  </span>
+                )}
+              </div>
+            </div>
+            {userId ? (
+              <Link
+                href={`/checkout?type=course&courseId=${course.id}`}
+                className="signature-gradient text-white font-extrabold px-5 py-3 rounded-xl text-sm shadow-md active:scale-95 transition-transform shrink-0"
+              >
+                立即購買
+              </Link>
+            ) : (
+              <Link
+                href={`/sign-in?redirect=/courses/${course.slug}`}
+                className="signature-gradient text-white font-extrabold px-5 py-3 rounded-xl text-sm shadow-md active:scale-95 transition-transform shrink-0"
+              >
+                登入購買
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
