@@ -96,7 +96,7 @@ function parseContextHint(text: string): {
 
 // P0: in-memory rate limit(每個 lambda instance 自己一份;Vercel scale 時不完美但有檔)
 const RATE_BUCKET = new Map<string, number[]>();
-function checkRate(userId: string, max = 30, windowMs = 60_000): boolean {
+function checkRate(userId: string, max = 15, windowMs = 60_000): boolean {
   const now = Date.now();
   const recent = (RATE_BUCKET.get(userId) || []).filter((t) => now - t < windowMs);
   if (recent.length >= max) return false;
@@ -378,10 +378,18 @@ export async function POST(req: Request) {
   // 過濾後的 messages 已經只剩 user/assistant + parts(text only),cast 給 AI SDK
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const modelMessages = await convertToModelMessages(messages as any);
+
+  // 模型分流:teaching 走 Sonnet 4.6(深度問答),客服/推薦走 Haiku 4.5(便宜 4x)
+  const modelId =
+    chatContext === "teaching"
+      ? "claude-sonnet-4-6"
+      : "claude-haiku-4-5-20251001";
+
   const result = streamText({
-    model: anthropic("claude-sonnet-4-6"),
+    model: anthropic(modelId),
     system: systemPrompt,
     messages: modelMessages,
+    maxOutputTokens: 1000, // P0:單次回答硬上限,防被勒索式長回答
   });
 
   return result.toUIMessageStreamResponse();
