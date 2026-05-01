@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     }
 
     // C3 fix: atomic idempotent update (only update if still pending)
-    const { data: updatedOrder, error: updateError } = await supabase
+    const { data: justUpdated } = await supabase
       .from("orders")
       .update({
         status: "paid",
@@ -79,9 +79,19 @@ export async function POST(req: NextRequest) {
       .select("*")
       .single();
 
-    if (updateError || !updatedOrder) {
-      // Either order not found or already processed (idempotent)
-      console.log("Order already processed or not found:", MerchantOrderNo);
+    // codex P0 fix: 即使 justUpdated 為 null(已 paid 或重試),仍要 re-fetch 並補 fulfillment
+    // 避免「先 mark paid 後 grant 失敗」造成永久缺 access 的情況
+    let updatedOrder = justUpdated;
+    if (!updatedOrder) {
+      const { data: existing } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("merchant_order_no", MerchantOrderNo)
+        .single();
+      updatedOrder = existing;
+    }
+    if (!updatedOrder) {
+      console.error("Webhook: order vanished?", MerchantOrderNo);
       return NextResponse.json({ status: "ok" });
     }
 

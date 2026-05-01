@@ -38,7 +38,7 @@ async function reconcileOrder(
     return;
   }
 
-  const { data: order } = await supabase
+  const { data: justUpdated } = await supabase
     .from("orders")
     .update({
       status: "paid",
@@ -49,7 +49,18 @@ async function reconcileOrder(
     .eq("status", "pending")
     .select("*, courses(title, slug)")
     .single();
-  if (!order) return; // already processed or not found
+
+  // codex P0 fix: re-fetch 補 fulfillment(防止 mark paid 成功但 grant 失敗的情況)
+  let order = justUpdated;
+  if (!order) {
+    const { data: existing } = await supabase
+      .from("orders")
+      .select("*, courses(title, slug)")
+      .eq("merchant_order_no", merchantOrderNo)
+      .single();
+    order = existing;
+  }
+  if (!order) return;
 
   if (order.order_type === "course" && order.course_id) {
     await supabase.from("course_access").upsert(
