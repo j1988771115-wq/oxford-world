@@ -2,6 +2,7 @@
 
 import MuxPlayer from "@mux/mux-player-react";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { VideoWatermark } from "./video-watermark";
 
 interface VideoPlayerProps {
@@ -14,6 +15,12 @@ interface VideoPlayerProps {
   watermarkId?: string;
   /** main = 久老師正片(預設) / bg = NotebookLM 背景影片 */
   variant?: "main" | "bg";
+  /** 試看模式 — 影片結束時跳購買 modal */
+  conversionPrompt?: {
+    courseSlug: string;
+    courseTitle: string;
+    price: number;
+  };
 }
 
 interface SignedTokenResponse {
@@ -43,9 +50,11 @@ export function VideoPlayer({
   startTime,
   watermarkId,
   variant = "main",
+  conversionPrompt,
 }: VideoPlayerProps) {
   const [data, setData] = useState<SignedTokenResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showBuyModal, setShowBuyModal] = useState(false);
   const lastSaveRef = useRef<number>(0);
   const playerRef = useRef<HTMLDivElement | null>(null);
 
@@ -145,8 +154,48 @@ export function VideoPlayer({
         streamType="on-demand"
         startTime={startTime && startTime > 1 ? startTime : undefined}
         onTimeUpdate={handleTimeUpdate}
+        onEnded={() => {
+          if (conversionPrompt) setShowBuyModal(true);
+        }}
       />
       {watermarkId && <VideoWatermark identifier={watermarkId} />}
+
+      {/* 試看結束 — 購買 modal */}
+      {showBuyModal && conversionPrompt && (
+        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-6">
+          <div className="bg-surface-container-lowest rounded-2xl max-w-md w-full p-8 text-center space-y-5 shadow-2xl">
+            <div className="text-on-surface-variant text-xs font-black tracking-widest uppercase">
+              試看完了
+            </div>
+            <h2 className="text-2xl font-extrabold text-on-surface leading-tight">
+              繼續看完整 9 章<br />解鎖《{conversionPrompt.courseTitle.slice(0, 12)}》
+            </h2>
+            <p className="text-sm text-on-surface-variant leading-relaxed">
+              一次付費 · 終身觀看 · 加贈 90 天 Pro
+              <br />
+              <span className="line-through opacity-60">原價 NT$30,000</span>
+              {" "}
+              <span className="text-on-surface font-black text-base">
+                NT${conversionPrompt.price.toLocaleString()}
+              </span>
+            </p>
+            <div className="flex flex-col gap-2">
+              <Link
+                href={`/courses/${conversionPrompt.courseSlug}`}
+                className="signature-gradient text-white font-extrabold py-3.5 rounded-xl shadow-md active:scale-95 transition-transform"
+              >
+                立即解鎖完整課程
+              </Link>
+              <button
+                onClick={() => setShowBuyModal(false)}
+                className="text-on-surface-variant text-sm font-medium py-2"
+              >
+                我再想想
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

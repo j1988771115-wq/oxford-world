@@ -212,6 +212,15 @@ export default async function LearnPage({ params, searchParams }: Props) {
                   startTime={currentPart === "main" ? resumeAt : undefined}
                   watermarkId={watermarkId}
                   variant={currentPart}
+                  conversionPrompt={
+                    !hasAccess && currentChapter?.is_free_preview
+                      ? {
+                          courseSlug: course.slug,
+                          courseTitle: course.title,
+                          price: course.price,
+                        }
+                      : undefined
+                  }
                 />
               </div>
             ) : canPlay && currentChapter?.youtube_url ? (
