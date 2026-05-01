@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/retry-discord-grants",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/reconcile-newebpay",
+      "schedule": "*/30 * * * *"
     }
   ]
 }
