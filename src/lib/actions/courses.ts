@@ -5,9 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 export async function getCourses(category?: string) {
   const supabase = await createClient();
 
+  // 公開課程目錄不列 legacy-* 課(只有老學員從 dashboard 進去)
   let query = supabase
     .from("courses")
     .select("*")
+    .not("slug", "like", "legacy-%")
     .order("created_at", { ascending: false });
 
   if (category) {

@@ -97,6 +97,12 @@ export default async function CourseDetailPage({ params }: Props) {
     .eq("course_id", course.id)
     .order("sort_order", { ascending: true });
 
+  // 找第一個免費試看章節 — 訪客 / 未購買者用此 link 試看
+  const firstFreeChapter = (chapters || []).find(
+    (ch: { is_free_preview?: boolean; mux_playback_id?: string | null }) =>
+      ch.is_free_preview && ch.mux_playback_id
+  );
+
   // 抓最近一次有進度的章節（讓 CTA 變「繼續學習」）
   let resumeChapterId: string | null = null;
   let resumePosition = 0;
@@ -462,19 +468,39 @@ export default async function CourseDetailPage({ params }: Props) {
                       {effectivePrice === 0 && userId ? "解鎖觀看" : "免費觀看"}
                     </Link>
                   ) : userId ? (
-                    <Link
-                      href={`/checkout?type=course&courseId=${course.id}`}
-                      className="block w-full text-center signature-gradient py-4 rounded-xl text-white font-extrabold text-lg deep-diffusion hover:brightness-110 transition-all active:scale-95"
-                    >
-                      立即購買 — NT${effectivePrice.toLocaleString()}
-                    </Link>
+                    <>
+                      <Link
+                        href={`/checkout?type=course&courseId=${course.id}`}
+                        className="block w-full text-center signature-gradient py-4 rounded-xl text-white font-extrabold text-lg deep-diffusion hover:brightness-110 transition-all active:scale-95"
+                      >
+                        立即購買 — NT${effectivePrice.toLocaleString()}
+                      </Link>
+                      {firstFreeChapter && (
+                        <Link
+                          href={`/learn/${course.id}?chapter=${firstFreeChapter.id}`}
+                          className="block w-full text-center border-2 border-secondary py-3 rounded-xl text-secondary font-bold text-sm hover:bg-secondary-fixed/20 transition-colors active:scale-95"
+                        >
+                          先免費試看一章
+                        </Link>
+                      )}
+                    </>
                   ) : (
-                    <Link
-                      href="/sign-in"
-                      className="block w-full text-center signature-gradient py-4 rounded-xl text-white font-extrabold text-lg deep-diffusion hover:brightness-110 transition-all active:scale-95"
-                    >
-                      登入後購買
-                    </Link>
+                    <>
+                      <Link
+                        href={`/sign-in?redirect=/courses/${course.slug}`}
+                        className="block w-full text-center signature-gradient py-4 rounded-xl text-white font-extrabold text-lg deep-diffusion hover:brightness-110 transition-all active:scale-95"
+                      >
+                        登入後購買
+                      </Link>
+                      {firstFreeChapter && (
+                        <Link
+                          href={`/sign-in?redirect=/learn/${course.id}?chapter=${firstFreeChapter.id}`}
+                          className="block w-full text-center border-2 border-secondary py-3 rounded-xl text-secondary font-bold text-sm hover:bg-secondary-fixed/20 transition-colors active:scale-95"
+                        >
+                          登入免費觀看試聽章節
+                        </Link>
+                      )}
+                    </>
                   )}
                   <Link
                     href="/pricing"
