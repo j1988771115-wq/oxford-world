@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { decryptTradeInfo, verifyTradeSha } from "@/lib/newebpay";
 import { addProRole } from "@/lib/discord";
 import { sendOrderConfirmation } from "@/lib/email";
+import { sendCoursePurchaseAlert } from "@/lib/donate-alert";
 
 function getAdminClient() {
   return createClient(
@@ -208,6 +209,26 @@ export async function POST(req: NextRequest) {
           merchantOrderNo: MerchantOrderNo,
           proBundleDays,
         });
+
+        // 推送 alert 到 drtalk01 OBS overlay (best-effort, 失敗不擋)
+        if (updatedOrder.order_type === "course") {
+          let courseSlug: string | undefined;
+          if (updatedOrder.course_id) {
+            const { data: c2 } = await supabase
+              .from("courses")
+              .select("slug")
+              .eq("id", updatedOrder.course_id)
+              .single();
+            courseSlug = c2?.slug;
+          }
+          await sendCoursePurchaseAlert({
+            donorName: profileEmail.display_name,
+            donorEmail: profileEmail.email,
+            amount: updatedOrder.amount,
+            courseTitle: itemTitle,
+            courseSlug,
+          });
+        }
       }
     } catch (emailErr) {
       console.warn("Order confirmation email failed:", emailErr);

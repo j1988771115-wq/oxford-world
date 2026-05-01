@@ -1,6 +1,7 @@
 import { decryptTradeInfo, verifyTradeSha } from "@/lib/newebpay";
 import { createClient } from "@supabase/supabase-js";
 import { sendOrderConfirmation } from "@/lib/email";
+import { sendCoursePurchaseAlert } from "@/lib/donate-alert";
 import Link from "next/link";
 import { CheckCircle, XCircle } from "lucide-react";
 
@@ -61,12 +62,12 @@ async function reconcileOrder(
     );
     const { data: profile } = await supabase
       .from("profiles")
-      .select("email")
+      .select("email, display_name")
       .eq("id", order.user_id)
       .single();
+    const courseRow = order.courses as { title?: string; slug?: string } | null;
+    const courseTitle = courseRow?.title || "課程";
     if (profile?.email) {
-      const courseTitle =
-        (order.courses as { title?: string } | null)?.title || "課程";
       await sendOrderConfirmation({
         to: profile.email,
         orderType: "course",
@@ -75,6 +76,14 @@ async function reconcileOrder(
         merchantOrderNo: order.merchant_order_no,
       }).catch((e) => console.error("[success-fallback] email failed", e));
     }
+    // 推 drtalk01 OBS overlay alert (best-effort)
+    await sendCoursePurchaseAlert({
+      donorName: profile?.display_name,
+      donorEmail: profile?.email,
+      amount: order.amount,
+      courseTitle,
+      courseSlug: courseRow?.slug,
+    }).catch((e) => console.error("[success-fallback] alert failed", e));
   }
 }
 
