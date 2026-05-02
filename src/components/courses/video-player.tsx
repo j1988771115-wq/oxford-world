@@ -3,6 +3,7 @@
 import MuxPlayer from "@mux/mux-player-react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { VideoWatermark } from "./video-watermark";
 
 interface VideoPlayerProps {
@@ -21,6 +22,10 @@ interface VideoPlayerProps {
     courseTitle: string;
     price: number;
   };
+  /** 影片結束自動跳下一段(已付費學員用,試看用戶看 conversionPrompt) */
+  autoNextUrl?: string;
+  /** 給「下一段」名稱用於倒數 UI */
+  autoNextLabel?: string;
 }
 
 interface SignedTokenResponse {
@@ -51,12 +56,28 @@ export function VideoPlayer({
   watermarkId,
   variant = "main",
   conversionPrompt,
+  autoNextUrl,
+  autoNextLabel,
 }: VideoPlayerProps) {
+  const router = useRouter();
   const [data, setData] = useState<SignedTokenResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showBuyModal, setShowBuyModal] = useState(false);
+  // 自動下一段倒數(5 秒,可取消)
+  const [countdown, setCountdown] = useState<number | null>(null);
   const lastSaveRef = useRef<number>(0);
   const playerRef = useRef<HTMLDivElement | null>(null);
+
+  // 倒數結束自動跳轉
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown <= 0) {
+      if (autoNextUrl) router.push(autoNextUrl);
+      return;
+    }
+    const t = setTimeout(() => setCountdown((n) => (n === null ? null : n - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [countdown, autoNextUrl, router]);
 
   useEffect(() => {
     let alive = true;
@@ -155,10 +176,34 @@ export function VideoPlayer({
         startTime={startTime && startTime > 1 ? startTime : undefined}
         onTimeUpdate={handleTimeUpdate}
         onEnded={() => {
-          if (conversionPrompt) setShowBuyModal(true);
+          if (conversionPrompt) {
+            setShowBuyModal(true);
+          } else if (autoNextUrl) {
+            setCountdown(5);
+          }
         }}
       />
       {watermarkId && <VideoWatermark identifier={watermarkId} />}
+
+      {/* 自動播下一段倒數 — 已付費學員,影片結束後 5 秒自動跳 */}
+      {countdown !== null && autoNextUrl && (
+        <div className="absolute bottom-4 right-4 z-40 bg-black/85 backdrop-blur-md rounded-xl px-4 py-3 shadow-2xl flex items-center gap-3 max-w-[320px]">
+          <div className="text-white">
+            <div className="text-[10px] font-bold uppercase tracking-wider opacity-70">
+              {countdown} 秒後自動播放
+            </div>
+            <div className="text-sm font-bold leading-tight truncate max-w-[200px]">
+              {autoNextLabel || "下一段"}
+            </div>
+          </div>
+          <button
+            onClick={() => setCountdown(null)}
+            className="text-white/80 hover:text-white text-xs font-bold border border-white/30 px-3 py-1.5 rounded-lg shrink-0"
+          >
+            取消
+          </button>
+        </div>
+      )}
 
       {/* 試看結束 — 購買 modal */}
       {showBuyModal && conversionPrompt && (

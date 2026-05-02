@@ -5,6 +5,7 @@ import { VideoPlayer } from "@/components/courses/video-player";
 import { YouTubePlayer } from "@/components/courses/youtube-player";
 import { ChapterCheckin } from "@/components/courses/chapter-checkin";
 import { CourseInfoCollapse } from "@/components/courses/course-info-collapse";
+import { MobileLearnNav } from "@/components/courses/mobile-learn-nav";
 import Link from "next/link";
 import {
   PlayCircle,
@@ -233,6 +234,8 @@ export default async function LearnPage({ params, searchParams }: Props) {
                         }
                       : undefined
                   }
+                  autoNextUrl={hasAccess && nextPartUrl ? nextPartUrl : undefined}
+                  autoNextLabel={hasAccess && nextPartUrl ? nextPartLabel : undefined}
                 />
               </div>
             ) : canPlay && currentChapter?.youtube_url ? (
@@ -304,9 +307,9 @@ export default async function LearnPage({ params, searchParams }: Props) {
               </div>
             )}
 
-            {/* 上一章 / 下一章 大按鈕 */}
+            {/* 桌面版才顯示上一章/下一章大按鈕(手機改用底部 smart nav) */}
             {(prevChapter || nextChapter) && (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="hidden lg:grid grid-cols-2 gap-2">
                 {prevChapter ? (
                   <Link
                     href={chapterUrl(prevChapter)}
@@ -366,7 +369,7 @@ export default async function LearnPage({ params, searchParams }: Props) {
           </div>
 
           {/* Right rail: chapter list (sticky on desktop) */}
-          <aside id="chapter-list" className="lg:col-span-4 scroll-mt-16">
+          <aside id="chapter-list" className="lg:col-span-4 scroll-mt-16 hidden lg:block">
             <div className="lg:sticky lg:top-20">
               <div className="bg-surface-container-lowest rounded-xl deep-diffusion overflow-hidden border border-outline-variant/15">
                 <div className="p-4 bg-surface-container-low border-b border-outline-variant/15">
@@ -521,16 +524,19 @@ export default async function LearnPage({ params, searchParams }: Props) {
         </div>
       </div>
 
-      {/* 手機底部固定操作列 — 純跳轉「瀏覽全部章節」(影片下方已有 bg/main + prev/next 大按鈕) */}
-      <a
-        href="#chapter-list"
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-container-lowest/95 backdrop-blur-xl border-t border-outline-variant/15 px-3 py-3 text-center text-on-surface font-bold text-sm active:scale-95 transition-transform shadow-2xl flex items-center justify-center gap-2"
-      >
-        <span>📋</span>
-        <span>瀏覽全部 {chapters?.length || 0} 個章節</span>
-      </a>
-      {/* 手機版底部 padding 防被 fixed bar 蓋住 */}
-      <div className="lg:hidden h-16" />
+      {/* 手機底部 smart nav — 章節抽屜 + 動態下一段 CTA */}
+      <MobileLearnNav
+        chapters={chapters || []}
+        currentChapterId={currentChapter?.id || null}
+        currentPart={currentPart}
+        hasAccess={hasAccess}
+        courseId={courseId}
+        courseSlug={course.slug}
+        progressByChapter={Object.fromEntries(progressByChapter)}
+        nextPartUrl={nextPartUrl}
+        nextPartLabel={nextPartLabel}
+        totalChapters={chapters?.length || 0}
+      />
     </main>
   );
 }
