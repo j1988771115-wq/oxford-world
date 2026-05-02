@@ -79,14 +79,26 @@ export function verifyTradeSha(tradeInfo: string, receivedSha: string): boolean 
 }
 
 export function decryptTradeInfo(encryptedData: string): Record<string, unknown> {
+  // 藍新用非標準 padding(觀察到 0x1A 補到 32-byte 對齊,而非 PKCS#7 16-byte),
+  // Node.js 預設驗 PKCS#7 會 throw "bad decrypt"。關掉 autoPadding 自己 strip。
   const decipher = crypto.createDecipheriv(
     "aes-256-cbc",
     Buffer.from(HASH_KEY),
     Buffer.from(HASH_IV)
   );
-  let decrypted = decipher.update(encryptedData, "hex", "utf8");
-  decrypted += decipher.final("utf8");
-  return JSON.parse(decrypted);
+  decipher.setAutoPadding(false);
+  const buf = Buffer.concat([
+    decipher.update(encryptedData, "hex"),
+    decipher.final(),
+  ]);
+  let end = buf.length;
+  if (end > 0) {
+    const padLen = buf[end - 1];
+    if (padLen > 0 && padLen <= 32 && buf.slice(end - padLen).every((b) => b === padLen)) {
+      end -= padLen;
+    }
+  }
+  return JSON.parse(buf.slice(0, end).toString("utf8"));
 }
 
 /**
