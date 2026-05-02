@@ -203,9 +203,18 @@ export default async function CourseDetailPage({ params }: Props) {
   };
 
   // VideoObject JSON-LD per chapter — Google Video search + AI 引用
-  const videoObjects = (chapters || [])
-    .filter((c: { mux_playback_id?: string | null; duration_seconds?: number | null }) => c.mux_playback_id)
-    .map((c: { sort_order: number; title: string; takeaway_summary?: string | null; duration_seconds?: number | null; mux_playback_id?: string | null }) => ({
+  type ChapterMeta = {
+    id: string;
+    sort_order: number;
+    title: string;
+    takeaway_summary?: string | null;
+    duration_seconds?: number | null;
+    mux_playback_id?: string | null;
+    is_free_preview?: boolean;
+  };
+  const videoObjects = ((chapters || []) as ChapterMeta[])
+    .filter((c) => c.mux_playback_id)
+    .map((c) => ({
       "@context": "https://schema.org",
       "@type": "VideoObject",
       name: `第 ${c.sort_order} 章 ${c.title}`,
@@ -214,9 +223,9 @@ export default async function CourseDetailPage({ params }: Props) {
       uploadDate: course.created_at,
       duration: c.duration_seconds ? `PT${Math.floor(c.duration_seconds / 60)}M${c.duration_seconds % 60}S` : undefined,
       contentUrl: `https://stream.mux.com/${c.mux_playback_id}.m3u8`,
-      embedUrl: `https://oxford-vision.com/learn/${course.id}?chapter=${(c as { id: string }).id}&part=main`,
+      embedUrl: `https://oxford-vision.com/learn/${course.id}?chapter=${c.id}&part=main`,
       publisher: { "@type": "Organization", name: "牛津視界 Oxford Vision", logo: { "@type": "ImageObject", url: "https://oxford-vision.com/icon.png" } },
-      isAccessibleForFree: !!(c as { is_free_preview?: boolean }).is_free_preview,
+      isAccessibleForFree: !!c.is_free_preview,
     }));
 
   // 課程專屬 FAQ — 太空產業 + 投資相關問題
