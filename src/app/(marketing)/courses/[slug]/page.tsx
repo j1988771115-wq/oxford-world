@@ -41,13 +41,15 @@ export async function generateMetadata({ params }: Props) {
       type: "website",
       locale: "zh_TW",
       url: `https://oxford-vision.com/courses/${course.slug}`,
-      images: [{ url: `/og/courses/${course.slug}`, width: 1200, height: 630 }],
+      // 優先用 public/og/courses/{slug}.png 靜態檔(設計師版 / AI 生成版),
+      // 沒檔的課程才走 /og/courses/{slug} 動態 ImageResponse fallback
+      images: [{ url: `/og/courses/${course.slug}.png`, width: 1200, height: 630 }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description: desc,
-      images: [`/og/courses/${course.slug}`],
+      images: [`/og/courses/${course.slug}.png`],
     },
     alternates: { canonical: `https://oxford-vision.com/courses/${course.slug}` },
   };
