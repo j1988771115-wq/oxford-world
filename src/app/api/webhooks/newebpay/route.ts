@@ -283,16 +283,17 @@ export async function POST(req: NextRequest) {
         }
 
         // 自動開立電子發票(best-effort,失敗 log + 上 admin/orders 補開)
+        // 品名統一「線上教學服務」(會計報稅最穩),課程細節在備註
         try {
           const inv = await issueInvoice({
             merchantOrderNo: MerchantOrderNo,
             category: "B2C",
             buyerName: profileEmail.display_name || "牛津視界學員",
             buyerEmail: profileEmail.email,
-            itemName: itemTitle,
+            itemName: "線上教學服務",
             itemCount: 1,
             itemPrice: updatedOrder.amount,
-            comment: `訂單 ${MerchantOrderNo}`,
+            comment: `${itemTitle} (訂單 ${MerchantOrderNo})`,
           });
           if (inv.ok) {
             console.log("Invoice issued:", inv.invoiceNumber, "for", MerchantOrderNo);

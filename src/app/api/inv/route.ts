@@ -6,7 +6,12 @@ import { decryptCallback } from "@/lib/ezpay-invoice";
  * ezPay 電子發票背景回傳 webhook
  * 開立 / 作廢 / 折讓 後 ezPay 會 POST 過來通知
  *
- * 我們存發票號碼 + 字軌 + 開立時間到 invoices 表(idempotent)
+ * 認證機制(P1):
+ * 1. MerchantID_ 必須等於 EZPAY_MERCHANT_ID(防別人亂打)
+ * 2. PostData_ 必須能用我們的 HashKey/HashIV 解密(等於 ezPay 用同金鑰加密過)
+ *    解密成功 = 確定來自 ezPay
+ *
+ * 永遠回 200 防 retry storm,失敗只 log 不擋。
  */
 function getAdminClient() {
   return createClient(
@@ -27,6 +32,15 @@ export async function POST(req: NextRequest) {
       merchantId,
       hasPostData: !!postData,
     });
+
+    // P1: 比對 MerchantID_(防外部偽造)
+    const expectedMid = (process.env.EZPAY_MERCHANT_ID || "").trim();
+    if (expectedMid && merchantId !== expectedMid) {
+      console.error(
+        `[ezpay-callback] merchant mismatch: got=${merchantId} expected=${expectedMid}`
+      );
+      return NextResponse.json({ status: "ok", note: "merchant mismatch" });
+    }
 
     if (!postData) {
       return NextResponse.json({ status: "ok", note: "no post data" });
