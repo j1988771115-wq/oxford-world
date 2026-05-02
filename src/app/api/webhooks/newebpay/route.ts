@@ -5,6 +5,7 @@ import { addProRole } from "@/lib/discord";
 import { sendOrderConfirmation } from "@/lib/email";
 import { sendCoursePurchaseAlert } from "@/lib/donate-alert";
 import { addSonnetTopup } from "@/lib/chat-quota";
+import { issueInvoice } from "@/lib/ezpay-invoice";
 
 function getAdminClient() {
   return createClient(
@@ -279,6 +280,47 @@ export async function POST(req: NextRequest) {
             courseTitle: itemTitle,
             courseSlug,
           });
+        }
+
+        // 自動開立電子發票(best-effort,失敗 log + 上 admin/orders 補開)
+        try {
+          const inv = await issueInvoice({
+            merchantOrderNo: MerchantOrderNo,
+            category: "B2C",
+            buyerName: profileEmail.display_name || "牛津視界學員",
+            buyerEmail: profileEmail.email,
+            itemName: itemTitle,
+            itemCount: 1,
+            itemPrice: updatedOrder.amount,
+            comment: `訂單 ${MerchantOrderNo}`,
+          });
+          if (inv.ok) {
+            console.log("Invoice issued:", inv.invoiceNumber, "for", MerchantOrderNo);
+            // 寫進 invoices 表(callback 也會寫,雙保險 idempotent)
+            await supabase.from("invoices").upsert(
+              {
+                merchant_order_no: MerchantOrderNo,
+                invoice_number: inv.invoiceNumber,
+                invoice_trans_no: inv.invoiceTransNo,
+                random_num: inv.randomNum,
+                total_amt: updatedOrder.amount,
+                buyer_email: profileEmail.email,
+                ezpay_status: "SUCCESS",
+                issued_at: inv.createTime,
+                raw: inv.rawResult || {},
+              },
+              { onConflict: "invoice_number" }
+            );
+          } else {
+            console.error(
+              "Invoice issue FAILED:",
+              MerchantOrderNo,
+              inv.rawStatus,
+              inv.rawMessage
+            );
+          }
+        } catch (invErr) {
+          console.error("Invoice issue exception:", invErr);
         }
       }
     } catch (emailErr) {
