@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getCourseBySlug, checkCourseAccess } from "@/lib/actions/courses";
+import { getCourseBySlug } from "@/lib/actions/courses";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -74,16 +74,32 @@ export default async function CourseDetailPage({ params }: Props) {
   const user = userResult.data.user;
   const userId = user?.id ?? null;
 
-  // hasAccess + isAlumni 平行(都依賴 userId 但彼此不依賴),再省 ~150ms
+  // 一次抓 profile(含 tier + is_alumni),tier=pro 直接 hasAccess,
+  // 否則才查 course_access — 砍掉 checkCourseAccess 內重複的 auth.getUser
   let hasAccess = false;
   let isAlumni = false;
+  let profileId: string | null = null;
   if (userId) {
-    const [accessResult, profileResult] = await Promise.all([
-      checkCourseAccess(course.id),
-      supabase.from("profiles").select("is_alumni").eq("auth_id", userId).single(),
-    ]);
-    hasAccess = accessResult;
-    isAlumni = !!profileResult.data?.is_alumni;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, tier, is_alumni")
+      .eq("auth_id", userId)
+      .maybeSingle();
+    if (profile) {
+      profileId = profile.id as string;
+      isAlumni = !!profile.is_alumni;
+      if (profile.tier === "pro") {
+        hasAccess = true;
+      } else {
+        const { data: access } = await supabase
+          .from("course_access")
+          .select("id")
+          .eq("user_id", profile.id)
+          .eq("course_id", course.id)
+          .limit(1);
+        hasAccess = (access?.length ?? 0) > 0;
+      }
+    }
   }
 
   // 已購買 → 直接帶到收看頁,不停在銷售頁
@@ -118,17 +134,12 @@ export default async function CourseDetailPage({ params }: Props) {
   let resumeChapterId: string | null = null;
   let resumePosition = 0;
   let resumeChapterTitle: string | null = null;
-  if (hasAccess && userId) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("auth_id", userId)
-      .maybeSingle();
-    if (profile) {
+  if (hasAccess && profileId) {
+    {
       const { data: lastProgress } = await supabase
         .from("course_progress")
         .select("chapter_id, last_position_seconds, completed")
-        .eq("user_id", profile.id)
+        .eq("user_id", profileId)
         .eq("course_id", course.id)
         .order("updated_at", { ascending: false })
         .limit(1)

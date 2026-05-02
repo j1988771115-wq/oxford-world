@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { checkCourseAccess } from "@/lib/actions/courses";
 import { createClient } from "@/lib/supabase/server";
 import { VideoPlayer } from "@/components/courses/video-player";
 import { YouTubePlayer } from "@/components/courses/youtube-player";
@@ -54,44 +53,65 @@ export default async function LearnPage({ params, searchParams }: Props) {
 
   const supabase = await createClient();
 
-  const { data: course } = await supabase
-    .from("courses")
-    .select("*")
-    .eq("id", courseId)
-    .single();
+  // Round 1: course + chapters + auth 全部並行(彼此不依賴)
+  // 取代原本的串行查詢 + checkCourseAccess 內部重複 auth.getUser + profile,
+  // 從 6-8 round trip 降到 3 輪。
+  const [courseResult, chaptersResult, userResult] = await Promise.all([
+    supabase.from("courses").select("*").eq("id", courseId).single(),
+    supabase
+      .from("course_chapters")
+      .select("*")
+      .eq("course_id", courseId)
+      .order("sort_order", { ascending: true }),
+    supabase.auth.getUser(),
+  ]);
+
+  const course = courseResult.data;
   if (!course) notFound();
-
-  const { data: chapters } = await supabase
-    .from("course_chapters")
-    .select("*")
-    .eq("course_id", courseId)
-    .order("sort_order", { ascending: true });
-
-  const hasAccess = await checkCourseAccess(courseId);
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const chapters = chaptersResult.data;
+  const user = userResult.data.user;
   const userEmail = user?.email;
   const watermarkId = maskEmail(userEmail);
 
+  // Round 2 + 3: 拿到 user 後查 profile,再並行查 access + progress
+  let hasAccess = false;
   const progressByChapter = new Map<string, ChapterProgress>();
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id")
+      .select("id, tier")
       .eq("auth_id", user.id)
       .maybeSingle();
     if (profile) {
-      const { data: rows } = await supabase
-        .from("course_progress")
-        .select(
-          "chapter_id, last_position_seconds, duration_seconds, completed"
-        )
-        .eq("user_id", profile.id)
-        .eq("course_id", courseId);
-      for (const r of (rows || []) as ChapterProgress[]) {
-        progressByChapter.set(r.chapter_id, r);
+      // pro 會員所有課都能看 → 跳過 course_access 查詢
+      if (profile.tier === "pro") {
+        hasAccess = true;
+        const { data: rows } = await supabase
+          .from("course_progress")
+          .select("chapter_id, last_position_seconds, duration_seconds, completed")
+          .eq("user_id", profile.id)
+          .eq("course_id", courseId);
+        for (const r of (rows || []) as ChapterProgress[]) {
+          progressByChapter.set(r.chapter_id, r);
+        }
+      } else {
+        const [accessResult, progressResult] = await Promise.all([
+          supabase
+            .from("course_access")
+            .select("id")
+            .eq("user_id", profile.id)
+            .eq("course_id", courseId)
+            .limit(1),
+          supabase
+            .from("course_progress")
+            .select("chapter_id, last_position_seconds, duration_seconds, completed")
+            .eq("user_id", profile.id)
+            .eq("course_id", courseId),
+        ]);
+        hasAccess = (accessResult.data?.length ?? 0) > 0;
+        for (const r of (progressResult.data || []) as ChapterProgress[]) {
+          progressByChapter.set(r.chapter_id, r);
+        }
       }
     }
   }
