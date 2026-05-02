@@ -18,6 +18,9 @@ import {
 import { cn } from "@/lib/utils";
 import { COURSE_DISCLAIMER } from "@/lib/constants";
 
+// ISR:課程詳情頁 60 秒 cache,改 DB 後最多 60 秒生效,TTFB ~50ms vs 1.3s
+export const revalidate = 60;
+
 interface Props {
   params: Promise<{ slug: string }>;
 }
@@ -188,12 +191,88 @@ export default async function CourseDetailPage({ params }: Props) {
     );
   }
 
+  // BreadcrumbList JSON-LD (Google 麵包屑富結果)
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "首頁", item: "https://oxford-vision.com" },
+      { "@type": "ListItem", position: 2, name: "課程", item: "https://oxford-vision.com/courses" },
+      { "@type": "ListItem", position: 3, name: course.title, item: courseUrl },
+    ],
+  };
+
+  // VideoObject JSON-LD per chapter — Google Video search + AI 引用
+  const videoObjects = (chapters || [])
+    .filter((c: { mux_playback_id?: string | null; duration_seconds?: number | null }) => c.mux_playback_id)
+    .map((c: { sort_order: number; title: string; takeaway_summary?: string | null; duration_seconds?: number | null; mux_playback_id?: string | null }) => ({
+      "@context": "https://schema.org",
+      "@type": "VideoObject",
+      name: `第 ${c.sort_order} 章 ${c.title}`,
+      description: c.takeaway_summary || course.description || course.title,
+      thumbnailUrl: course.thumbnail_url ? [course.thumbnail_url] : undefined,
+      uploadDate: course.created_at,
+      duration: c.duration_seconds ? `PT${Math.floor(c.duration_seconds / 60)}M${c.duration_seconds % 60}S` : undefined,
+      contentUrl: `https://stream.mux.com/${c.mux_playback_id}.m3u8`,
+      embedUrl: `https://oxford-vision.com/learn/${course.id}?chapter=${(c as { id: string }).id}&part=main`,
+      publisher: { "@type": "Organization", name: "牛津視界 Oxford Vision", logo: { "@type": "ImageObject", url: "https://oxford-vision.com/icon.png" } },
+      isAccessibleForFree: !!(c as { is_free_preview?: boolean }).is_free_preview,
+    }));
+
+  // 課程專屬 FAQ — 太空產業 + 投資相關問題
+  const courseFaqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: `《${course.title}》適合什麼樣的學員？`,
+        acceptedAnswer: { "@type": "Answer", text: "想建立太空產業投資框架的投資者(長線、波段、事件交易都用得上)、有美股下單經驗想擴張持股版圖、對 SpaceX 改寫產業這類大敘事有興趣的人。不適合只想要明牌、期待保證獲利、不打算實際投入資金的學員。" },
+      },
+      {
+        "@type": "Question",
+        name: "課程涵蓋哪些太空產業相關標的？",
+        acceptedAnswer: { "@type": "Answer", text: "課程深度討論垂直整合龍頭(火箭實驗室)、銥衛星國防通訊(IRDM)、AST SpaceMobile 的衛星直連手機革命、Firefly Aerospace 機動性發射、Globalstar 巨頭夾縫策略、Planet Labs 太空數據經濟、Redwire 太空基建、Intuitive Machines 月球商業化等微型太空股的產業競爭結構。" },
+      },
+      {
+        "@type": "Question",
+        name: "課程多長時間？可以重複觀看嗎？",
+        acceptedAnswer: { "@type": "Answer", text: `共 ${chapters?.length || 9} 章節,主課程約 2 小時、每章另附 NotebookLM 背景對談,合計約 3 小時內容。一次付費 NT$${course.price.toLocaleString()} 永久觀看,可重複回看,加贈 90 天 Pro 訂閱(享 AI 助教 Eyesy 深度模式)。` },
+      },
+      {
+        "@type": "Question",
+        name: "為什麼太空產業現在是好的投資時機？",
+        acceptedAnswer: { "@type": "Answer", text: "SpaceX 把入軌成本從 1 億美金壓到 67 萬美金、太空變成可商業化產業;NASA Artemis 月球計畫 + Space Force 國防需求 + 直連手機通訊三大方向都有明確政策驅動,微型股 IPO 給散戶第一次系統性參與機會。久老師講解產業結構與評估框架,協助辨別哪些公司會是十年贏家。" },
+      },
+      {
+        "@type": "Question",
+        name: "誰是久方武院長？",
+        acceptedAnswer: { "@type": "Answer", text: "久方武是巨石文化負責人 + 牛津視界院長,長期關注科技與資本市場交集、研究產業競爭結構與長期價值。除了《太空時代的資本配置》,也在牛津視界發布多元 AI 與創投主題內容。" },
+      },
+    ],
+  };
+
   return (
     <main className="pt-12 pb-20 px-8 max-w-[1440px] mx-auto">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(courseJsonLd) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(courseFaqJsonLd) }}
+      />
+      {videoObjects.map((vo, i) => (
+        <script
+          key={`video-${i}`}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(vo) }}
+        />
+      ))}
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-on-surface-variant text-sm mb-8">
         <Link href="/" className="hover:text-secondary transition-colors">

@@ -1,5 +1,8 @@
 import { Crown, Code, TrendingUp } from "lucide-react";
 
+// 純靜態頁,1 小時 ISR 足夠
+export const revalidate = 3600;
+
 export const metadata = {
   title: "關於我們 — 牛津視界",
   description: "牛津視界的使命：幫助每個人在 AI 時代找到方向",
