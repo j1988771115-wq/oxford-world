@@ -125,12 +125,12 @@ export default async function LearnPage({ params, searchParams }: Props) {
     const idx = chapters.findIndex((c: { id: string }) => c.id === currentChapter.id);
     if (currentPart === "bg" && hasMain) {
       nextPartUrl = buildPartUrl(currentChapter.id, "main");
-      nextPartLabel = "看久老師正片 →";
+      nextPartLabel = "看久老師正片";
     } else if (idx >= 0 && idx + 1 < chapters.length) {
       const next = chapters[idx + 1];
       const nextHasBg = !!next.mux_playback_id_bg;
       nextPartUrl = buildPartUrl(next.id, nextHasBg ? "bg" : "main");
-      nextPartLabel = `下一章:${next.title.slice(0, 20)} →`;
+      nextPartLabel = `下一章 第 ${next.sort_order} 章`;
     }
   }
 

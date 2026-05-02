@@ -389,7 +389,11 @@ export function EyesyChatWidget() {
           setBubbleDismissed(true);
         }}
         className={cn(
-          "fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-200 active:scale-90",
+          // 學習頁手機底部有 nav bar(64px),把 FAB 抬高避免疊;其他頁面跟桌面維持原位
+          "fixed right-6 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-200 active:scale-90",
+          pathname.startsWith("/learn/")
+            ? "bottom-24 lg:bottom-6"
+            : "bottom-6",
           isOpen
             ? "bg-surface-container-highest text-on-surface"
             : "signature-gradient text-white hover:scale-105 hover:shadow-2xl",
