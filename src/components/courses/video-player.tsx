@@ -26,6 +26,8 @@ interface VideoPlayerProps {
   autoNextUrl?: string;
   /** 給「下一段」名稱用於倒數 UI */
   autoNextLabel?: string;
+  /** 自動播放(URL 帶 ?autoplay=1 時 true) */
+  autoPlay?: boolean;
 }
 
 interface SignedTokenResponse {
@@ -58,6 +60,7 @@ export function VideoPlayer({
   conversionPrompt,
   autoNextUrl,
   autoNextLabel,
+  autoPlay,
 }: VideoPlayerProps) {
   const router = useRouter();
   const [data, setData] = useState<SignedTokenResponse | null>(null);
@@ -68,11 +71,14 @@ export function VideoPlayer({
   const lastSaveRef = useRef<number>(0);
   const playerRef = useRef<HTMLDivElement | null>(null);
 
-  // 倒數結束自動跳轉
+  // 倒數結束自動跳轉(URL 加 ?autoplay=1,讓下一頁的 player 自動播)
   useEffect(() => {
     if (countdown === null) return;
     if (countdown <= 0) {
-      if (autoNextUrl) router.push(autoNextUrl);
+      if (autoNextUrl) {
+        const sep = autoNextUrl.includes("?") ? "&" : "?";
+        router.push(`${autoNextUrl}${sep}autoplay=1`);
+      }
       return;
     }
     const t = setTimeout(() => setCountdown((n) => (n === null ? null : n - 1)), 1000);
@@ -174,6 +180,8 @@ export function VideoPlayer({
         className="w-full aspect-video"
         streamType="on-demand"
         startTime={startTime && startTime > 1 ? startTime : undefined}
+        autoPlay={autoPlay}
+        muted={autoPlay}
         onTimeUpdate={handleTimeUpdate}
         onEnded={() => {
           if (conversionPrompt) {

@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   params: Promise<{ courseId: string }>;
-  searchParams: Promise<{ chapter?: string; part?: "bg" | "main"; preview?: string }>;
+  searchParams: Promise<{ chapter?: string; part?: "bg" | "main"; preview?: string; autoplay?: string }>;
 }
 
 interface ChapterProgress {
@@ -45,9 +45,10 @@ function formatDuration(seconds: number | null): string {
 
 export default async function LearnPage({ params, searchParams }: Props) {
   const { courseId } = await params;
-  const { chapter: chapterId, part: partRaw, preview: previewRaw } = await searchParams;
+  const { chapter: chapterId, part: partRaw, preview: previewRaw, autoplay: autoplayRaw } = await searchParams;
   const partRequested: "bg" | "main" = partRaw === "bg" ? "bg" : "main";
   const forcePreviewBanner = previewRaw === "1"; // QA / demo:加 ?preview=1 強制顯示試看橫幅
+  const autoPlayThisVideo = autoplayRaw === "1"; // 自動跳下一段時 URL 帶這個
 
   const supabase = await createClient();
 
@@ -236,6 +237,7 @@ export default async function LearnPage({ params, searchParams }: Props) {
                   }
                   autoNextUrl={hasAccess && nextPartUrl ? nextPartUrl : undefined}
                   autoNextLabel={hasAccess && nextPartUrl ? nextPartLabel : undefined}
+                  autoPlay={autoPlayThisVideo}
                 />
               </div>
             ) : canPlay && currentChapter?.youtube_url ? (
