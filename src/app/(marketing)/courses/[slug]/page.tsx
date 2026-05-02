@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getCourseBySlug, checkCourseAccess } from "@/lib/actions/courses";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ChevronRight,
   PlayCircle,
@@ -40,13 +41,13 @@ export async function generateMetadata({ params }: Props) {
       type: "website",
       locale: "zh_TW",
       url: `https://oxford-vision.com/courses/${course.slug}`,
-      images: [{ url: course.thumbnail_url || "/og", width: 1200, height: 630 }],
+      images: [{ url: `/og/courses/${course.slug}`, width: 1200, height: 630 }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description: desc,
-      images: [course.thumbnail_url || "/og"],
+      images: [`/og/courses/${course.slug}`],
     },
     alternates: { canonical: `https://oxford-vision.com/courses/${course.slug}` },
   };
@@ -59,24 +60,33 @@ export default async function CourseDetailPage({ params }: Props) {
   if (!course) notFound();
 
   const supabase = await (await import("@/lib/supabase/server")).createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // 並行打 user auth + chapters(不互相依賴),省 ~150ms TTFB
+  const [userResult, chaptersResult] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("course_chapters")
+      .select("*")
+      .eq("course_id", course.id)
+      .order("sort_order", { ascending: true }),
+  ]);
+  const user = userResult.data.user;
   const userId = user?.id ?? null;
-  const hasAccess = userId ? await checkCourseAccess(course.id) : false;
+
+  // hasAccess + isAlumni 平行(都依賴 userId 但彼此不依賴),再省 ~150ms
+  let hasAccess = false;
+  let isAlumni = false;
+  if (userId) {
+    const [accessResult, profileResult] = await Promise.all([
+      checkCourseAccess(course.id),
+      supabase.from("profiles").select("is_alumni").eq("auth_id", userId).single(),
+    ]);
+    hasAccess = accessResult;
+    isAlumni = !!profileResult.data?.is_alumni;
+  }
 
   // 已購買 → 直接帶到收看頁,不停在銷售頁
   if (hasAccess) {
     redirect(`/learn/${course.id}`);
-  }
-
-  // Fetch alumni status for pricing + visibility
-  let isAlumni = false;
-  if (userId) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("is_alumni")
-      .eq("auth_id", userId)
-      .single();
-    isAlumni = !!profile?.is_alumni;
   }
 
   // Legacy course gate: non-alumni can't see legacy-* pages
@@ -93,12 +103,8 @@ export default async function CourseDetailPage({ params }: Props) {
     course.alumni_price < course.price;
   const effectivePrice = hasAlumniDiscount ? course.alumni_price : course.price;
 
-  // Get chapters
-  const { data: chapters } = await supabase
-    .from("course_chapters")
-    .select("*")
-    .eq("course_id", course.id)
-    .order("sort_order", { ascending: true });
+  // chapters 已在 Promise.all 取得
+  const { data: chapters } = chaptersResult;
 
   // 找第一個免費試看章節 — 訪客 / 未購買者用此 link 試看
   const firstFreeChapter = (chapters || []).find(
@@ -228,6 +234,36 @@ export default async function CourseDetailPage({ params }: Props) {
       isAccessibleForFree: !!c.is_free_preview,
     }));
 
+  // HowTo schema — 把 9 章學習路徑做成「How to invest in space industry」步驟結構
+  // AI 引用「太空投資怎麼學」會直接拉這條
+  const howToJsonLd = chapters && chapters.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: `如何系統化建立太空產業投資框架(透過《${course.title}》)`,
+    description: `${course.instructor || "久方武"}院長帶你 9 章建立評估太空微型股的投資框架,從產業結構、龍頭分析到政策週期。`,
+    image: course.thumbnail_url ? [course.thumbnail_url] : undefined,
+    totalTime: totalDurationISO,
+    estimatedCost: {
+      "@type": "MonetaryAmount",
+      currency: "TWD",
+      value: String(course.price),
+    },
+    supply: [
+      { "@type": "HowToSupply", name: "美股下單帳戶" },
+      { "@type": "HowToSupply", name: "投資資金(自負盈虧能力範圍內)" },
+    ],
+    tool: [
+      { "@type": "HowToTool", name: "AI 助教 Eyesy(課程內提供)" },
+    ],
+    step: chapters.map((ch: { sort_order: number; title: string; takeaway_summary?: string | null }) => ({
+      "@type": "HowToStep",
+      position: ch.sort_order,
+      name: ch.title,
+      text: ch.takeaway_summary || `第 ${ch.sort_order} 章 ${ch.title}`,
+      url: `${courseUrl}#chapter-${ch.sort_order}`,
+    })),
+  } : null;
+
   // 課程專屬 FAQ — 太空產業 + 投資相關問題
   const courseFaqJsonLd = {
     "@context": "https://schema.org",
@@ -275,6 +311,12 @@ export default async function CourseDetailPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(courseFaqJsonLd) }}
       />
+      {howToJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
+        />
+      )}
       {videoObjects.map((vo, i) => (
         <script
           key={`video-${i}`}
@@ -474,10 +516,13 @@ export default async function CourseDetailPage({ params }: Props) {
                     className="relative aspect-video group cursor-pointer overflow-hidden block"
                   >
                     {course.thumbnail_url ? (
-                      <img
+                      <Image
                         src={course.thumbnail_url}
-                        alt="Video Preview"
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        alt={`《${course.title}》課程縮圖 — ${course.instructor || "牛津視界"}`}
+                        fill
+                        priority
+                        sizes="(max-width: 1024px) 100vw, 600px"
+                        className="object-cover group-hover:scale-110 transition-transform duration-700"
                       />
                     ) : (
                       <div className="w-full h-full bg-primary-container flex items-center justify-center">

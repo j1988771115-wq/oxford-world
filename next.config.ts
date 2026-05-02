@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { hostname: "images.unsplash.com" },
       { hostname: "api.dicebear.com" },
+      { hostname: "jwtmpwqokepqudmrllij.supabase.co" }, // Supabase Storage(課程縮圖)
+      { hostname: "image.mux.com" }, // Mux thumbnail
+      { hostname: "lh3.googleusercontent.com" }, // Google OAuth avatar
     ],
   },
   env: {
