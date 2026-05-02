@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { signUp, signInWithGoogle } from "@/lib/actions/auth";
+import { BreadcrumbJsonLd } from "@/lib/breadcrumb";
 
 export default function SignUpPage() {
   const [error, setError] = useState("");
@@ -28,6 +29,7 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface px-4">
+      <BreadcrumbJsonLd crumbs={[{ name: "註冊", url: "/sign-up" }]} />
       <div className="bg-surface-container-lowest p-10 rounded-2xl deep-diffusion w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-on-surface to-secondary">

@@ -1,3 +1,5 @@
+import { BreadcrumbJsonLd } from "@/lib/breadcrumb";
+
 export const metadata = {
   title: "服務條款 — 牛津視界",
 };
@@ -5,6 +7,7 @@ export const metadata = {
 export default function TermsPage() {
   return (
     <main className="pt-12 pb-24 bg-surface">
+      <BreadcrumbJsonLd crumbs={[{ name: "服務條款", url: "/terms" }]} />
       <div className="max-w-3xl mx-auto px-8 prose prose-lg text-on-surface prose-headings:text-on-surface prose-p:text-on-surface-variant prose-li:text-on-surface-variant prose-strong:text-on-surface">
         <h1 className="text-4xl font-black tracking-tight">服務條款</h1>
         <p className="text-on-surface-variant">最後更新日期：2026 年 3 月 28 日</p>

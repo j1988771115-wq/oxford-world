@@ -1,6 +1,7 @@
 import { getCourses } from "@/lib/actions/courses";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import { BreadcrumbJsonLd } from "@/lib/breadcrumb";
 
 export const metadata = {
   title: "課程目錄 — 牛津視界",
@@ -41,6 +42,7 @@ export default async function CoursesPage() {
 
   return (
     <main className="pt-12 pb-24 bg-surface">
+      <BreadcrumbJsonLd crumbs={[{ name: "課程目錄", url: "/courses" }]} />
       <div className="max-w-7xl mx-auto px-8">
         <div className="mb-16">
           <h1 className="text-5xl font-black text-on-surface tracking-tight mb-4 font-headline">

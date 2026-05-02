@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
+import { BreadcrumbJsonLd } from "@/lib/breadcrumb";
 
 const FEATURED_COURSE_SLUG = "master-space-age-capital";
 const PRO_MONTHLY_NTD = 999;
@@ -53,6 +54,7 @@ export default async function PricingPage() {
 
   return (
     <main className="pt-12 pb-24 bg-surface">
+      <BreadcrumbJsonLd crumbs={[{ name: "訂閱方案", url: "/pricing" }]} />
       <div className="max-w-7xl mx-auto px-8 mb-16">
         <div className="max-w-3xl">
           <h1 className="text-5xl md:text-6xl font-black text-on-surface tracking-tight mb-6 leading-tight">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { signIn, signInWithGoogle } from "@/lib/actions/auth";
+import { BreadcrumbJsonLd } from "@/lib/breadcrumb";
 
 export default function SignInPage() {
   const [error, setError] = useState("");
@@ -28,6 +29,7 @@ export default function SignInPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface px-4">
+      <BreadcrumbJsonLd crumbs={[{ name: "登入", url: "/sign-in" }]} />
       <div className="bg-surface-container-lowest p-10 rounded-2xl deep-diffusion w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-on-surface to-secondary">

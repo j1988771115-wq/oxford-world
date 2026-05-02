@@ -1,4 +1,5 @@
 import { Crown, Code, TrendingUp } from "lucide-react";
+import { BreadcrumbJsonLd } from "@/lib/breadcrumb";
 
 // 純靜態頁,1 小時 ISR 足夠
 export const revalidate = 3600;
@@ -11,6 +12,7 @@ export const metadata = {
 export default function AboutPage() {
   return (
     <main className="pt-12 pb-24 bg-surface">
+      <BreadcrumbJsonLd crumbs={[{ name: "關於我們", url: "/about" }]} />
       <div className="max-w-7xl mx-auto px-8">
         {/* Hero */}
         <div className="max-w-3xl mb-20">
