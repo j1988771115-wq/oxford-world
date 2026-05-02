@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { decryptTradeInfo, verifyTradeSha } from "@/lib/newebpay";
 import { addProRole } from "@/lib/discord";
 import { sendOrderConfirmation } from "@/lib/email";
@@ -14,25 +14,112 @@ function getAdminClient() {
   );
 }
 
-export async function POST(req: NextRequest) {
-  // 即使內部錯也回 200,避免 NewebPay retry storm 把錯誤訊號淹沒
-  // 真實狀況靠 log + 後台補單
+type HandlerStatus =
+  | "ok"
+  | "verification_failed"
+  | "decrypt_failed"
+  | "amount_mismatch"
+  | "duplicate"
+  | "order_not_found"
+  | "business_fail"
+  | "crash";
+
+async function finalizeLog(
+  supabase: SupabaseClient,
+  logId: string | null,
+  startedAt: number,
+  http: number,
+  status: HandlerStatus,
+  error?: string,
+  needsManual = false
+) {
+  if (!logId) return;
   try {
-    const formData = await req.formData();
-    const tradeInfo = formData.get("TradeInfo") as string;
-    const tradeSha = formData.get("TradeSha") as string;
-    const formMerchantOrderNo = formData.get("MerchantOrderNo") as string | null;
+    await supabase
+      .from("webhook_log")
+      .update({
+        http_status: http,
+        handler_status: status,
+        handler_error: error?.slice(0, 2000),
+        duration_ms: Date.now() - startedAt,
+        needs_manual: needsManual,
+      })
+      .eq("id", logId);
+  } catch (e) {
+    console.error("[newebpay-webhook] finalize log failed", e);
+  }
+}
 
-    console.log("[newebpay-webhook] received", {
-      hasTradeInfo: !!tradeInfo,
-      tradeInfoLen: tradeInfo?.length,
-      hasTradeSha: !!tradeSha,
-      tradeShaLen: tradeSha?.length,
-      formMerchantOrderNo,
-    });
+export async function POST(req: NextRequest) {
+  const startedAt = Date.now();
+  const supabase = getAdminClient();
 
+  // Read body once + capture for audit
+  let formData: FormData;
+  try {
+    formData = await req.formData();
+  } catch (e) {
+    // body 不是 form-data → 還是要 200 不然藍新會 retry。記到 log。
+    const headers: Record<string, string> = {};
+    req.headers.forEach((v, k) => (headers[k] = v));
+    try {
+      await supabase
+        .from("webhook_log")
+        .insert({
+          endpoint: "/api/webhooks/newebpay",
+          raw_headers: headers,
+          http_status: 200,
+          handler_status: "verification_failed",
+          handler_error: `formData parse failed: ${e instanceof Error ? e.message : String(e)}`,
+          needs_manual: true,
+          duration_ms: Date.now() - startedAt,
+        });
+    } catch {
+      // best-effort
+    }
+    return NextResponse.json({ status: "ok", note: "body parse failed, logged" });
+  }
+
+  const tradeInfo = formData.get("TradeInfo") as string | null;
+  const tradeSha = formData.get("TradeSha") as string | null;
+  const formMerchantOrderNo = (formData.get("MerchantOrderNo") as string) || null;
+
+  // 第一行寫 audit log — 即使後面 handler crash 我們也有 raw 紀錄
+  const headers: Record<string, string> = {};
+  req.headers.forEach((v, k) => (headers[k] = v));
+  const rawBody: Record<string, string> = {};
+  formData.forEach((v, k) => (rawBody[k] = String(v).slice(0, 8000)));
+
+  let logId: string | null = null;
+  try {
+    const { data: log } = await supabase
+      .from("webhook_log")
+      .insert({
+        endpoint: "/api/webhooks/newebpay",
+        raw_headers: headers,
+        raw_body: JSON.stringify(rawBody),
+        merchant_order_no: formMerchantOrderNo,
+      })
+      .select("id")
+      .single();
+    logId = log?.id || null;
+  } catch (logErr) {
+    console.error("[newebpay-webhook] insert audit log failed (non-fatal)", logErr);
+  }
+
+  console.log("[newebpay-webhook] received", {
+    logId,
+    hasTradeInfo: !!tradeInfo,
+    tradeInfoLen: tradeInfo?.length,
+    hasTradeSha: !!tradeSha,
+    tradeShaLen: tradeSha?.length,
+    formMerchantOrderNo,
+  });
+
+  try {
     if (!tradeInfo || !tradeSha) {
       console.error("[newebpay-webhook] missing TradeInfo/TradeSha");
+      await finalizeLog(supabase, logId, startedAt, 200, "verification_failed", "missing TradeInfo or TradeSha");
       return NextResponse.json({ status: "ok" });
     }
 
@@ -41,6 +128,7 @@ export async function POST(req: NextRequest) {
       console.error("[newebpay-webhook] TradeSha verification failed", {
         tradeInfo: tradeInfo.slice(0, 100),
       });
+      await finalizeLog(supabase, logId, startedAt, 200, "verification_failed", "SHA mismatch");
       return NextResponse.json({ status: "ok" });
     }
 
@@ -52,23 +140,31 @@ export async function POST(req: NextRequest) {
     try {
       result = decryptTradeInfo(tradeInfo) as unknown as NewebPayResult;
     } catch (decErr) {
-      // 解密失敗:log 完整內容,但回 200 避免 retry storm
       console.error("[newebpay-webhook] decrypt failed, but SHA verified — env key/IV mismatch?", {
         err: decErr instanceof Error ? decErr.message : String(decErr),
         tradeInfo,
       });
+      await finalizeLog(
+        supabase,
+        logId,
+        startedAt,
+        200,
+        "decrypt_failed",
+        decErr instanceof Error ? decErr.message : String(decErr),
+        true
+      );
       return NextResponse.json({ status: "ok", note: "decrypt failed, manual fulfillment required" });
     }
 
     if (!result || result.Status !== "SUCCESS") {
       console.error("[newebpay-webhook] payment not success:", result);
+      await finalizeLog(supabase, logId, startedAt, 200, "ok", `payment status=${result?.Status}`);
       return NextResponse.json({ status: "ok" });
     }
 
     const { MerchantOrderNo, Amt, TradeNo } = result.Result;
-    const supabase = getAdminClient();
 
-    // P0 fix: 驗 Amt 與本地 order.amount 一致 — 防偽造 MerchantOrderNo + 挪用其他訂單簽章
+    // P0 fix: 驗 Amt 與本地 order.amount 一致
     const { data: pendingOrder } = await supabase
       .from("orders")
       .select("amount, status")
@@ -76,21 +172,31 @@ export async function POST(req: NextRequest) {
       .single();
     if (!pendingOrder) {
       console.error("Webhook: order not found", MerchantOrderNo);
-      return NextResponse.json({ status: "ok" }); // idempotent silent
+      await finalizeLog(supabase, logId, startedAt, 200, "order_not_found", `${MerchantOrderNo}`);
+      return NextResponse.json({ status: "ok" });
     }
     if (pendingOrder.status === "paid") {
       console.log("Webhook: already paid", MerchantOrderNo);
+      await finalizeLog(supabase, logId, startedAt, 200, "duplicate");
       return NextResponse.json({ status: "ok" });
     }
     if (Number(Amt) !== Number(pendingOrder.amount)) {
       console.error(
         `[CRITICAL] Webhook AMOUNT MISMATCH: order=${pendingOrder.amount} payload=${Amt} merchant_order=${MerchantOrderNo}`
       );
-      // 回 200 避免 retry storm,人工調查走 log
+      await finalizeLog(
+        supabase,
+        logId,
+        startedAt,
+        200,
+        "amount_mismatch",
+        `order=${pendingOrder.amount} payload=${Amt}`,
+        true
+      );
       return NextResponse.json({ status: "ok", note: "amount mismatch logged" });
     }
 
-    // C3 fix: atomic idempotent update (only update if still pending)
+    // C3 fix: atomic idempotent update
     const { data: justUpdated } = await supabase
       .from("orders")
       .update({
@@ -103,8 +209,6 @@ export async function POST(req: NextRequest) {
       .select("*")
       .single();
 
-    // codex P0 fix: 即使 justUpdated 為 null(已 paid 或重試),仍要 re-fetch 並補 fulfillment
-    // 避免「先 mark paid 後 grant 失敗」造成永久缺 access 的情況
     let updatedOrder = justUpdated;
     if (!updatedOrder) {
       const { data: existing } = await supabase
@@ -116,10 +220,12 @@ export async function POST(req: NextRequest) {
     }
     if (!updatedOrder) {
       console.error("Webhook: order vanished?", MerchantOrderNo);
+      await finalizeLog(supabase, logId, startedAt, 200, "order_not_found", `vanished after update: ${MerchantOrderNo}`, true);
       return NextResponse.json({ status: "ok" });
     }
 
-    // I3 fix: check errors on mutations
+    let businessError: string | null = null;
+
     if (updatedOrder.order_type === "course" && updatedOrder.course_id) {
       const { error: accessError } = await supabase.from("course_access").upsert(
         {
@@ -130,62 +236,68 @@ export async function POST(req: NextRequest) {
         { onConflict: "user_id,course_id,access_type" }
       );
       if (accessError) {
+        // 不再 return 500 — 改記 log + 200,讓 cron */15 補
         console.error("Grant course access failed:", accessError);
-        return NextResponse.json({ error: "Failed to grant access" }, { status: 500 });
-      }
-
-      // 課程附贈 Pro 邏輯：course.pro_bundle_days 有值就延長 profile.pro_expires_at
-      const { data: course } = await supabase
-        .from("courses")
-        .select("pro_bundle_days")
-        .eq("id", updatedOrder.course_id)
-        .single();
-
-      if (course?.pro_bundle_days && course.pro_bundle_days > 0) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("pro_expires_at, discord_id")
-          .eq("id", updatedOrder.user_id)
+        businessError = `course_access upsert: ${accessError.message}`;
+      } else {
+        const { data: course } = await supabase
+          .from("courses")
+          .select("pro_bundle_days")
+          .eq("id", updatedOrder.course_id)
           .single();
 
-        const now = new Date();
-        const currentExpiry = profile?.pro_expires_at
-          ? new Date(profile.pro_expires_at)
-          : now;
-        // 如果還有未過期的 Pro，從那天起再加；否則從今天起加
-        const baseDate = currentExpiry > now ? currentExpiry : now;
-        const newExpiry = new Date(
-          baseDate.getTime() + course.pro_bundle_days * 86400000
-        );
+        if (course?.pro_bundle_days && course.pro_bundle_days > 0) {
+          try {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("pro_expires_at, discord_id")
+              .eq("id", updatedOrder.user_id)
+              .single();
 
-        const { error: tierError } = await supabase
-          .from("profiles")
-          .update({ tier: "pro", pro_expires_at: newExpiry.toISOString() })
-          .eq("id", updatedOrder.user_id);
-        if (tierError) {
-          console.error("Bundle Pro grant failed:", tierError);
-        }
+            const now = new Date();
+            const currentExpiry = profile?.pro_expires_at
+              ? new Date(profile.pro_expires_at)
+              : now;
+            const baseDate = currentExpiry > now ? currentExpiry : now;
+            const newExpiry = new Date(
+              baseDate.getTime() + course.pro_bundle_days * 86400000
+            );
 
-        // Discord Pro 身分組（best-effort）
-        if (profile?.discord_id) {
-          await addProRole(profile.discord_id);
+            const { error: tierError } = await supabase
+              .from("profiles")
+              .update({ tier: "pro", pro_expires_at: newExpiry.toISOString() })
+              .eq("id", updatedOrder.user_id);
+            if (tierError) {
+              console.error("Bundle Pro grant failed:", tierError);
+              businessError = (businessError || "") + ` | bundle_tier: ${tierError.message}`;
+            }
+
+            // Discord (best-effort)
+            if (profile?.discord_id) {
+              try {
+                await addProRole(profile.discord_id);
+              } catch (e) {
+                console.warn("addProRole failed (non-fatal)", e);
+              }
+            }
+            console.log(
+              `Bundled Pro: +${course.pro_bundle_days} days, expires ${newExpiry.toISOString()}`
+            );
+          } catch (bundleErr) {
+            console.error("Bundle Pro section threw", bundleErr);
+            businessError = (businessError || "") + ` | bundle_throw: ${bundleErr instanceof Error ? bundleErr.message : String(bundleErr)}`;
+          }
         }
-        console.log(
-          `Bundled Pro: +${course.pro_bundle_days} days, expires ${newExpiry.toISOString()}`
-        );
       }
     } else if (updatedOrder.order_type === "chat_topup_149") {
-      // Eyesy 深度模式加購:+500k Sonnet tokens(永不過期)
       try {
         await addSonnetTopup(updatedOrder.user_id, 1);
         console.log("Chat topup granted +500k Sonnet tokens to", updatedOrder.user_id);
       } catch (e) {
         console.error("Chat topup grant failed:", e);
-        // 不回 500,避免 retry storm — log 給人工 catch
-        return NextResponse.json({ status: "ok", note: "topup grant failed, manual followup" });
+        businessError = `topup: ${e instanceof Error ? e.message : String(e)}`;
       }
     } else if (updatedOrder.order_type === "subscription") {
-      // 訂閱設 30 天到期(月繳一次性,下個月需要再下單)
       const proExpiresAt = new Date(Date.now() + 30 * 86400000).toISOString();
       const { error: tierError } = await supabase
         .from("profiles")
@@ -194,37 +306,45 @@ export async function POST(req: NextRequest) {
 
       if (tierError) {
         console.error("Upgrade to Pro failed:", tierError);
-        return NextResponse.json({ error: "Failed to upgrade" }, { status: 500 });
-      }
+        businessError = `subscription_tier: ${tierError.message}`;
+      } else {
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("discord_id")
+            .eq("id", updatedOrder.user_id)
+            .single();
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("discord_id")
-        .eq("id", updatedOrder.user_id)
-        .single();
-
-      if (profile?.discord_id) {
-        const roleAdded = await addProRole(profile.discord_id);
-        if (!roleAdded) {
-          console.warn("Discord role not assigned, enqueueing retry:", updatedOrder.user_id);
-          await supabase
-            .from("pending_discord_grants")
-            .upsert(
-              {
-                user_id: updatedOrder.user_id,
-                discord_id: profile.discord_id,
-                reason: "webhook_grant_failed",
-                attempts: 1,
-                last_attempt_at: new Date().toISOString(),
-                last_error: "addProRole returned false",
-              },
-              { onConflict: "user_id,discord_id" }
-            );
+          if (profile?.discord_id) {
+            try {
+              const roleAdded = await addProRole(profile.discord_id);
+              if (!roleAdded) {
+                console.warn("Discord role not assigned, enqueueing retry:", updatedOrder.user_id);
+                await supabase
+                  .from("pending_discord_grants")
+                  .upsert(
+                    {
+                      user_id: updatedOrder.user_id,
+                      discord_id: profile.discord_id,
+                      reason: "webhook_grant_failed",
+                      attempts: 1,
+                      last_attempt_at: new Date().toISOString(),
+                      last_error: "addProRole returned false",
+                    },
+                    { onConflict: "user_id,discord_id" }
+                  );
+              }
+            } catch (e) {
+              console.warn("addProRole subscription failed (non-fatal)", e);
+            }
+          }
+        } catch (subErr) {
+          console.warn("subscription discord block threw (non-fatal)", subErr);
         }
       }
     }
 
-    // 寄購買確認信（best-effort，失敗不擋 webhook）
+    // 寄購買確認信 / Invoice / Alert — 全部 best-effort,絕不讓藍新看到 500
     try {
       const { data: profileEmail } = await supabase
         .from("profiles")
@@ -249,20 +369,22 @@ export async function POST(req: NextRequest) {
           itemTitle = "Eyesy 深度模式加購（+500k Sonnet tokens）";
         }
 
-        // 三種 order_type 都寄信:course / subscription / chat_topup_149
-        await sendOrderConfirmation({
-          to: profileEmail.email,
-          orderType:
-            updatedOrder.order_type === "chat_topup_149"
-              ? "course"
-              : (updatedOrder.order_type as "course" | "subscription"),
-          itemTitle,
-          amount: updatedOrder.amount,
-          merchantOrderNo: MerchantOrderNo,
-          proBundleDays,
-        });
+        try {
+          await sendOrderConfirmation({
+            to: profileEmail.email,
+            orderType:
+              updatedOrder.order_type === "chat_topup_149"
+                ? "course"
+                : (updatedOrder.order_type as "course" | "subscription"),
+            itemTitle,
+            amount: updatedOrder.amount,
+            merchantOrderNo: MerchantOrderNo,
+            proBundleDays,
+          });
+        } catch (e) {
+          console.warn("sendOrderConfirmation failed (non-fatal)", e);
+        }
 
-        // 推送 alert 到 drtalk01 OBS overlay (best-effort, 失敗不擋)
         if (updatedOrder.order_type === "course") {
           let courseSlug: string | undefined;
           if (updatedOrder.course_id) {
@@ -273,17 +395,19 @@ export async function POST(req: NextRequest) {
               .single();
             courseSlug = c2?.slug;
           }
-          await sendCoursePurchaseAlert({
-            donorName: profileEmail.display_name,
-            donorEmail: profileEmail.email,
-            amount: updatedOrder.amount,
-            courseTitle: itemTitle,
-            courseSlug,
-          });
+          try {
+            await sendCoursePurchaseAlert({
+              donorName: profileEmail.display_name,
+              donorEmail: profileEmail.email,
+              amount: updatedOrder.amount,
+              courseTitle: itemTitle,
+              courseSlug,
+            });
+          } catch (e) {
+            console.warn("sendCoursePurchaseAlert failed (non-fatal)", e);
+          }
         }
 
-        // 自動開立電子發票(best-effort,失敗 log + 上 admin/orders 補開)
-        // 品名統一「線上教學服務」(會計報稅最穩),課程細節在備註
         try {
           const inv = await issueInvoice({
             merchantOrderNo: MerchantOrderNo,
@@ -297,7 +421,6 @@ export async function POST(req: NextRequest) {
           });
           if (inv.ok) {
             console.log("Invoice issued:", inv.invoiceNumber, "for", MerchantOrderNo);
-            // 寫進 invoices 表(callback 也會寫,雙保險 idempotent)
             await supabase.from("invoices").upsert(
               {
                 merchant_order_no: MerchantOrderNo,
@@ -313,28 +436,29 @@ export async function POST(req: NextRequest) {
               { onConflict: "invoice_number" }
             );
           } else {
-            console.error(
-              "Invoice issue FAILED:",
-              MerchantOrderNo,
-              inv.rawStatus,
-              inv.rawMessage
-            );
+            console.error("Invoice issue FAILED:", MerchantOrderNo, inv.rawStatus, inv.rawMessage);
           }
         } catch (invErr) {
           console.error("Invoice issue exception:", invErr);
         }
       }
     } catch (emailErr) {
-      console.warn("Order confirmation email failed:", emailErr);
+      console.warn("Order confirmation block failed (non-fatal):", emailErr);
     }
 
     console.log("Payment processed:", MerchantOrderNo);
+    if (businessError) {
+      // 業務 fail 但不讓藍新 retry — cron */15 兜底,人工從 webhook_log 找 needs_manual
+      await finalizeLog(supabase, logId, startedAt, 200, "business_fail", businessError, true);
+    } else {
+      await finalizeLog(supabase, logId, startedAt, 200, "ok");
+    }
     return NextResponse.json({ status: "ok" });
   } catch (error) {
+    // 任何 throw 都吃下來 — 改回 200,標 needs_manual,cron */15 補
+    const msg = error instanceof Error ? `${error.message}\n${error.stack || ""}` : String(error);
     console.error("Webhook error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    await finalizeLog(supabase, logId, startedAt, 200, "crash", msg, true);
+    return NextResponse.json({ status: "ok", note: "internal error logged" });
   }
 }
