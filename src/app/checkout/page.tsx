@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createCourseOrder, createProSubscription } from "@/lib/actions/payment";
+import { createCourseOrder, createProSubscription, createChatTopupOrder } from "@/lib/actions/payment";
 import { Loader2 } from "lucide-react";
 
 function CheckoutForm() {
@@ -23,6 +23,8 @@ function CheckoutForm() {
         result = await createCourseOrder(courseId);
       } else if (type === "pro") {
         result = await createProSubscription(billing || "monthly");
+      } else if (type === "topup") {
+        result = await createChatTopupOrder();
       } else {
         setError("無效的結帳請求");
         return;
