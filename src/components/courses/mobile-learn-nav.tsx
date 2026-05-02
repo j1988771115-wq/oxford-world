@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { X, CheckCircle2, Lock, PlayCircle, ChevronRight, ChevronUp } from "lucide-react";
+import { X, CheckCircle2, Lock, PlayCircle, ChevronRight, ChevronUp, BookOpen, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ChapterRow {
@@ -203,7 +203,7 @@ export function MobileLearnNav({
                           ) : (
                             <span className="w-4 h-4 rounded-full border border-current opacity-40 shrink-0" />
                           )}
-                          <span className="flex-1 truncate">📖 背景資料</span>
+                          <span className="flex-1 truncate flex items-center gap-2"><BookOpen size={15} className="shrink-0" />背景資料</span>
                           {ch.duration_seconds_bg && (
                             <span className="text-xs opacity-70 shrink-0">
                               {fmtTime(ch.duration_seconds_bg)}
@@ -236,7 +236,7 @@ export function MobileLearnNav({
                           ) : (
                             <span className="w-4 h-4 rounded-full border border-current opacity-40 shrink-0" />
                           )}
-                          <span className="flex-1 truncate">🎓 久老師正片</span>
+                          <span className="flex-1 truncate flex items-center gap-2"><GraduationCap size={15} className="shrink-0" />久老師正片</span>
                           {hasProgress && !isCompleted && (
                             <span className="text-xs text-amber-600 dark:text-amber-400 shrink-0">
                               到 {fmtTime(progress!.last_position_seconds)}

@@ -13,6 +13,8 @@ import {
   Clock,
   CheckCircle2,
   ArrowLeft,
+  BookOpen,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -283,7 +285,7 @@ export default async function LearnPage({ params, searchParams }: Props) {
                       : "bg-surface-container/50 border-outline-variant/15 text-on-surface-variant/40 pointer-events-none"
                   )}
                 >
-                  <span className="text-base">📖</span>
+                  <BookOpen size={18} className="shrink-0" />
                   <span>背景資料</span>
                   {currentChapter.duration_seconds_bg && (
                     <span className="text-xs opacity-70">{fmtDur(currentChapter.duration_seconds_bg)}</span>
@@ -300,7 +302,7 @@ export default async function LearnPage({ params, searchParams }: Props) {
                       : "bg-surface-container/50 border-outline-variant/15 text-on-surface-variant/40 pointer-events-none"
                   )}
                 >
-                  <span className="text-base">🎓</span>
+                  <GraduationCap size={18} className="shrink-0" />
                   <span>久老師正片</span>
                   {currentChapter.duration_seconds && (
                     <span className="text-xs opacity-70">{fmtDur(currentChapter.duration_seconds)}</span>
@@ -457,7 +459,7 @@ export default async function LearnPage({ params, searchParams }: Props) {
                               ) : (
                                 <span className="w-3.5 h-3.5 rounded-full border border-current opacity-40 shrink-0" />
                               )}
-                              <span className="flex-1 truncate">📖 背景資料學習</span>
+                              <span className="flex-1 truncate flex items-center gap-1.5"><BookOpen size={14} className="shrink-0" />背景資料學習</span>
                               {ch.duration_seconds_bg && (
                                 <span className="opacity-70 shrink-0 text-xs">
                                   {formatDuration(ch.duration_seconds_bg)}
@@ -490,7 +492,7 @@ export default async function LearnPage({ params, searchParams }: Props) {
                               ) : (
                                 <span className="w-3.5 h-3.5 rounded-full border border-current opacity-40 shrink-0" />
                               )}
-                              <span className="flex-1 truncate">🎓 久老師正片</span>
+                              <span className="flex-1 truncate flex items-center gap-1.5"><GraduationCap size={14} className="shrink-0" />久老師正片</span>
                               {hasProgress && !isCompleted && (
                                 <span className="text-amber-600 dark:text-amber-400 shrink-0 text-xs">
                                   到 {formatDuration(progress!.last_position_seconds)}
