@@ -132,3 +132,71 @@ export async function sendBatchEmails({
 
   return { sent, failed };
 }
+
+interface InstructorAlertParams {
+  to: string;
+  courseTitle: string;
+  buyerDisplayName?: string | null;
+  buyerEmail: string;
+  amount: number;
+  merchantOrderNo: string;
+  paidAt?: string;
+}
+
+/**
+ * 通知講師：有人購買了你的課
+ * 不擋 webhook,失敗 best-effort
+ */
+export async function sendInstructorPurchaseAlert(p: InstructorAlertParams) {
+  const resend = getResend();
+  if (!resend) {
+    console.warn("[email] Resend not configured, skip instructor alert");
+    return { skipped: true };
+  }
+
+  const buyerLabel = p.buyerDisplayName
+    ? `${p.buyerDisplayName} <${p.buyerEmail}>`
+    : p.buyerEmail;
+  const paidAtStr = p.paidAt
+    ? new Date(p.paidAt).toLocaleString("zh-TW", { timeZone: "Asia/Taipei" })
+    : new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
+
+  const html = `<!doctype html><html><body style="margin:0;padding:0;background:#f6f7f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0f1729;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f7f9;padding:32px 16px;"><tr><td align="center">
+<table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;">
+<tr><td style="background:linear-gradient(135deg,#0a1f44 0%,#1e3a8a 100%);padding:24px 32px;color:#fff;">
+  <div style="font-size:13px;letter-spacing:.1em;opacity:.7;text-transform:uppercase;">牛津視界</div>
+  <h1 style="margin:8px 0 0;font-size:22px;">您的課程剛被購買 🎉</h1>
+</td></tr>
+<tr><td style="padding:32px;">
+  <p style="margin:0 0 20px;font-size:16px;line-height:1.7;">恭喜，有新學員加入了：</p>
+  <table width="100%" cellpadding="10" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;background:#fafafa;font-size:14px;">
+    <tr><td style="color:#6b7280;width:90px;">課程</td><td style="font-weight:600;">${p.courseTitle}</td></tr>
+    <tr><td style="color:#6b7280;">學員</td><td>${buyerLabel}</td></tr>
+    <tr><td style="color:#6b7280;">金額</td><td style="font-weight:700;font-size:16px;">NT$${p.amount.toLocaleString()}</td></tr>
+    <tr><td style="color:#6b7280;">訂單編號</td><td style="font-family:monospace;font-size:12px;">${p.merchantOrderNo}</td></tr>
+    <tr><td style="color:#6b7280;">付款時間</td><td>${paidAtStr}</td></tr>
+  </table>
+  <p style="margin:24px 0 0;font-size:12px;color:#9ca3af;line-height:1.6;">這封自動通知由牛津視界系統發出，每筆付款成功都會即時寄送一封。如不再需要請通知 support@oxford-vision.com 關閉。</p>
+</td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
+
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: [p.to],
+      subject: `[牛津視界] 新購買通知 — ${p.courseTitle}`,
+      html,
+    });
+    if (error) {
+      console.error("Instructor alert email error:", error);
+      return { sent: false, error: error.message };
+    }
+    return { sent: true };
+  } catch (e) {
+    console.error("Instructor alert exception:", e);
+    return { sent: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}

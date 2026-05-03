@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { decryptTradeInfo, verifyTradeSha } from "@/lib/newebpay";
 import { addProRole } from "@/lib/discord";
-import { sendOrderConfirmation } from "@/lib/email";
+import { sendOrderConfirmation, sendInstructorPurchaseAlert } from "@/lib/email";
 import { sendCoursePurchaseAlert } from "@/lib/donate-alert";
 import { addSonnetTopup } from "@/lib/chat-quota";
 import { issueInvoice } from "@/lib/ezpay-invoice";
@@ -405,6 +405,24 @@ export async function POST(req: NextRequest) {
             });
           } catch (e) {
             console.warn("sendCoursePurchaseAlert failed (non-fatal)", e);
+          }
+
+          // 通知講師信箱(env COURSE_INSTRUCTOR_EMAIL,目前 = 久老師)
+          const instructorEmail = (process.env.COURSE_INSTRUCTOR_EMAIL || "").trim();
+          if (instructorEmail) {
+            try {
+              await sendInstructorPurchaseAlert({
+                to: instructorEmail,
+                courseTitle: itemTitle,
+                buyerDisplayName: profileEmail.display_name,
+                buyerEmail: profileEmail.email,
+                amount: updatedOrder.amount,
+                merchantOrderNo: MerchantOrderNo,
+                paidAt: updatedOrder.paid_at,
+              });
+            } catch (e) {
+              console.warn("sendInstructorPurchaseAlert failed (non-fatal)", e);
+            }
           }
         }
 
