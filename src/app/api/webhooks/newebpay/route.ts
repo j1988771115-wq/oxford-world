@@ -164,6 +164,24 @@ export async function POST(req: NextRequest) {
 
     const { MerchantOrderNo, Amt, TradeNo } = result.Result;
 
+    // 補 webhook_log 的 merchant_order_no + trade_no (audit T0-15 + Codex finding)
+    // 第一行 insert webhook_log 時抓 form data 的 MerchantOrderNo 永遠是 null
+    // (藍新 webhook form 沒這欄位,只有 TradeInfo / TradeSha / Status / MerchantID)
+    // decrypt 完才有 — 補 update 進 audit log
+    if (logId) {
+      try {
+        await supabase
+          .from("webhook_log")
+          .update({ merchant_order_no: MerchantOrderNo, trade_no: TradeNo })
+          .eq("id", logId);
+      } catch {
+        // 若 trade_no unique violation = replay attack,記下後當作 duplicate 處理
+        console.warn("[newebpay-webhook] trade_no replay detected", TradeNo);
+        await finalizeLog(supabase, logId, startedAt, 200, "duplicate", `replay TradeNo=${TradeNo}`);
+        return NextResponse.json({ status: "ok" });
+      }
+    }
+
     // P0 fix: 驗 Amt 與本地 order.amount 一致
     const { data: pendingOrder } = await supabase
       .from("orders")

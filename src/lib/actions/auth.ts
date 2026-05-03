@@ -141,23 +141,31 @@ export async function updateProfile(formData: FormData) {
     data: { full_name: displayName },
   });
 
-  // Upsert profile
-  const { error } = await supabase
+  // 看 profile 存在嗎 — 存在就 update 安全欄位,不存在才 insert (audit/T0-13 trigger fix)
+  // 重要:不能在 upsert 一直帶 tier/email/auth_id,trigger 會擋(已是 pro 的 8 位學員會卡)
+  const { data: existing } = await supabase
     .from("profiles")
-    .upsert(
-      {
-        auth_id: user.id,
-        display_name: displayName,
-        email: user.email,
-        occupation,
-        bio,
-        tier: "free",
-      },
-      { onConflict: "auth_id" }
-    );
+    .select("id")
+    .eq("auth_id", user.id)
+    .maybeSingle();
 
-  if (error) {
-    return { error: error.message };
+  if (existing) {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ display_name: displayName, occupation, bio })
+      .eq("auth_id", user.id);
+    if (error) return { error: error.message };
+  } else {
+    // 第一次建 profile 才需要帶 auth_id / email / tier (insert path 不經 trigger 的 distinct check)
+    const { error } = await supabase.from("profiles").insert({
+      auth_id: user.id,
+      email: user.email,
+      display_name: displayName,
+      occupation,
+      bio,
+      tier: "free",
+    });
+    if (error) return { error: error.message };
   }
 
   return { success: true };
