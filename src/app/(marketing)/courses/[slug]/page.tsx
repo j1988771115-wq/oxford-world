@@ -88,17 +88,14 @@ export default async function CourseDetailPage({ params }: Props) {
     if (profile) {
       profileId = profile.id as string;
       isAlumni = !!profile.is_alumni;
-      if (profile.tier === "pro") {
-        hasAccess = true;
-      } else {
-        const { data: access } = await supabase
-          .from("course_access")
-          .select("id")
-          .eq("user_id", profile.id)
-          .eq("course_id", course.id)
-          .limit(1);
-        hasAccess = (access?.length ?? 0) > 0;
-      }
+      // 統一用 course_access (audit T0-6) — Pro 訂閱不含大師課
+      const { data: access } = await supabase
+        .from("course_access")
+        .select("id")
+        .eq("user_id", profile.id)
+        .eq("course_id", course.id)
+        .limit(1);
+      hasAccess = (access?.length ?? 0) > 0;
     }
   }
 

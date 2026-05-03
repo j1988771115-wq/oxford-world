@@ -79,22 +79,14 @@ export default async function LearnPage({ params, searchParams }: Props) {
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id, tier")
+      .select("id")
       .eq("auth_id", user.id)
       .maybeSingle();
     if (profile) {
-      // pro 會員所有課都能看 → 跳過 course_access 查詢
-      if (profile.tier === "pro") {
-        hasAccess = true;
-        const { data: rows } = await supabase
-          .from("course_progress")
-          .select("chapter_id, last_position_seconds, duration_seconds, completed")
-          .eq("user_id", profile.id)
-          .eq("course_id", courseId);
-        for (const r of (rows || []) as ChapterProgress[]) {
-          progressByChapter.set(r.chapter_id, r);
-        }
-      } else {
+      // 統一只看 course_access (audit T0-6) — Pro 訂閱不含大師課,UI 寫明
+      // 之前用 tier === 'pro' 放行有兩個 bug:
+      // (a) Pro 過期還能看,(b) Pro 訂閱沒買課也能看
+      {
         const [accessResult, progressResult] = await Promise.all([
           supabase
             .from("course_access")
