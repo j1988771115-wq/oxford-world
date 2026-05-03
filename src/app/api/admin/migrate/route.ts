@@ -3,6 +3,10 @@ import { createClient } from "@supabase/supabase-js";
 import { isAdmin } from "@/lib/admin-auth";
 
 export async function POST() {
+  // demo seed endpoint — production 拒絕,避免誤觸塞假資料 (audit T0-1)
+  if (process.env.VERCEL_ENV === "production") {
+    return NextResponse.json({ error: "not available in production" }, { status: 404 });
+  }
   if (!(await isAdmin())) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }

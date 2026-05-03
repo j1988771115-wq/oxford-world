@@ -210,12 +210,22 @@ export async function POST(req: NextRequest) {
       .single();
 
     let updatedOrder = justUpdated;
+    // justUpdated null 代表 atomic update 沒抓到 pending row
+    // 兩種情況:
+    // 1. 並發 webhook — 別的 instance 剛剛 mark paid + fulfillment 跑完了 → 我們不該再跑 (audit T0-3)
+    // 2. row vanished — 訂單真的消失,記 needs_manual
     if (!updatedOrder) {
       const { data: existing } = await supabase
         .from("orders")
         .select("*")
         .eq("merchant_order_no", MerchantOrderNo)
         .single();
+      if (existing && existing.status === "paid") {
+        // 並發雙打:對方已處理完,我們直接 duplicate return,不能再跑 fulfillment 否則 double-extend pro / double-credit token / double-email
+        console.log("Webhook: concurrent duplicate (atomic update lost race)", MerchantOrderNo);
+        await finalizeLog(supabase, logId, startedAt, 200, "duplicate");
+        return NextResponse.json({ status: "ok" });
+      }
       updatedOrder = existing;
     }
     if (!updatedOrder) {
@@ -298,7 +308,19 @@ export async function POST(req: NextRequest) {
         businessError = `topup: ${e instanceof Error ? e.message : String(e)}`;
       }
     } else if (updatedOrder.order_type === "subscription") {
-      const proExpiresAt = new Date(Date.now() + 30 * 86400000).toISOString();
+      // 從現有 pro_expires_at 起算延長,避免砍掉未過期 bundle (audit T0-9)
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("pro_expires_at")
+        .eq("id", updatedOrder.user_id)
+        .single();
+      const now = new Date();
+      const currentExpiry = existingProfile?.pro_expires_at
+        ? new Date(existingProfile.pro_expires_at)
+        : now;
+      const baseDate = currentExpiry > now ? currentExpiry : now;
+      const proExpiresAt = new Date(baseDate.getTime() + 30 * 86400000).toISOString();
+
       const { error: tierError } = await supabase
         .from("profiles")
         .update({ tier: "pro", pro_expires_at: proExpiresAt })

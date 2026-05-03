@@ -64,11 +64,8 @@ export async function createCourseOrder(courseId: string) {
     return { error: "找不到用戶資料" };
   }
 
-  // Pro members already have access
-  if (profile.tier === "pro") {
-    return { error: "您是 Pro 會員，已可免費觀看所有課程" };
-  }
-
+  // Pro 訂閱不含大師課,UI 已寫明,不該因 tier='pro' 擋下單(audit T0-7)
+  // 真正擋重複下單看 course_access(下面 existing 檢查)
   // Check if already purchased
   const { data: existing } = await supabase
     .from("course_access")

@@ -1,7 +1,5 @@
 import { decryptTradeInfo, verifyTradeSha } from "@/lib/newebpay";
 import { createClient } from "@supabase/supabase-js";
-import { sendOrderConfirmation } from "@/lib/email";
-import { sendCoursePurchaseAlert } from "@/lib/donate-alert";
 import Link from "next/link";
 import { CheckCircle, XCircle } from "lucide-react";
 
@@ -62,6 +60,10 @@ async function reconcileOrder(
   }
   if (!order) return;
 
+  // success page fallback 只負責 mark paid + grant course_access (audit T0-4)
+  // 不寄 email、不推 OBS alert、不開發票、不升 tier — 那些統一交給 webhook 一條 path,
+  // 避免「webhook 跑完 + success page 重複跑」雙寄信、雙發 alert、重複加 pro 天數
+  // webhook 真的失敗時 cron 對帳 path 也會補,且寫 webhook_log 留 audit
   if (order.order_type === "course" && order.course_id) {
     await supabase.from("course_access").upsert(
       {
@@ -71,30 +73,6 @@ async function reconcileOrder(
       },
       { onConflict: "user_id,course_id,access_type" }
     );
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("email, display_name")
-      .eq("id", order.user_id)
-      .single();
-    const courseRow = order.courses as { title?: string; slug?: string } | null;
-    const courseTitle = courseRow?.title || "課程";
-    if (profile?.email) {
-      await sendOrderConfirmation({
-        to: profile.email,
-        orderType: "course",
-        itemTitle: courseTitle,
-        amount: order.amount,
-        merchantOrderNo: order.merchant_order_no,
-      }).catch((e) => console.error("[success-fallback] email failed", e));
-    }
-    // 推 drtalk01 OBS overlay alert (best-effort)
-    await sendCoursePurchaseAlert({
-      donorName: profile?.display_name,
-      donorEmail: profile?.email,
-      amount: order.amount,
-      courseTitle,
-      courseSlug: courseRow?.slug,
-    }).catch((e) => console.error("[success-fallback] alert failed", e));
   }
 }
 
