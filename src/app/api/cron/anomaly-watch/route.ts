@@ -187,6 +187,34 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // 9. paid 課程訂單沒對應發票(ezPay API fail / 商店未啟用)
+  const { data: paidOrders } = await supabase
+    .from("orders")
+    .select("merchant_order_no, paid_at")
+    .eq("status", "paid")
+    .eq("order_type", "course")
+    .not("paid_at", "is", null);
+  if (paidOrders && paidOrders.length > 0) {
+    const orderNos = paidOrders.map((o) => o.merchant_order_no);
+    const { data: existingInvoices } = await supabase
+      .from("invoices")
+      .select("merchant_order_no")
+      .in("merchant_order_no", orderNos);
+    const haveInvoice = new Set((existingInvoices || []).map((i) => i.merchant_order_no));
+    const missing = paidOrders.filter((o) => !haveInvoice.has(o.merchant_order_no));
+    if (missing.length > 0) {
+      anomalies.push({
+        severity: "P1",
+        kind: "INVOICE_MISSING",
+        details: `${missing.length} 筆 paid 課程訂單沒對應發票(ezPay API 失敗或商店未啟用),持續累積=稅務風險`,
+        count: missing.length,
+        evidence: missing
+          .slice(0, 20)
+          .map((o) => ({ order: o.merchant_order_no, paid_at: o.paid_at })),
+      });
+    }
+  }
+
   // 8. course_access 重複 row(unique constraint 沒生效徵兆)
   const { data: allAccess } = await supabase
     .from("course_access")
