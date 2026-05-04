@@ -82,12 +82,32 @@ export async function submitAssignment(formData: FormData) {
 
 // ── Discussions ──
 
+// 從 PostgREST `profiles!inner(display_name)` join 改成 application-level merge
+// 用 public_profiles view (audit T0-2:protect profiles 防 email leak)
+// view 只暴露 safe column,不會 leak email/auth_id/discord_id
+async function attachAuthor<T extends { user_id: string }>(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  rows: T[]
+): Promise<(T & { profiles: { display_name: string | null } | null })[]> {
+  if (!rows.length) return [];
+  const userIds = Array.from(new Set(rows.map((r) => r.user_id)));
+  const { data: authors } = await supabase
+    .from("public_profiles")
+    .select("id, display_name")
+    .in("id", userIds);
+  const map = new Map((authors || []).map((a) => [a.id, a]));
+  return rows.map((r) => ({
+    ...r,
+    profiles: (map.get(r.user_id) as { display_name: string | null } | undefined) ?? null,
+  }));
+}
+
 export async function getDiscussions(courseId?: string) {
   const supabase = await createClient();
 
   let query = supabase
     .from("discussions")
-    .select("*, profiles!inner(display_name)")
+    .select("*")
     .order("pinned", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(50);
@@ -97,7 +117,7 @@ export async function getDiscussions(courseId?: string) {
   }
 
   const { data } = await query;
-  return data || [];
+  return await attachAuthor(supabase, data || []);
 }
 
 export async function getDiscussion(id: string) {
@@ -105,7 +125,7 @@ export async function getDiscussion(id: string) {
 
   const { data: discussion } = await supabase
     .from("discussions")
-    .select("*, profiles!inner(display_name)")
+    .select("*")
     .eq("id", id)
     .single();
 
@@ -113,11 +133,13 @@ export async function getDiscussion(id: string) {
 
   const { data: replies } = await supabase
     .from("discussion_replies")
-    .select("*, profiles!inner(display_name)")
+    .select("*")
     .eq("discussion_id", id)
     .order("created_at");
 
-  return { ...discussion, replies: replies || [] };
+  const [discussionWithAuthor] = await attachAuthor(supabase, [discussion]);
+  const repliesWithAuthor = await attachAuthor(supabase, replies || []);
+  return { ...discussionWithAuthor, replies: repliesWithAuthor };
 }
 
 export async function createDiscussion(formData: FormData) {

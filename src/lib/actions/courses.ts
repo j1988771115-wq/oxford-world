@@ -171,9 +171,9 @@ export async function getLeaderboard() {
   const userIds = Object.keys(xpMap);
   if (userIds.length === 0) return [];
 
-  // Get profiles with tier info
+  // Get profiles with tier info — 用 public_profiles view 防 email leak (audit T0-2)
   const { data: profiles } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select("id, display_name, avatar_url, tier, current_streak")
     .in("id", userIds);
 
@@ -255,7 +255,7 @@ export async function getWeeklyLeaderboard() {
   if (userIds.length === 0) return [];
 
   const { data: profiles } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select("id, display_name, avatar_url, tier")
     .in("id", userIds);
 
