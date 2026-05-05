@@ -18,7 +18,12 @@ export async function GET() {
 
 export async function POST(req: Request) {
   if (!(await isAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
+  }
   const supabase = createAdminClient();
 
   const { error } = await supabase.from("insights").insert({
@@ -39,7 +44,13 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   if (!(await isAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const { id } = await req.json();
+  let body: { id?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
+  }
+  const { id } = body;
   const supabase = createAdminClient();
   const { error } = await supabase.from("insights").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

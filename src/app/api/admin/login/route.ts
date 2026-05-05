@@ -34,7 +34,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "too many attempts" }, { status: 429 });
   }
 
-  const { password, code } = await req.json();
+  let body: { password?: string; code?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
+  }
+  const { password, code } = body;
   // .trim() 對齊 admin-auth.ts 的驗證,避免 Vercel env 帶 \n 造成永遠驗不過
   const expected = (process.env.ADMIN_PASSWORD || "").trim();
 

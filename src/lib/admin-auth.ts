@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 
 export async function isAdmin(): Promise<boolean> {
   const cookieStore = await cookies();
@@ -13,5 +13,6 @@ export async function isAdmin(): Promise<boolean> {
   if (!salt || !hash) return false;
 
   const expected = createHmac("sha256", password).update(salt).digest("hex");
-  return hash === expected;
+  if (hash.length !== expected.length) return false;
+  return timingSafeEqual(Buffer.from(hash, "utf8"), Buffer.from(expected, "utf8"));
 }

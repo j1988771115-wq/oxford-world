@@ -35,7 +35,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const { content, content_type, course_id, title } = await req.json();
+  let body: { content?: string; content_type?: string; course_id?: string; title?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
+  }
+  const { content, content_type, course_id, title } = body;
 
   if (!content || !content_type) {
     return NextResponse.json(
@@ -79,7 +85,13 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const { id } = await req.json();
+  let body: { id?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
+  }
+  const { id } = body;
   const supabase = createAdminClient();
 
   const { error } = await supabase
