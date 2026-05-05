@@ -19,9 +19,11 @@ const notoSansTC = Noto_Sans_TC({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://oxford-vision.com"),
   title: "牛津視界 Oxford Vision — 太空時代的資本配置",
   description:
     "下一個十年的產業革命。久方武院長 10 章深度拆解 8 隻精選美股太空標的，從 SpaceX 大敘事到實戰資本配置框架。",
+  alternates: { canonical: "/" },
   openGraph: {
     title: "太空時代的資本配置 — 牛津視界",
     description: "久方武院長親授 · 10 章深度拆解美股太空標的",
@@ -93,6 +95,18 @@ const jsonLd = {
   },
 };
 
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "牛津視界 Oxford Vision",
+  alternateName: "Oxford Vision",
+  url: "https://oxford-vision.com",
+  inLanguage: "zh-TW",
+  publisher: { "@type": "Organization", name: "巨石文化有限公司" },
+  description:
+    "太空時代的資本配置教育平台。久方武院長親授 — 系統化拆解美股太空產業。",
+};
+
 const faqJsonLd = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
@@ -135,6 +149,10 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
         />
         <script
           type="application/ld+json"

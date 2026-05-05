@@ -7,12 +7,82 @@ export const revalidate = 3600;
 export const metadata = {
   title: "關於我們 — 牛津視界",
   description: "牛津視界的使命：幫助每個人在 AI 時代找到方向",
+  alternates: { canonical: "/about" },
 };
+
+const aboutPageJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "AboutPage",
+  url: "https://oxford-vision.com/about",
+  name: "關於牛津視界",
+  description: "牛津視界的使命、核心團隊與品牌故事",
+  mainEntity: {
+    "@type": "EducationalOrganization",
+    name: "牛津視界 Oxford Vision",
+    url: "https://oxford-vision.com",
+    parentOrganization: { "@type": "Organization", name: "巨石文化有限公司" },
+  },
+};
+
+const teamJsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: "久方武",
+    jobTitle: "牛津視界院長",
+    description:
+      "產官學三棲、上市櫃輔導、證券公司副總經理、財訊資深研究員。專長太空產業與美股微型股投資。",
+    knowsAbout: ["太空產業", "美股投資", "資本配置", "微型股策略"],
+    affiliation: {
+      "@type": "EducationalOrganization",
+      name: "牛津視界 Oxford Vision",
+      url: "https://oxford-vision.com",
+    },
+    worksFor: { "@type": "Organization", name: "巨石文化有限公司" },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: "YC",
+    jobTitle: "技術聯創",
+    description: "微軟 Azure、Polkadot 核心開發。",
+    knowsAbout: ["AI 工程", "區塊鏈", "雲端架構", "Go 語言"],
+    affiliation: {
+      "@type": "EducationalOrganization",
+      name: "牛津視界 Oxford Vision",
+      url: "https://oxford-vision.com",
+    },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: "黃靖哲",
+    jobTitle: "持牌分析師",
+    description: "20 年投顧經驗、財經台名嘴。",
+    knowsAbout: ["技術分析", "投資顧問", "美股交易"],
+    affiliation: {
+      "@type": "EducationalOrganization",
+      name: "牛津視界 Oxford Vision",
+      url: "https://oxford-vision.com",
+    },
+  },
+];
 
 export default function AboutPage() {
   return (
     <main className="pt-12 pb-24 bg-surface">
       <BreadcrumbJsonLd crumbs={[{ name: "關於我們", url: "/about" }]} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutPageJsonLd) }}
+      />
+      {teamJsonLd.map((person, i) => (
+        <script
+          key={i}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(person) }}
+        />
+      ))}
       <div className="max-w-7xl mx-auto px-8">
         {/* Hero */}
         <div className="max-w-3xl mb-20">

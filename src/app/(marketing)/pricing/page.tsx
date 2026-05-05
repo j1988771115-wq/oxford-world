@@ -13,6 +13,12 @@ import { BreadcrumbJsonLd } from "@/lib/breadcrumb";
 const FEATURED_COURSE_SLUG = "master-space-age-capital";
 const PRO_MONTHLY_NTD = 999;
 
+export const metadata = {
+  title: "方案與訂閱 — 牛津視界",
+  description: "大師課單課買斷 + Pro 月訂閱方案。久方武院長親授，AI 助教 24/7 即問即答。",
+  alternates: { canonical: "/pricing" },
+};
+
 export const revalidate = 60;
 
 function getPublicClient() {

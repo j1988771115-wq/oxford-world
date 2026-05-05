@@ -6,6 +6,7 @@ import { BreadcrumbJsonLd } from "@/lib/breadcrumb";
 export const metadata = {
   title: "課程目錄 — 牛津視界",
   description: "系統化的 AI 時代學習課程，從入門到進階",
+  alternates: { canonical: "/courses" },
 };
 
 export const revalidate = 60;
