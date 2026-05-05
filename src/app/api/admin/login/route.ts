@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
+import { verify } from "otplib";
 
 // Generate a session token derived from password + random salt
 // This way the cookie never contains the raw password
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "too many attempts" }, { status: 429 });
   }
 
-  const { password } = await req.json();
+  const { password, code } = await req.json();
   // .trim() 對齊 admin-auth.ts 的驗證,避免 Vercel env 帶 \n 造成永遠驗不過
   const expected = (process.env.ADMIN_PASSWORD || "").trim();
 
@@ -45,6 +46,26 @@ export async function POST(req: Request) {
   const b = Buffer.from(expected, "utf8");
   if (a.length !== b.length || !timingSafeEqual(a, b)) {
     return NextResponse.json({ error: "wrong password" }, { status: 401 });
+  }
+
+  // TOTP 2FA — 只在 ADMIN_TOTP_SECRET 有設時驗證
+  // 沒設時 fallback 只驗密碼,避免設定 secret 前自己被鎖在外面
+  const totpSecret = (process.env.ADMIN_TOTP_SECRET || "").trim();
+  if (totpSecret) {
+    const codeStr = String(code || "").replace(/\s/g, "");
+    if (!/^\d{6}$/.test(codeStr)) {
+      return NextResponse.json({ error: "code required", needs2FA: true }, { status: 401 });
+    }
+    // 容忍 ±30 秒時鐘漂移
+    const result = await verify({
+      secret: totpSecret,
+      token: codeStr,
+      strategy: "totp",
+      epochTolerance: 30,
+    });
+    if (!result.valid) {
+      return NextResponse.json({ error: "wrong code", needs2FA: true }, { status: 401 });
+    }
   }
 
   const sessionToken = generateSessionToken(expected);
