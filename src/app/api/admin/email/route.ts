@@ -31,7 +31,13 @@ export async function GET() {
 export async function POST(req: Request) {
   if (!(await isAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const { target, subject, html } = await req.json();
+  let body: { target?: string; subject?: string; html?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
+  }
+  const { target, subject, html } = body;
 
   if (!subject || !html) {
     return NextResponse.json({ error: "subject and html are required" }, { status: 400 });
