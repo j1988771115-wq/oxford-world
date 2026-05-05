@@ -30,7 +30,7 @@ def load_env():
         if not line or line.startswith("#") or "=" not in line:
             continue
         k, v = line.split("=", 1)
-        env[k.strip()] = v.strip()
+        env[k.strip()] = v.strip().strip('"').strip("'")
     return env
 
 
@@ -83,16 +83,43 @@ def parse_md(path: Path) -> tuple[dict, str]:
     return fm or {}, body
 
 
-def chunk_text(text: str, max_chars: int = 1500, overlap_chars: int = 300) -> list[str]:
-    """同 oxford-world/src/lib/embeddings.ts 的 chunkText，段落優先 → 句子 fallback。"""
+def chunk_text(text: str, max_chars: int = 600, overlap_chars: int = 150) -> list[str]:
+    """切細版:段落優先,單段過長自動 fall through 到句子級切。
+
+    久老師逐字稿一個段落常常 1.5-3k chars(連續講話沒空行),
+    舊版 1500 max_chars 會把整段當單 chunk → retrieval 召回粒度太粗。
+    新版 600 chars + 句子級 fallback,30 分鐘逐字稿 ~ 7-10 chunks/章。
+    """
     cleaned = re.sub(r"\n{3,}", "\n\n", text).strip()
     if len(cleaned) <= max_chars:
         return [cleaned]
 
+    # 第一層:段落切
     paragraphs = re.split(r"\n\n+", cleaned)
-    chunks = []
-    current = ""
+
+    # 單個段落 > max_chars 時,先用句子切再合併
+    expanded: list[str] = []
     for para in paragraphs:
+        if len(para) <= max_chars:
+            expanded.append(para)
+            continue
+        sentences = re.split(r"(?<=[。！？!?])\s*", para)
+        buf = ""
+        for s in sentences:
+            if not s:
+                continue
+            if len(buf) + len(s) > max_chars and buf:
+                expanded.append(buf.strip())
+                buf = s
+            else:
+                buf += s
+        if buf.strip():
+            expanded.append(buf.strip())
+
+    # 第二層:把切好的小段組合成 ~max_chars 的 chunks(帶 overlap)
+    chunks: list[str] = []
+    current = ""
+    for para in expanded:
         if len(current) + len(para) + 2 > max_chars and current:
             chunks.append(current.strip())
             current = current[-overlap_chars:] + "\n\n" + para
@@ -100,20 +127,6 @@ def chunk_text(text: str, max_chars: int = 1500, overlap_chars: int = 300) -> li
             current += ("\n\n" if current else "") + para
     if current.strip():
         chunks.append(current.strip())
-
-    if len(chunks) == 1 and len(cleaned) > max_chars:
-        sentences = re.split(r"(?<=[。！？.!?])\s*", cleaned)
-        sentence_chunks = []
-        buf = ""
-        for s in sentences:
-            if len(buf) + len(s) > max_chars and buf:
-                sentence_chunks.append(buf.strip())
-                buf = buf[-overlap_chars:] + s
-            else:
-                buf += s
-        if buf.strip():
-            sentence_chunks.append(buf.strip())
-        return sentence_chunks
     return chunks
 
 
