@@ -264,9 +264,20 @@ export async function POST(req: NextRequest) {
         { onConflict: "user_id,course_id,access_type" }
       );
       if (accessError) {
-        // 不再 return 500 — 改記 log + 200,讓 cron */15 補
+        // course_access fail 後不繼續跑 fulfillment (audit T1-9)
+        // 之前繼續往下會寄「購買成功信」+ 加 Pro bundle,但 user 沒 access 會困惑
+        // 200 + 標 needs_manual,讓 cron */15 重試 fulfillment
         console.error("Grant course access failed:", accessError);
-        businessError = `course_access upsert: ${accessError.message}`;
+        await finalizeLog(
+          supabase,
+          logId,
+          startedAt,
+          200,
+          "business_fail",
+          `course_access upsert: ${accessError.message}`,
+          true
+        );
+        return NextResponse.json({ status: "ok", note: "course_access fail, will retry" });
       } else {
         const { data: course } = await supabase
           .from("courses")
@@ -322,8 +333,18 @@ export async function POST(req: NextRequest) {
         await addSonnetTopup(updatedOrder.user_id, 1);
         console.log("Chat topup granted +500k Sonnet tokens to", updatedOrder.user_id);
       } catch (e) {
+        // topup fail 後不繼續寄「+500k tokens 已加值」郵件誤導 user (audit T1-10)
         console.error("Chat topup grant failed:", e);
-        businessError = `topup: ${e instanceof Error ? e.message : String(e)}`;
+        await finalizeLog(
+          supabase,
+          logId,
+          startedAt,
+          200,
+          "business_fail",
+          `topup: ${e instanceof Error ? e.message : String(e)}`,
+          true
+        );
+        return NextResponse.json({ status: "ok", note: "topup fail, will retry" });
       }
     } else if (updatedOrder.order_type === "subscription") {
       // 從現有 pro_expires_at 起算延長,避免砍掉未過期 bundle (audit T0-9)
@@ -467,6 +488,19 @@ export async function POST(req: NextRequest) {
         }
 
         try {
+          // 前置 dedup (audit T1-11):若 invoices 已有此訂單發票,跳過
+          // 雙保險:DB 037 migration 也加了 unique constraint,但此前置 check 省一次 ezPay API 呼叫
+          const { data: existingInv } = await supabase
+            .from("invoices")
+            .select("invoice_number")
+            .eq("merchant_order_no", MerchantOrderNo)
+            .maybeSingle();
+          if (existingInv) {
+            console.log("Invoice already issued, skip:", MerchantOrderNo, existingInv.invoice_number);
+            // 跳過 issueInvoice
+            throw new Error("__skip_invoice_already_issued__");
+          }
+
           const inv = await issueInvoice({
             merchantOrderNo: MerchantOrderNo,
             category: "B2C",
@@ -497,7 +531,11 @@ export async function POST(req: NextRequest) {
             console.error("Invoice issue FAILED:", MerchantOrderNo, inv.rawStatus, inv.rawMessage);
           }
         } catch (invErr) {
-          console.error("Invoice issue exception:", invErr);
+          // 跳過 already-issued 不算錯,真實 error 才 log
+          const msg = invErr instanceof Error ? invErr.message : String(invErr);
+          if (msg !== "__skip_invoice_already_issued__") {
+            console.error("Invoice issue exception:", invErr);
+          }
         }
       }
     } catch (emailErr) {

@@ -1,5 +1,6 @@
 "use server";
 
+import crypto from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createPaymentForm } from "@/lib/newebpay";
@@ -13,8 +14,10 @@ function getBaseUrl() {
 }
 
 function generateOrderNo() {
+  // audit T1-5: Math.random ≈ 20bit entropy 易碰撞,改用 crypto.randomBytes
+  // 6 bytes → 8 chars base32 ≈ 48bit entropy
   const ts = Date.now().toString(36).toUpperCase();
-  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const rand = crypto.randomBytes(6).toString("base64url").replace(/[-_]/g, "").slice(0, 8).toUpperCase();
   return `OV${ts}${rand}`;
 }
 
