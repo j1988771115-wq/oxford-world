@@ -1,6 +1,5 @@
 import { streamText, convertToModelMessages } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { createClient } from "@supabase/supabase-js";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { generateEmbedding } from "@/lib/embeddings";
 import {
@@ -10,13 +9,6 @@ import {
 } from "@/lib/chat-quota";
 
 type ChatContext = "teaching" | "customer-service" | "recommendation";
-
-function createServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 const SYSTEM_PROMPTS: Record<ChatContext, string> = {
   teaching: `你是 Eyesy，牛津視界學院的 AI 學習助教。
@@ -233,14 +225,14 @@ export async function POST(req: Request) {
       // 沒指定課程 → 不能教學模式,降客服
       chatContextResolved = "customer-service";
     } else {
-      const adminSupabase = createServiceClient();
-      const { data: profile } = await adminSupabase
+      // user-scoped supabase 即可,RLS 允許 user 讀自己 profile + course_access
+      const { data: profile } = await supabase
         .from("profiles")
         .select("id")
         .eq("auth_id", user.id)
         .maybeSingle();
       if (profile) {
-        const { data: access } = await adminSupabase
+        const { data: access } = await supabase
           .from("course_access")
           .select("id")
           .eq("user_id", profile.id)
@@ -266,8 +258,7 @@ export async function POST(req: Request) {
   if (userQuery && chatContextResolved === "teaching" && canAccessPaidContent) {
     try {
       const queryEmbedding = await generateEmbedding(userQuery);
-      const supabase = createServiceClient();
-
+      // match_course_content 是 SECURITY DEFINER,user-scoped client 也能 call
       const { data: relevantContent } = await supabase.rpc(
         "match_course_content",
         {
@@ -301,9 +292,9 @@ export async function POST(req: Request) {
   }
 
   // Fetch available courses for recommendation context
+  // courses + course_chapters 都是公開 RLS,user-scoped client 即可
   if (chatContextResolved !== "teaching") {
     try {
-      const supabase = createServiceClient();
       const { data: courses } = await supabase
         .from("courses")
         .select(
@@ -396,8 +387,7 @@ export async function POST(req: Request) {
   let profileId: string | null = null;
   let useSonnet = false;
   if (chatContextResolved === "teaching") {
-    const adminS = createServiceClient();
-    const { data: prof } = await adminS
+    const { data: prof } = await supabase
       .from("profiles")
       .select("id")
       .eq("auth_id", user.id)
@@ -437,17 +427,16 @@ export async function POST(req: Request) {
 
   // XP: 每次 chat 加 ai_chat event(+5 XP)
   // 防刷 XP:同 user 同 course 1 小時內最多 1 個 ai_chat event(spam chat 不會無限堆 XP)
+  // user-scoped client 即可,RLS 允許 user 讀寫自己的 learning_events
   try {
-    const admin = createServiceClient();
-    const { data: prof } = await admin
+    const { data: prof } = await supabase
       .from("profiles")
       .select("id")
       .eq("auth_id", user.id)
       .maybeSingle();
     if (prof) {
-      // 看 1 小時內這個 user+course 有沒有 ai_chat event,有就不再記
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const recentQuery = admin
+      const recentQuery = supabase
         .from("learning_events")
         .select("id")
         .eq("user_id", prof.id)
@@ -461,7 +450,7 @@ export async function POST(req: Request) {
       }
       const { data: recent } = await recentQuery.maybeSingle();
       if (!recent) {
-        admin
+        supabase
           .from("learning_events")
           .insert({
             user_id: prof.id,

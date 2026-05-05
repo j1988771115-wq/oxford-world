@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
-import { createClient } from "@supabase/supabase-js";
 import { getChatQuota, TOPUP_PRICE_NTD, SONNET_TOPUP_PACKAGE_TOKENS } from "@/lib/chat-quota";
 
 export async function GET() {
@@ -12,11 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: "請先登入" }, { status: 401 });
   }
 
-  const admin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-  const { data: profile } = await admin
+  const { data: profile } = await supabase
     .from("profiles")
     .select("id")
     .eq("auth_id", user.id)

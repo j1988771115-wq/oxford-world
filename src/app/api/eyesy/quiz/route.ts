@@ -1,15 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
-import { createClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 import { generateEmbedding } from "@/lib/embeddings";
-
-function createServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 const anthropic = new Anthropic();
 const MODEL_QUESTION = "claude-haiku-4-5-20251001"; // 出題夠用,省成本
@@ -110,10 +102,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "answer too long" }, { status: 400 });
   }
 
-  const admin = createServiceClient();
+  // user-scoped supabase 已在上面建立,RLS 自然擋寫越權。
+  // course_chapters / courses 公開讀;profiles / course_access / learning_events 都是 user 自己 RLS allow。
 
   // 抓章節
-  const { data: chapter } = await admin
+  const { data: chapter } = await supabase
     .from("course_chapters")
     .select("id, course_id, title, takeaway_summary, is_free_preview")
     .eq("id", chapterId)
@@ -124,7 +117,7 @@ export async function POST(req: Request) {
 
   // 權限 gate
   if (!chapter.is_free_preview) {
-    const { data: profile } = await admin
+    const { data: profile } = await supabase
       .from("profiles")
       .select("id")
       .eq("auth_id", user.id)
@@ -132,7 +125,7 @@ export async function POST(req: Request) {
     if (!profile) {
       return NextResponse.json({ error: "no access" }, { status: 403 });
     }
-    const { data: access } = await admin
+    const { data: access } = await supabase
       .from("course_access")
       .select("id")
       .eq("user_id", profile.id)
@@ -148,7 +141,7 @@ export async function POST(req: Request) {
   try {
     const seedText = `${chapter.title} ${chapter.takeaway_summary || ""}`;
     const embedding = await generateEmbedding(seedText);
-    const { data: chunks } = await admin.rpc("match_course_content", {
+    const { data: chunks } = await supabase.rpc("match_course_content", {
       query_embedding: embedding,
       match_threshold: 0.2,
       match_count: 6,
@@ -296,14 +289,14 @@ ${safeAnswer}
       // (learning_events 沒 chapter_id 欄位,所以章節級 dedup 暫用 1 小時時窗;
       // 9 章 × 50 XP = 450 XP 上限的設計藉由「答完一輪要等 9 小時」達成)
       try {
-        const { data: prof } = await admin
+        const { data: prof } = await supabase
           .from("profiles")
           .select("id")
           .eq("auth_id", user.id)
           .maybeSingle();
         if (prof) {
           const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-          const { data: existing } = await admin
+          const { data: existing } = await supabase
             .from("learning_events")
             .select("id")
             .eq("user_id", prof.id)
@@ -313,7 +306,7 @@ ${safeAnswer}
             .limit(1)
             .maybeSingle();
           if (!existing) {
-            await admin.from("learning_events").insert({
+            await supabase.from("learning_events").insert({
               user_id: prof.id,
               course_id: chapter.course_id,
               event_type: "quiz_completed",

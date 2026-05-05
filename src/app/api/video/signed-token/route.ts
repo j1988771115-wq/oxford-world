@@ -50,10 +50,9 @@ export async function POST(req: Request) {
   }
   const variant = body.variant === "bg" ? "bg" : "main";
 
-  const admin = createServiceClient();
-
   // 拉章節 + 課程 id + playback id (主片或 bg) + free flag
-  const { data: chapter } = await admin
+  // course_chapters 公開讀,profile/course_access 都是 user 自己 RLS allow
+  const { data: chapter } = await supabase
     .from("course_chapters")
     .select("id, course_id, mux_playback_id, mux_playback_id_bg, is_free_preview, title")
     .eq("id", chapterId)
@@ -71,16 +70,16 @@ export async function POST(req: Request) {
     );
   }
 
-  // 權限 gate：免費試看 OR 已購買
+  // 權限 gate:免費試看 OR 已購買
   let canPlay = chapter.is_free_preview;
   if (!canPlay) {
-    const { data: profile } = await admin
+    const { data: profile } = await supabase
       .from("profiles")
       .select("id")
       .eq("auth_id", user.id)
       .maybeSingle();
     if (profile) {
-      const { data: access } = await admin
+      const { data: access } = await supabase
         .from("course_access")
         .select("id")
         .eq("user_id", profile.id)
@@ -107,16 +106,16 @@ export async function POST(req: Request) {
     const uaHash = hashStr(ua);
     const deviceKey = `${ipHash}:${uaHash}`;
 
-    const { data: profile } = await admin
+    const { data: profile } = await supabase
       .from("profiles")
       .select("id")
       .eq("auth_id", user.id)
       .maybeSingle();
 
     if (profile) {
-      // 查 60 分鐘內所有 distinct device_key
+      // 查 60 分鐘內所有 distinct device_key (user-scoped client + RLS allows own read)
       const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const { data: recent } = await admin
+      const { data: recent } = await supabase
         .from("video_sessions")
         .select("device_key")
         .eq("user_id", profile.id)
@@ -141,7 +140,9 @@ export async function POST(req: Request) {
         );
       }
 
-      // 記錄這次 session(best-effort,失敗不擋 token 簽發)
+      // INSERT 仍用 service_role:video_sessions 沒 INSERT policy,且 server-side 強制紀錄
+      // (ip_hash/ua_hash 都是 server 從 header 拿,user 無法篡改,留 service_role 安全合理)
+      const admin = createServiceClient();
       admin
         .from("video_sessions")
         .insert({
