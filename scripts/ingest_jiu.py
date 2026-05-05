@@ -151,13 +151,16 @@ def get_course_id(slug: str) -> str:
     return res[0]["id"]
 
 
-def get_chapter_map(course_id: str) -> dict[int, str]:
-    """sort_order → chapter_id"""
+def get_chapter_map(course_id: str) -> dict[int, dict]:
+    """sort_order → {id, title, takeaway_summary}.
+
+    從 db 拉 title 不依賴 md frontmatter,db title 改了 ingest 自動跟上。
+    """
     res = http_json(
-        f"{SUPABASE_URL}/rest/v1/course_chapters?course_id=eq.{course_id}&select=id,sort_order&order=sort_order.asc",
+        f"{SUPABASE_URL}/rest/v1/course_chapters?course_id=eq.{course_id}&select=id,sort_order,title,takeaway_summary&order=sort_order.asc",
         headers=supabase_headers(),
     )
-    return {c["sort_order"]: c["id"] for c in res}
+    return {c["sort_order"]: c for c in res}
 
 
 def delete_existing(course_id: str):
@@ -196,20 +199,51 @@ def main():
     print(f"\n[2] Processing {len(md_files)} MDs")
 
     all_rows = []
+    # 第一輪:每章 takeaway_summary 各自 index 一個 chunk(content_type='takeaway')
+    # takeaway 是手寫的章節重點摘要,跟學員 query 對齊度遠高於口語逐字稿
+    print("  [takeaway chunks]")
+    takeaway_texts = []
+    takeaway_meta = []
+    for ch_order, ch in sorted(chapter_map.items()):
+        if ch_order < 2:  # ch01 是先導,沒對應 md,有 takeaway 也一起 index
+            pass
+        takeaway = (ch.get("takeaway_summary") or "").strip()
+        if not takeaway:
+            continue
+        title = ch.get("title") or ""
+        text = f"[第{ch_order}章 {title}] 章節重點:\n{takeaway}"
+        takeaway_texts.append(text)
+        takeaway_meta.append({"chapter_id": ch["id"], "ch_order": ch_order})
+    if takeaway_texts:
+        embeddings = embed_batch(takeaway_texts)
+        for content, emb, meta in zip(takeaway_texts, embeddings, takeaway_meta):
+            all_rows.append({
+                "course_id": course_id,
+                "chapter_id": meta["chapter_id"],
+                "content": content,
+                "content_type": "takeaway",
+                "embedding": emb,
+            })
+        print(f"    → {len(takeaway_texts)} takeaway chunks")
+    else:
+        print("    → 0 takeaway chunks (no takeaway_summary set)")
+
+    # 第二輪:每個 md 逐字稿切細 + index(content_type='transcript')
+    print("  [transcript chunks]")
     for md in md_files:
         fm, body = parse_md(md)
         ticker = fm.get("ticker", "")
         ch_order = int(fm.get("chapter_order", 0))
-        ch_title = fm.get("chapter_title", "").strip('"')
-        chapter_id = chapter_map.get(ch_order)
-        if not chapter_id:
+        ch = chapter_map.get(ch_order)
+        if not ch:
             print(f"  SKIP {md.name} (no chapter for sort_order={ch_order})")
             continue
+        # title 從 db 拿,不再依賴 md frontmatter(db 改 title 重 ingest 會跟上)
+        ch_title = ch.get("title") or fm.get("chapter_title", "").strip('"')
 
         chunks = chunk_text(body)
-        print(f"  {md.name}: ticker={ticker} ch={ch_order} → {len(chunks)} chunks")
+        print(f"    {md.name}: ticker={ticker} ch={ch_order} → {len(chunks)} chunks")
 
-        # 加章節 prefix（每個 chunk 都帶上章節脈絡，retrieval 帶 context）
         prefix = f"[第{ch_order}章 {ch_title}]"
         prefixed = [f"{prefix}\n{c}" for c in chunks]
 
@@ -217,7 +251,7 @@ def main():
         for content, emb in zip(prefixed, embeddings):
             all_rows.append({
                 "course_id": course_id,
-                "chapter_id": chapter_id,
+                "chapter_id": ch["id"],
                 "content": content,
                 "content_type": "transcript",
                 "embedding": emb,
