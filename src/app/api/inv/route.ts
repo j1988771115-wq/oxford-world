@@ -34,8 +34,13 @@ export async function POST(req: NextRequest) {
     });
 
     // P1: 比對 MerchantID_(防外部偽造)
+    // env 沒設 = 配置錯誤,fail-closed 不接受任何 callback,免得攻擊者亂打 invoices
     const expectedMid = (process.env.EZPAY_MERCHANT_ID || "").trim();
-    if (expectedMid && merchantId !== expectedMid) {
+    if (!expectedMid) {
+      console.error("[ezpay-callback] EZPAY_MERCHANT_ID not configured — rejecting");
+      return NextResponse.json({ status: "ok", note: "not configured" });
+    }
+    if (merchantId !== expectedMid) {
       console.error(
         `[ezpay-callback] merchant mismatch: got=${merchantId} expected=${expectedMid}`
       );

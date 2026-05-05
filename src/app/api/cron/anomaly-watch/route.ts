@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendEmail } from "@/lib/email";
 
+export const maxDuration = 60;
+
 function getAdminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -106,8 +108,6 @@ export async function GET(req: NextRequest) {
   }
 
   // 5. 同一 user 1h 內 pending 訂單 >= 8 筆(我們的 rate limit 上限)
-  const { data: spammers } = await supabase.rpc("count_pending_per_user_recent" as never, {} as never).select("*").maybeSingle();
-  // 沒有 RPC 就跳過,改用查詢方式
   const { data: pendingRecent } = await supabase
     .from("orders")
     .select("user_id, profiles(email,display_name)")

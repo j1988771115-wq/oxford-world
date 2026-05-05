@@ -6,6 +6,8 @@ import { sendCoursePurchaseAlert } from "@/lib/donate-alert";
 import { addProRole } from "@/lib/discord";
 import { addSonnetTopup } from "@/lib/chat-quota";
 
+export const maxDuration = 60;
+
 function getAdminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

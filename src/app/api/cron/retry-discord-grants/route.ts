@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { addProRole } from "@/lib/discord";
 
+export const maxDuration = 60;
+
 const MAX_ATTEMPTS = 12;
 
 function getAdminClient() {
