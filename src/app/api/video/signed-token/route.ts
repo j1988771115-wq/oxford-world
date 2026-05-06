@@ -30,12 +30,20 @@ const MAX_DEVICES_PER_HOUR = 3;
  * 任何其他狀況回 403。
  */
 export async function POST(req: Request) {
+  // 行動裝置 / 瀏覽器診斷:在 fail path log UA,iPad 學員看不了時可從 Vercel logs 查
+  const userAgent = req.headers.get("user-agent") || "unknown";
+  const isIOS = /iPad|iPhone|iPod/i.test(userAgent);
+  const isSafari = /Safari/i.test(userAgent) && !/Chrome|CriOS|FxiOS/i.test(userAgent);
+
   // Auth
   const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
+    if (isIOS || isSafari) {
+      console.warn("[signed-token] 401 from iOS/Safari client", { ua: userAgent.slice(0, 200), isIOS, isSafari });
+    }
     return NextResponse.json({ error: "請先登入" }, { status: 401 });
   }
 
@@ -85,6 +93,9 @@ export async function POST(req: Request) {
   }
 
   if (!canPlay) {
+    if (isIOS || isSafari) {
+      console.warn("[signed-token] 403 from iOS/Safari client", { ua: userAgent.slice(0, 200), isIOS, isSafari, userId: user.id, chapterId });
+    }
     return NextResponse.json(
       { error: "需要購買此課程才能觀看", code: "COURSE_NOT_PURCHASED" },
       { status: 403 }

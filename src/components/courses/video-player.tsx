@@ -182,6 +182,7 @@ export function VideoPlayer({
         startTime={startTime && startTime > 1 ? startTime : undefined}
         autoPlay={autoPlay}
         muted={autoPlay}
+        playsInline
         onTimeUpdate={handleTimeUpdate}
         onEnded={() => {
           if (conversionPrompt) {
