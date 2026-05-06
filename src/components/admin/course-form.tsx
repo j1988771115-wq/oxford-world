@@ -15,6 +15,7 @@ interface CourseFormProps {
     level?: string;
     thumbnail_url?: string;
     is_free_preview: boolean;
+    access_type?: string;
   };
 }
 
@@ -87,6 +88,21 @@ export function CourseForm({ course }: CourseFormProps) {
         </div>
 
         <Field label="封面圖片網址" name="thumbnail_url" type="url" defaultValue={course?.thumbnail_url ?? ""} placeholder="https://..." />
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-gray-400">付費模式</label>
+          <select
+            name="access_type"
+            defaultValue={course?.access_type ?? "purchase"}
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm text-white focus:ring-2 ring-blue-600/50 focus:outline-none focus:border-blue-600 transition-all"
+          >
+            <option value="purchase">一次買斷(大師課)— 學員付一次永久看</option>
+            <option value="pro">Pro 訂閱限定 — 只給 Pro 月訂閱者看,Pro 過期就鎖回</option>
+          </select>
+          <p className="text-xs text-gray-500">
+            買斷:寫入 course_access 表,跟 Pro 訂閱無關。Pro 限定:看 profile.tier=&apos;pro&apos; + pro_expires_at。
+          </p>
+        </div>
 
         <label className="flex items-center gap-3 cursor-pointer">
           <input

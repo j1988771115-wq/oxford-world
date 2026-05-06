@@ -72,6 +72,8 @@ export async function upsertCourse(formData: FormData) {
   const thumbnailUrl =
     (formData.get("thumbnail_url") as string)?.trim() || null;
   const isFreePreview = formData.get("is_free_preview") === "on";
+  const accessTypeRaw = (formData.get("access_type") as string) || "purchase";
+  const accessType = accessTypeRaw === "pro" ? "pro" : "purchase";
 
   const courseData = {
     title,
@@ -83,6 +85,7 @@ export async function upsertCourse(formData: FormData) {
     level,
     thumbnail_url: thumbnailUrl,
     is_free_preview: isFreePreview,
+    access_type: accessType,
   };
 
   if (id) {

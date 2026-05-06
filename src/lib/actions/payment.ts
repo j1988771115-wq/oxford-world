@@ -90,12 +90,17 @@ export async function createCourseOrder(courseId: string) {
   // Get course info (include alumni_price for server-side price computation)
   const { data: course } = await supabase
     .from("courses")
-    .select("id, title, price, alumni_price")
+    .select("id, title, price, alumni_price, access_type")
     .eq("id", courseId)
     .single();
 
   if (!course) {
     return { error: "課程不存在" };
+  }
+
+  // Pro 限定課程不接受買斷下單 — 學員要訂 Pro,不是付一筆 NT$X 永久解鎖
+  if (course.access_type === "pro") {
+    return { error: "此課程僅限 Pro 訂閱者觀看,請至 /pricing 訂閱" };
   }
 
   // Server-side authoritative price: alumni gets alumni_price if set and lower
