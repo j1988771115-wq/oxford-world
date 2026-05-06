@@ -22,9 +22,31 @@ const AI_BOTS = [
 ];
 
 export default function robots(): MetadataRoute.Robots {
+  // Vercel preview / branch deploy 整站 disallow,避免被 Google 索引干擾正式站
+  // VERCEL_ENV: 'production' | 'preview' | 'development'
+  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
+    return {
+      rules: [{ userAgent: "*", disallow: "/" }],
+    };
+  }
+
   const sharedRules = {
     allow: "/",
-    disallow: ["/dashboard", "/learn", "/ai-assistant", "/api/", "/admin", "/onboarding"],
+    disallow: [
+      "/dashboard",
+      "/learn",
+      "/ai-assistant",
+      "/api/",
+      "/admin",
+      "/onboarding",
+      "/insights",        // (dashboard) 群組,auth-gated
+      "/quiz",            // 同上
+      "/checkout",        // 付款流程,不該被索引
+      "/sign-in",
+      "/sign-up",
+      "/forgot-password",
+      "/reset-password",
+    ],
   };
 
   return {
