@@ -1,5 +1,4 @@
-import { getCourses } from "@/lib/actions/courses";
-import { createClient } from "@/lib/supabase/server";
+import { getCourses, getChapterVideoStatus } from "@/lib/actions/courses";
 import Link from "next/link";
 import { BreadcrumbJsonLd } from "@/lib/breadcrumb";
 
@@ -12,13 +11,11 @@ export const metadata = {
 export const revalidate = 60;
 
 export default async function CoursesPage() {
-  const courses = await getCourses();
-  const supabase = await createClient();
-
-  // 抓每課程的章節數（用來判斷「預告中」— 沒影片的課程）
-  const { data: chapterCounts } = await supabase
-    .from("course_chapters")
-    .select("course_id, mux_playback_id, youtube_url");
+  // 兩個都用 public client(不讀 cookies)→ 真的走 ISR + CDN cache
+  const [courses, chapterCounts] = await Promise.all([
+    getCourses(),
+    getChapterVideoStatus(),
+  ]);
 
   const upcomingCourseIds = new Set<string>();
   if (chapterCounts) {

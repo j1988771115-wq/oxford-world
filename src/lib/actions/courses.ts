@@ -1,11 +1,22 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createPublicClient } from "@supabase/supabase-js";
+
+// 不讀 cookies 的 public client — 行銷頁用,不會把整個 page opt-in dynamic rendering,
+// 讓 export const revalidate = N 真的能 work (ISR + CDN cache)。
+function getPublicSupabase() {
+  return createPublicClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false } }
+  );
+}
 
 export async function getCourses(category?: string) {
-  const supabase = await createClient();
-
   // 公開課程目錄不列 legacy-* 課(只有老學員從 dashboard 進去)
+  // 用 public client(不讀 cookies),讓 caller 頁能走 ISR
+  const supabase = getPublicSupabase();
   let query = supabase
     .from("courses")
     .select("*")
@@ -24,6 +35,15 @@ export async function getCourses(category?: string) {
   }
 
   return data;
+}
+
+// 行銷頁用 — 拉每個 course 的 chapter 數據,判斷「預告中」(沒影片的課程)
+export async function getChapterVideoStatus() {
+  const supabase = getPublicSupabase();
+  const { data } = await supabase
+    .from("course_chapters")
+    .select("course_id, mux_playback_id, youtube_url");
+  return data || [];
 }
 
 export async function getCourseBySlug(slug: string) {
