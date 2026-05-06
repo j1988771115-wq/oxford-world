@@ -254,15 +254,21 @@ export async function POST(req: Request) {
     try {
       const queryEmbedding = await generateEmbedding(userQuery);
       // match_course_content 是 SECURITY DEFINER,user-scoped client 也能 call
-      const { data: relevantContent } = await supabase.rpc(
+      // filter_chapter_id: null 是必須的 — function 有兩個 overload,
+      // 不傳這個參數會 ambiguous → silent fail → AI 答「教材沒這個內容」
+      const { data: relevantContent, error: ragError } = await supabase.rpc(
         "match_course_content",
         {
           query_embedding: queryEmbedding,
-          match_threshold: 0.3,
-          match_count: 5,
+          match_threshold: 0.2,
+          match_count: 6,
           filter_course_id: effectiveCourseId || null,
+          filter_chapter_id: null,
         }
       );
+      if (ragError) {
+        console.error("[chat/rag] match_course_content error:", ragError);
+      }
 
       if (relevantContent && relevantContent.length > 0) {
         ragContext = relevantContent
