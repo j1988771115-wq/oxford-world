@@ -146,6 +146,14 @@ export default function RootLayout({
   return (
     <html lang="zh-TW" className={`h-full antialiased ${inter.variable} ${notoSansTC.variable}`} suppressHydrationWarning>
       <head>
+        {/* preconnect: 預先做 DNS+TLS,user 後續走到 /learn 時 Mux player 立刻播,
+            client-side 跑 supabase.auth.getUser() 的 refresh 也省連線時間 */}
+        <link rel="preconnect" href="https://stream.mux.com" crossOrigin="" />
+        <link rel="preconnect" href="https://image.mux.com" crossOrigin="" />
+        <link rel="preconnect" href="https://jwtmpwqokepqudmrllij.supabase.co" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://stream.mux.com" />
+        <link rel="dns-prefetch" href="https://image.mux.com" />
+        <link rel="dns-prefetch" href="https://jwtmpwqokepqudmrllij.supabase.co" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
