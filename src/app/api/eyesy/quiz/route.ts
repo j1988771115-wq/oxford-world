@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { generateEmbedding } from "@/lib/embeddings";
+import { hasCourseAccess } from "@/lib/access";
 
 const anthropic = new Anthropic();
 const MODEL_QUESTION = "claude-haiku-4-5-20251001"; // 出題夠用,省成本
@@ -115,7 +116,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "chapter not found" }, { status: 404 });
   }
 
-  // 權限 gate
+  // 權限 gate:免費試看 OR (買斷 OR Pro 訂閱) — 走 hasCourseAccess
   if (!chapter.is_free_preview) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -125,13 +126,8 @@ export async function POST(req: Request) {
     if (!profile) {
       return NextResponse.json({ error: "no access" }, { status: 403 });
     }
-    const { data: access } = await supabase
-      .from("course_access")
-      .select("id")
-      .eq("user_id", profile.id)
-      .eq("course_id", chapter.course_id)
-      .maybeSingle();
-    if (!access) {
+    const ok = await hasCourseAccess(supabase, profile.id, chapter.course_id);
+    if (!ok) {
       return NextResponse.json({ error: "no access" }, { status: 403 });
     }
   }

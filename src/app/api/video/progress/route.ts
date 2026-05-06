@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
+import { hasCourseAccess } from "@/lib/access";
 
 const COMPLETION_THRESHOLD = 0.9; // 看到 90% 視為完成
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -62,15 +63,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "profile not found" }, { status: 404 });
   }
 
-  // 權限 gate:免費試看 OR 有購買權限(RLS 自動限定只看自己的 course_access)
+  // 權限 gate:免費試看 OR (買斷 OR Pro 訂閱) — 走 hasCourseAccess
   if (!chapter.is_free_preview) {
-    const { data: access } = await supabase
-      .from("course_access")
-      .select("id")
-      .eq("user_id", profile.id)
-      .eq("course_id", chapter.course_id)
-      .maybeSingle();
-    if (!access) {
+    const ok = await hasCourseAccess(supabase, profile.id, chapter.course_id);
+    if (!ok) {
       return NextResponse.json({ error: "no access" }, { status: 403 });
     }
   }

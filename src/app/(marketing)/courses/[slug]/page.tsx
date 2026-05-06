@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COURSE_DISCLAIMER } from "@/lib/constants";
+import { hasCourseAccess } from "@/lib/access";
 
 // ISR:課程詳情頁 60 秒 cache,改 DB 後最多 60 秒生效,TTFB ~50ms vs 1.3s
 export const revalidate = 60;
@@ -88,14 +89,8 @@ export default async function CourseDetailPage({ params }: Props) {
     if (profile) {
       profileId = profile.id as string;
       isAlumni = !!profile.is_alumni;
-      // 統一用 course_access (audit T0-6) — Pro 訂閱不含大師課
-      const { data: access } = await supabase
-        .from("course_access")
-        .select("id")
-        .eq("user_id", profile.id)
-        .eq("course_id", course.id)
-        .limit(1);
-      hasAccess = (access?.length ?? 0) > 0;
+      // 走 hasCourseAccess — 支援買斷 + Pro 訂閱兩種模型
+      hasAccess = await hasCourseAccess(supabase, profile.id, course.id);
     }
   }
 
@@ -117,6 +112,7 @@ export default async function CourseDetailPage({ params }: Props) {
     course.alumni_price !== undefined &&
     course.alumni_price < course.price;
   const effectivePrice = hasAlumniDiscount ? course.alumni_price : course.price;
+  const isProOnly = course.access_type === "pro";
 
   // chapters 已在 Promise.all 取得
   const { data: chapters } = chaptersResult;
@@ -620,6 +616,27 @@ export default async function CourseDetailPage({ params }: Props) {
                         開始學習
                       </Link>
                     )
+                  ) : isProOnly ? (
+                    <>
+                      <Link
+                        href={userId ? "/pricing" : `/sign-in?redirect=/courses/${course.slug}`}
+                        className="block w-full text-center bg-gradient-to-r from-violet-500 to-fuchsia-500 py-4 rounded-xl text-white font-extrabold text-lg deep-diffusion hover:brightness-110 transition-all active:scale-95"
+                      >
+                        {userId ? "訂閱 Pro 解鎖" : "登入後訂閱 Pro"}
+                      </Link>
+                      {firstFreeChapter && (
+                        <Link
+                          href={
+                            userId
+                              ? `/learn/${course.id}?chapter=${firstFreeChapter.id}`
+                              : `/sign-in?redirect=${encodeURIComponent(`/learn/${course.id}?chapter=${firstFreeChapter.id}`)}`
+                          }
+                          className="block w-full text-center border-2 border-secondary py-3 rounded-xl text-secondary font-bold text-sm hover:bg-secondary-fixed/20 transition-colors active:scale-95"
+                        >
+                          先免費試看一章
+                        </Link>
+                      )}
+                    </>
                   ) : effectivePrice === 0 || course.is_free_preview ? (
                     <Link
                       href={
@@ -668,15 +685,19 @@ export default async function CourseDetailPage({ params }: Props) {
                       )}
                     </>
                   )}
-                  <Link
-                    href="/pricing"
-                    className="block w-full text-center border-2 border-secondary py-4 rounded-xl text-secondary font-bold text-sm hover:bg-secondary-fixed/20 transition-colors active:scale-95"
-                  >
-                    比較 Pro 訂閱方案
-                  </Link>
-                  <p className="text-xs text-on-surface-variant text-center -mt-1 leading-relaxed">
-                    Pro 訂閱不含大師課影片，需另購
-                  </p>
+                  {!isProOnly && (
+                    <>
+                      <Link
+                        href="/pricing"
+                        className="block w-full text-center border-2 border-secondary py-4 rounded-xl text-secondary font-bold text-sm hover:bg-secondary-fixed/20 transition-colors active:scale-95"
+                      >
+                        比較 Pro 訂閱方案
+                      </Link>
+                      <p className="text-xs text-on-surface-variant text-center -mt-1 leading-relaxed">
+                        Pro 訂閱不含大師課影片，需另購
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 {/* Details */}
@@ -764,38 +785,57 @@ export default async function CourseDetailPage({ params }: Props) {
       {/* 手機 sticky bottom buy bar — 只在沒購買時顯示 */}
       {!hasAccess && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-container-lowest/95 backdrop-blur-xl border-t border-outline-variant/15 px-4 py-3 shadow-2xl">
-          <div className="flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">
-                限時特價
-              </p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-xl font-black text-on-surface">
-                  NT${effectivePrice.toLocaleString()}
-                </span>
-                {course.original_price && course.original_price > effectivePrice && (
-                  <span className="text-xs text-on-surface-variant line-through">
-                    NT${course.original_price.toLocaleString()}
-                  </span>
-                )}
+          {isProOnly ? (
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">
+                  Pro 訂閱限定
+                </p>
+                <p className="text-base font-black bg-gradient-to-r from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
+                  訂閱即可解鎖
+                </p>
               </div>
+              <Link
+                href={userId ? "/pricing" : `/sign-in?redirect=/courses/${course.slug}`}
+                className="bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-extrabold px-5 py-3 rounded-xl text-sm shadow-md active:scale-95 transition-transform shrink-0"
+              >
+                {userId ? "訂閱 Pro" : "登入訂閱"}
+              </Link>
             </div>
-            {userId ? (
-              <Link
-                href={`/checkout?type=course&courseId=${course.id}`}
-                className="signature-gradient text-white font-extrabold px-5 py-3 rounded-xl text-sm shadow-md active:scale-95 transition-transform shrink-0"
-              >
-                立即購買
-              </Link>
-            ) : (
-              <Link
-                href={`/sign-in?redirect=/courses/${course.slug}`}
-                className="signature-gradient text-white font-extrabold px-5 py-3 rounded-xl text-sm shadow-md active:scale-95 transition-transform shrink-0"
-              >
-                登入購買
-              </Link>
-            )}
-          </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">
+                  限時特價
+                </p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl font-black text-on-surface">
+                    NT${effectivePrice.toLocaleString()}
+                  </span>
+                  {course.original_price && course.original_price > effectivePrice && (
+                    <span className="text-xs text-on-surface-variant line-through">
+                      NT${course.original_price.toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {userId ? (
+                <Link
+                  href={`/checkout?type=course&courseId=${course.id}`}
+                  className="signature-gradient text-white font-extrabold px-5 py-3 rounded-xl text-sm shadow-md active:scale-95 transition-transform shrink-0"
+                >
+                  立即購買
+                </Link>
+              ) : (
+                <Link
+                  href={`/sign-in?redirect=/courses/${course.slug}`}
+                  className="signature-gradient text-white font-extrabold px-5 py-3 rounded-xl text-sm shadow-md active:scale-95 transition-transform shrink-0"
+                >
+                  登入購買
+                </Link>
+              )}
+            </div>
+          )}
         </div>
       )}
     </main>

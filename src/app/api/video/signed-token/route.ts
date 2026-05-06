@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { signPlaybackToken } from "@/lib/mux";
+import { hasCourseAccess } from "@/lib/access";
 import crypto from "crypto";
 
 function createServiceClient() {
@@ -70,7 +71,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // 權限 gate:免費試看 OR 已購買
+  // 權限 gate:免費試看 OR (買斷 OR Pro 訂閱) — 走統一的 hasCourseAccess
   let canPlay = chapter.is_free_preview;
   if (!canPlay) {
     const { data: profile } = await supabase
@@ -79,13 +80,7 @@ export async function POST(req: Request) {
       .eq("auth_id", user.id)
       .maybeSingle();
     if (profile) {
-      const { data: access } = await supabase
-        .from("course_access")
-        .select("id")
-        .eq("user_id", profile.id)
-        .eq("course_id", chapter.course_id)
-        .maybeSingle();
-      canPlay = !!access;
+      canPlay = await hasCourseAccess(supabase, profile.id, chapter.course_id);
     }
   }
 

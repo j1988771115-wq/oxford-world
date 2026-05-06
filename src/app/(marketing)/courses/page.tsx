@@ -78,8 +78,10 @@ export default async function CoursesPage() {
                 price: number;
                 category: string;
                 thumbnail_url?: string;
+                access_type?: string;
               }) => {
                 const isUpcoming = upcomingCourseIds.has(course.id);
+                const isProOnly = course.access_type === "pro";
                 return (
                   <Link
                     key={course.id}
@@ -106,6 +108,11 @@ export default async function CoursesPage() {
                           預告中
                         </div>
                       )}
+                      {!isUpcoming && isProOnly && (
+                        <div className="absolute top-4 right-4 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                          Pro 限定
+                        </div>
+                      )}
                     </div>
                     <div className="p-8">
                       <h4 className="text-xl font-bold text-on-surface mb-2 group-hover:text-secondary transition-colors">
@@ -121,6 +128,10 @@ export default async function CoursesPage() {
                         {isUpcoming ? (
                           <span className="text-base font-bold text-amber-700 dark:text-amber-300">
                             敬請期待 · 訂閱電子報先收到通知
+                          </span>
+                        ) : isProOnly ? (
+                          <span className="text-base font-bold bg-gradient-to-r from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
+                            訂閱 Pro 即可解鎖
                           </span>
                         ) : (
                           <span className="text-2xl font-black text-on-surface tracking-tight">

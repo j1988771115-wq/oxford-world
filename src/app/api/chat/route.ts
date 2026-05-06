@@ -7,6 +7,7 @@ import {
   consumeSonnetTokens,
   addHaikuUsage,
 } from "@/lib/chat-quota";
+import { hasCourseAccess } from "@/lib/access";
 
 type ChatContext = "teaching" | "customer-service" | "recommendation";
 
@@ -225,20 +226,14 @@ export async function POST(req: Request) {
       // 沒指定課程 → 不能教學模式,降客服
       chatContextResolved = "customer-service";
     } else {
-      // user-scoped supabase 即可,RLS 允許 user 讀自己 profile + course_access
+      // 走 hasCourseAccess — 支援買斷 + Pro 訂閱兩種模型
       const { data: profile } = await supabase
         .from("profiles")
         .select("id")
         .eq("auth_id", user.id)
         .maybeSingle();
       if (profile) {
-        const { data: access } = await supabase
-          .from("course_access")
-          .select("id")
-          .eq("user_id", profile.id)
-          .eq("course_id", effectiveCourseId)
-          .maybeSingle();
-        canAccessPaidContent = !!access;
+        canAccessPaidContent = await hasCourseAccess(supabase, profile.id, effectiveCourseId);
       }
       if (!canAccessPaidContent) {
         return new Response(

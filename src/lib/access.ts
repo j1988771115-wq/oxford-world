@@ -3,24 +3,36 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 /**
  * 統一的「user 對某 course 是否有 access」判斷 (audit T0-6)
  *
- * 設計原則:
- * - 只看 course_access 表 — UI 寫「Pro 訂閱不含大師課,需另購」,所以 tier='pro' 不該
- *   隱含放行所有課程
- * - course_access 不關 pro_expires_at,user 已買的課就是已買的(永久回看)
- * - Pro 訂閱實際給的是 chat quota / Eyesy 深度模式等,不是「免費看付費課程」
+ * 兩種 course access 模型(看 courses.access_type):
+ * - 'purchase' (預設,大師課):靠 course_access 表 — 永久回看,不關 pro_expires_at
+ * - 'pro' (Pro 訂閱限定影片):靠 profile.tier='pro' + pro_expires_at 還沒過 — 過期就鎖
  *
- * 解決 audit 問題:
- * - learn/[courseId]/page.tsx 之前用 tier === 'pro' 放行 → Pro 過期還能看,且 Pro 訂閱
- *   沒買大師課也能看(跟 UI 矛盾)
- * - signed-token / video/progress 已經是用 course_access,跟此函數一致
- *
- * Pro 訂閱 user 想看大師課:必須另外購買 (UI 寫明)
+ * Pro 訂閱 user 想看大師課:必須另外購買(大師課送 90 天 Pro,不是反過來)。
+ * 大師課買斷者想看 Pro 限定影片:必須訂 Pro(差異化清楚)。
  */
 export async function hasCourseAccess(
   supabase: SupabaseClient,
   profileId: string,
   courseId: string
 ): Promise<boolean> {
+  // 嘗試讀 access_type — column 不存在(migration 前)會回 error,降級到 purchase 行為
+  const { data: course } = await supabase
+    .from("courses")
+    .select("access_type")
+    .eq("id", courseId)
+    .maybeSingle();
+
+  if (course?.access_type === "pro") {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("tier, pro_expires_at")
+      .eq("id", profileId)
+      .maybeSingle();
+    if (!profile) return false;
+    return hasActiveProSubscription(profile);
+  }
+
+  // 'purchase' / null / column 不存在:都走 course_access
   const { data } = await supabase
     .from("course_access")
     .select("id")
