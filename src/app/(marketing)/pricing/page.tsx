@@ -169,11 +169,11 @@ export default async function PricingPage() {
 
             <div className="space-y-3 mb-8 flex-1">
               {[
-                "週更影片 + 文章持續發佈",
-                "AI 助教 Eyesy 全範圍開放",
+                "Pro 限定影片(持續更新,訂閱期間隨時看)",
+                "AI 助教 Eyesy 全範圍開放(含深度模式)",
                 "Discord 學員專屬頻道",
-                "Pro 限定電子報",
-                "(不含大師課影片,需另購)",
+                "Pro 限定電子報 + 文章",
+                "(大師課單課買斷不含在內,需另購)",
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3">
                   <Check size={18} className="text-on-surface-variant flex-shrink-0" />
@@ -215,7 +215,11 @@ export default async function PricingPage() {
             },
             {
               q: "送的 Pro 訂閱怎麼用?",
-              a: `購買大師課後自動開通 ${bundleDays || 90} 天 Pro 會籍,期間 AI 助教 Eyesy、Discord 專屬頻道、Pro 限定內容全開。期滿可選擇月費續訂。`,
+              a: `購買大師課後自動開通 ${bundleDays || 90} 天 Pro 會籍,期間 AI 助教 Eyesy 深度模式、Pro 限定影片、Discord 專屬頻道、文章電子報全開。期滿可選擇月費續訂繼續看 Pro 內容。`,
+            },
+            {
+              q: "Pro 限定影片是什麼?",
+              a: "大師課之外另開的影片內容(產業週報、實戰分享、新題材深度拆解等),只有 Pro 訂閱期間才看得到。Pro 過期就鎖回,續訂後再開。",
             },
             {
               q: "Pro 訂閱可以隨時取消嗎?",
