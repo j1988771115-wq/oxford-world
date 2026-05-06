@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Noto_Sans_TC } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/components/auth-provider";
-import { EyesyChatWidget } from "@/components/eyesy/chat-widget";
+import { LazyEyesyChatWidget } from "@/components/eyesy/lazy-chat-widget";
 import "./globals.css";
 
 const inter = Inter({
@@ -163,7 +163,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             {children}
-            <EyesyChatWidget />
+            <LazyEyesyChatWidget />
           </AuthProvider>
         </ThemeProvider>
       </body>
