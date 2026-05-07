@@ -148,7 +148,7 @@ export async function GET(_req: Request, { params }: Props) {
               NT${price.toLocaleString()}
             </div>
             <div style={{ fontSize: 20, opacity: 0.7, fontWeight: 600, display: "flex" }}>
-              一次付費 · 永久觀看
+              一次付費 · 1 年無限看 + 贈送
             </div>
           </div>
         )}

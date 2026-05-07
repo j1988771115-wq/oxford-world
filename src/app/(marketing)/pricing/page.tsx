@@ -66,7 +66,7 @@ export default async function PricingPage() {
           <h1 className="text-5xl md:text-6xl font-black text-on-surface tracking-tight mb-6 leading-tight">
             大師課
             <br />
-            一次買斷,終身回看
+            一次買斷,1 年無限看 + 之後贈送回看
           </h1>
           <p className="text-xl text-on-surface-variant leading-relaxed">
             由久方武院長親授的太空時代資本配置課程,從 SpaceX 大敘事到 8 隻精選美股,給你完整的投資框架。
@@ -107,7 +107,7 @@ export default async function PricingPage() {
                 </span>
               </div>
               <p className="text-on-surface-variant text-xs">
-                一次付費 · 終身觀看
+                一次付費 · 1 年無限看 + 之後贈送回看
                 {bundleDays > 0 ? ` · 加贈 Pro ${bundleDays} 天` : ""}
               </p>
             </div>
@@ -117,7 +117,7 @@ export default async function PricingPage() {
                 "10 章深度課程內容",
                 "SpaceX 等大敘事 + 8 隻精選美股",
                 "完整資本配置實戰框架",
-                "永久回看,不定期更新補充",
+                "1 年無限回看,不定期更新補充(期滿後贈送繼續回看)",
                 ...(bundleDays > 0
                   ? [`含 ${bundleDays} 天 Pro 訂閱(AI 助教全開)`]
                   : []),
@@ -199,7 +199,7 @@ export default async function PricingPage() {
         </div>
         <div className="flex items-center gap-3 text-on-surface">
           <InfinityIcon size={24} />
-          <span className="text-sm font-bold">一次購買 · 終身觀看</span>
+          <span className="text-sm font-bold">一次購買 · 1 年無限看 + 之後贈送回看</span>
         </div>
       </div>
 
@@ -211,7 +211,7 @@ export default async function PricingPage() {
           {[
             {
               q: "課程影片可以看多久?",
-              a: "一次購買後永久觀看,沒有時間限制。我們也會不定期更新補充教材,購買者皆可取得。",
+              a: "一次購買後享有 1 年無限觀看權限,期間可重複回看、無觀看次數限制。1 年期滿後,平台額外以「贈送回看」方式持續提供觀看權益(此為平台善意,不在原合約義務內,平台保留調整權利)。我們也會不定期更新補充教材,購買者皆可取得。",
             },
             {
               q: "送的 Pro 訂閱怎麼用?",

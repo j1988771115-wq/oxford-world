@@ -43,7 +43,7 @@ export default function LegalPage() {
           </thead>
           <tbody>
             <tr><td>免費方案</td><td>課程試看章節、AI 助教 Eyesy 基本問答</td><td>NT$0</td></tr>
-            <tr><td>大師課</td><td>頂尖講師深度獨立課程，單課買斷永久觀看</td><td>依課程定價</td></tr>
+            <tr><td>大師課</td><td>頂尖講師深度獨立課程，單課買斷 1 年無限觀看（期滿後平台贈送回看權益）</td><td>依課程定價</td></tr>
           </tbody>
         </table>
 

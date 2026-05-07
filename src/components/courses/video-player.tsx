@@ -225,7 +225,7 @@ export function VideoPlayer({
               繼續看完整 9 章<br />解鎖《{conversionPrompt.courseTitle.slice(0, 12)}》
             </h2>
             <p className="text-sm text-on-surface-variant leading-relaxed">
-              一次付費 · 終身觀看 · 加贈 90 天 Pro
+              一次付費 · 1 年無限看 + 之後贈送 · 加贈 90 天 Pro
               <br />
               <span className="line-through opacity-60">原價 NT$30,000</span>
               {" "}

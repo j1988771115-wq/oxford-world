@@ -288,7 +288,7 @@ export default async function CourseDetailPage({ params }: Props) {
       {
         "@type": "Question",
         name: "課程多長時間？可以重複觀看嗎？",
-        acceptedAnswer: { "@type": "Answer", text: `共 ${chapters?.length || 9} 章節,主課程約 2 小時、每章另附 NotebookLM 背景對談,合計約 3 小時內容。一次付費 NT$${course.price.toLocaleString()} 永久觀看,可重複回看,加贈 90 天 Pro 訂閱(享 AI 助教 Eyesy 深度模式)。` },
+        acceptedAnswer: { "@type": "Answer", text: `共 ${chapters?.length || 9} 章節,主課程約 2 小時、每章另附 NotebookLM 背景對談,合計約 3 小時內容。一次付費 NT$${course.price.toLocaleString()} 享 1 年無限觀看權限(期滿後平台贈送繼續回看),可重複回看,加贈 90 天 Pro 訂閱(享 AI 助教 Eyesy 深度模式)。` },
       },
       {
         "@type": "Question",
@@ -588,7 +588,7 @@ export default async function CourseDetailPage({ params }: Props) {
                     </p>
                   )}
                   <p className="text-sm text-on-surface-variant leading-relaxed">
-                    一次付費 · 終身觀看
+                    一次付費 · 1 年無限看 + 之後贈送回看
                     {course.pro_bundle_days > 0 ? ` · 加贈 Pro ${course.pro_bundle_days} 天` : ""}
                   </p>
                 </div>
@@ -733,7 +733,7 @@ export default async function CourseDetailPage({ params }: Props) {
                       {
                         icon: Award,
                         label: "課程形式",
-                        value: "永久回看",
+                        value: "1 年無限看 + 之後贈送",
                       },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-3">

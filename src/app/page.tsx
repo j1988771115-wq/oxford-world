@@ -328,7 +328,7 @@ export default async function HomePage() {
                     </span>
                   </div>
                   <p className="text-on-surface-variant text-xs">
-                    一次付費 · 終身觀看 · 加贈 Pro 90 天
+                    一次付費 · 1 年無限看 + 之後贈送回看 · 加贈 Pro 90 天
                   </p>
                 </div>
                 <div className="space-y-3 mb-8 flex-1">
@@ -336,7 +336,7 @@ export default async function HomePage() {
                     "10 章深度課程內容",
                     "SpaceX 等大敘事 + 8 隻精選個股",
                     "完整資本配置實戰框架",
-                    "永久回看 + 不定期補充",
+                    "1 年無限回看 + 之後贈送 + 不定期補充",
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-3">
                       <Check size={18} className="text-amber-500 flex-shrink-0" />
@@ -410,7 +410,7 @@ export default async function HomePage() {
             </div>
             <div className="flex items-center gap-2 text-on-surface">
               <RefreshCw size={20} />
-              <span className="text-sm font-bold">一次購買 · 終身觀看</span>
+              <span className="text-sm font-bold">一次購買 · 1 年無限看 + 之後贈送回看</span>
             </div>
           </div>
         </div>
