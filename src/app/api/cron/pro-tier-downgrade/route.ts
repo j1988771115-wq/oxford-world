@@ -19,7 +19,7 @@ function getAdminClient() {
  * (Eyesy 加大 quota / 之前 learn page 過期還能看 — T0-6 已修讀取面)
  *
  * 此 cron:服務 tier='pro' 但 pro_expires_at < now() 的 user 統一降回 free
- * - course_access 不動(已買的課永久回看,跟 tier 無關)
+ * - course_access 不動(已買的課 1 年合約 + 之後平台贈送回看,跟 tier 無關)
  * - 順便 best-effort 移除 Discord Pro role
  */
 export async function GET(req: NextRequest) {

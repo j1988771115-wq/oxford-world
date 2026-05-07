@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * 統一的「user 對某 course 是否有 access」判斷 (audit T0-6)
  *
  * 兩種 course access 模型(看 courses.access_type):
- * - 'purchase' (預設,大師課):靠 course_access 表 — 永久回看,不關 pro_expires_at
+ * - 'purchase' (預設,大師課):靠 course_access 表 — 1 年合約期 + 之後平台贈送回看(行銷對外用詞,DB 不存 expiry,純看 row 在不在),不關 pro_expires_at
  * - 'pro' (Pro 訂閱限定影片):靠 profile.tier='pro' + pro_expires_at 還沒過 — 過期就鎖
  *
  * Pro 訂閱 user 想看大師課:必須另外購買(大師課送 90 天 Pro,不是反過來)。
