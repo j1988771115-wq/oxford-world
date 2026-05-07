@@ -88,23 +88,23 @@ const PASS_REWARDS = [
   // 成長期
   { level: 13, free: { reward: "「學習達人」稱號", icon: Star }, pro: { reward: "解鎖工作坊副本", icon: Swords } },
   { level: 15, free: { reward: "頭像框 — 銀", icon: Star }, pro: { reward: "Pro 首月半價券", icon: Gift } },
-  { level: 18, free: { reward: "排行榜永久顯示", icon: Crown }, pro: { reward: "大師課 85 折券", icon: Gift } },
-  { level: 20, free: { reward: "「領域專家」徽章", icon: Crown }, pro: { reward: "獨家月報永久訂閱", icon: Swords } },
+  { level: 18, free: { reward: "排行榜長期顯示", icon: Crown }, pro: { reward: "大師課 85 折券", icon: Gift } },
+  { level: 20, free: { reward: "「領域專家」徽章", icon: Crown }, pro: { reward: "獨家月報會員訂閱", icon: Swords } },
   // 高手區
   { level: 23, free: { reward: "「知識王者」稱號", icon: Star }, pro: { reward: "解鎖大師圓桌副本", icon: Swords } },
-  { level: 25, free: { reward: "頭像框 — 金", icon: Crown }, pro: { reward: "大師課 8 折永久", icon: Gift } },
+  { level: 25, free: { reward: "頭像框 — 金", icon: Crown }, pro: { reward: "大師課會員專屬 8 折", icon: Gift } },
   { level: 28, free: { reward: "個人檔案金框", icon: Star }, pro: { reward: "1 對 1 講師問答資格", icon: Swords } },
   { level: 30, free: { reward: "「學院傳奇」徽章", icon: Crown }, pro: { reward: "解鎖所有工作坊", icon: Swords } },
   // 傳說區
-  { level: 33, free: { reward: "「覺醒者」稱號", icon: Star }, pro: { reward: "大師課 75 折永久", icon: Gift } },
+  { level: 33, free: { reward: "「覺醒者」稱號", icon: Star }, pro: { reward: "大師課會員專屬 75 折", icon: Gift } },
   { level: 35, free: { reward: "頭像框 — 鑽石", icon: Crown }, pro: { reward: "解鎖傳奇副本", icon: Swords } },
   { level: 38, free: { reward: "討論區專屬標誌", icon: Star }, pro: { reward: "新課搶先體驗資格", icon: Gift } },
-  { level: 40, free: { reward: "「永恆智者」徽章", icon: Crown }, pro: { reward: "終身大師課 7 折", icon: Crown } },
+  { level: 40, free: { reward: "「永恆智者」徽章", icon: Crown }, pro: { reward: "大師課會員專屬 7 折", icon: Crown } },
   // 神話區
   { level: 43, free: { reward: "「萬物解讀者」稱號", icon: Star }, pro: { reward: "課程共同創作資格", icon: Crown } },
   { level: 45, free: { reward: "頭像框 — 傳說", icon: Crown }, pro: { reward: "院長私人群組邀請", icon: Crown } },
-  { level: 48, free: { reward: "「創世紀」稱號", icon: Star }, pro: { reward: "終身所有課程 7 折", icon: Crown } },
-  { level: 50, free: { reward: "「Oxford Vision」終極徽章", icon: Crown }, pro: { reward: "牛津視界終身 VIP", icon: Crown } },
+  { level: 48, free: { reward: "「創世紀」稱號", icon: Star }, pro: { reward: "所有課程會員專屬 7 折", icon: Crown } },
+  { level: 50, free: { reward: "「Oxford Vision」終極徽章", icon: Crown }, pro: { reward: "牛津視界資深會員 VIP", icon: Crown } },
 ];
 
 const XP_RULES = [
