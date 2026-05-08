@@ -41,6 +41,9 @@ export default function SignInPage() {
         {/* OAuth */}
         <div className="space-y-3 mb-6">
           <form action={signInWithGoogle}>
+            {redirectTo !== "/dashboard" && (
+              <input type="hidden" name="redirect" value={redirectTo} />
+            )}
             <button
               type="submit"
               className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-outline-variant/30 text-on-surface font-bold text-sm hover:bg-surface-container active:scale-[0.98] transition"
@@ -109,7 +112,14 @@ export default function SignInPage() {
 
         <p className="text-center text-on-surface-variant text-sm mt-6">
           還沒有帳號？{" "}
-          <Link href="/sign-up" className="text-secondary font-bold hover:underline">
+          <Link
+            href={
+              redirectTo !== "/dashboard"
+                ? `/sign-up?redirect=${encodeURIComponent(redirectTo)}`
+                : "/sign-up"
+            }
+            className="text-secondary font-bold hover:underline"
+          >
             註冊
           </Link>
         </p>

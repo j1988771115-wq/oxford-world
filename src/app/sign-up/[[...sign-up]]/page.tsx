@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { signUp, signInWithGoogle } from "@/lib/actions/auth";
 import { BreadcrumbJsonLd } from "@/lib/breadcrumb";
@@ -11,6 +12,8 @@ export default function SignUpPage() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -18,6 +21,7 @@ export default function SignUpPage() {
     setError("");
     setSuccess("");
     const formData = new FormData(e.currentTarget);
+    if (redirectTo) formData.set("redirect", redirectTo);
     const result = await signUp(formData);
     if (result?.error) {
       setError(result.error);
@@ -41,6 +45,9 @@ export default function SignUpPage() {
         {/* OAuth */}
         <div className="space-y-3 mb-6">
           <form action={signInWithGoogle}>
+            {redirectTo && (
+              <input type="hidden" name="redirect" value={redirectTo} />
+            )}
             <button
               type="submit"
               className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-outline-variant/30 text-on-surface font-bold text-sm hover:bg-surface-container active:scale-[0.98] transition"
@@ -152,7 +159,14 @@ export default function SignUpPage() {
 
         <p className="text-center text-on-surface-variant text-sm mt-6">
           已經有帳號？{" "}
-          <Link href="/sign-in" className="text-secondary font-bold hover:underline">
+          <Link
+            href={
+              redirectTo
+                ? `/sign-in?redirect=${encodeURIComponent(redirectTo)}`
+                : "/sign-in"
+            }
+            className="text-secondary font-bold hover:underline"
+          >
             登入
           </Link>
         </p>

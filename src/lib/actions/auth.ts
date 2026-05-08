@@ -3,6 +3,19 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
+// 把 redirect param 安全 plumb 進 next 參數,防 open redirect
+function safeRedirectParam(redirect: string | null | undefined, fallback: string): string {
+  if (
+    redirect &&
+    redirect.startsWith("/") &&
+    !redirect.startsWith("//") &&
+    !redirect.includes("\\")
+  ) {
+    return redirect;
+  }
+  return fallback;
+}
+
 export async function signUp(formData: FormData) {
   const supabase = await createClient();
 
@@ -11,17 +24,23 @@ export async function signUp(formData: FormData) {
   const name = formData.get("name") as string;
   const newsletter = formData.get("newsletter") === "on";
   const agreeTerms = formData.get("agree_terms") === "on";
+  const redirectTo = formData.get("redirect") as string | null;
 
   if (!agreeTerms) {
     return { error: "請先同意服務條款與隱私權政策" };
   }
+
+  // user 從特定頁面點「免費試看」跳來註冊,完成 email confirm 後要送回原頁面;
+  // 沒帶 redirect 才走 onboarding
+  const next = safeRedirectParam(redirectTo, "/onboarding");
+  const callbackUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback?next=${encodeURIComponent(next)}`;
 
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { full_name: name },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback?next=/onboarding`,
+      emailRedirectTo: callbackUrl,
     },
   });
 
@@ -77,24 +96,26 @@ export async function signOut() {
   redirect("/");
 }
 
-export async function signInWithGoogle(): Promise<void> {
+export async function signInWithGoogle(formData?: FormData): Promise<void> {
   const supabase = await createClient();
+  const redirectTo = (formData?.get("redirect") as string | null) ?? null;
+  const next = safeRedirectParam(redirectTo, "/dashboard");
+  const callback = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback?next=${encodeURIComponent(next)}`;
   const { data } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback`,
-    },
+    options: { redirectTo: callback },
   });
   if (data.url) redirect(data.url);
 }
 
-export async function signInWithGitHub(): Promise<void> {
+export async function signInWithGitHub(formData?: FormData): Promise<void> {
   const supabase = await createClient();
+  const redirectTo = (formData?.get("redirect") as string | null) ?? null;
+  const next = safeRedirectParam(redirectTo, "/dashboard");
+  const callback = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback?next=${encodeURIComponent(next)}`;
   const { data } = await supabase.auth.signInWithOAuth({
     provider: "github",
-    options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback`,
-    },
+    options: { redirectTo: callback },
   });
   if (data.url) redirect(data.url);
 }
