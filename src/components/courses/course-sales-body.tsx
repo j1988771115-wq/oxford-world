@@ -83,8 +83,9 @@ export function CourseSalesBody({
   return (
     <main className={cn("pb-20", isMasterSpace && "bg-slate-950")}>
       {/* === Hero 全寬 cinematic banner (太空大師課專用) === */}
+      {/* min-h 讓 mobile content 可撐高,避免 hero card stack 後被頂部 nav 遮 */}
       {isMasterSpace && (
-        <section className="relative w-full h-[70vh] min-h-[520px] overflow-hidden">
+        <section className="relative w-full min-h-[70vh] md:min-h-[520px] overflow-hidden">
           <Image
             src="/marketing/hero-master-space-age.png"
             alt=""
@@ -96,7 +97,7 @@ export function CourseSalesBody({
           <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/70" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/30" />
 
-          <div className="relative z-10 h-full flex items-center py-12 md:py-0">
+          <div className="relative z-10 min-h-[70vh] md:min-h-[520px] flex items-center py-16 md:py-12">
             <div className="max-w-[1440px] mx-auto w-full px-6 md:px-12 grid md:grid-cols-[1fr_auto] gap-8 md:gap-12 items-center">
               {/* 左欄:title + description + instructor */}
               <div className="space-y-5 md:space-y-6 max-w-xl">
