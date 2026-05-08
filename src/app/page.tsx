@@ -93,7 +93,7 @@ export default async function HomePage() {
                 {[
                   "24/7 隨時在線，不用等下次直播",
                   "基於講師原話回答，不是 ChatGPT 罐頭",
-                  "記住你看到哪一章，給你個人化複習",
+                  "記住你看到哪一章，下次直接接著看",
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <Check size={18} className="text-green-500 shrink-0" />

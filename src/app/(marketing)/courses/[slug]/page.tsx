@@ -65,17 +65,24 @@ export default async function CourseDetailPage({ params }: Props) {
   if (!course) notFound();
 
   const supabase = await (await import("@/lib/supabase/server")).createClient();
-  // 並行打 user auth + chapters(不互相依賴),省 ~150ms TTFB
-  const [userResult, chaptersResult] = await Promise.all([
+  // 並行打 user auth + chapters + student count(不互相依賴),省 ~150ms TTFB
+  const [userResult, chaptersResult, accessCountResult] = await Promise.all([
     supabase.auth.getUser(),
     supabase
       .from("course_chapters")
       .select("*")
       .eq("course_id", course.id)
       .order("sort_order", { ascending: true }),
+    // 學員人數 trust signal,只計 purchased(排除贈與 / 試讀)
+    supabase
+      .from("course_access")
+      .select("*", { count: "exact", head: true })
+      .eq("course_id", course.id)
+      .eq("access_type", "purchased"),
   ]);
   const user = userResult.data.user;
   const userId = user?.id ?? null;
+  const studentCount = accessCountResult.count ?? 0;
 
   // 一次抓 profile(含 tier + is_alumni),tier=pro 直接 hasAccess,
   // 否則才查 course_access — 砍掉 checkCourseAccess 內重複的 auth.getUser
@@ -370,11 +377,19 @@ export default async function CourseDetailPage({ params }: Props) {
                 <p className="text-base md:text-lg text-white/85 leading-relaxed">
                   {course.description}
                 </p>
-                <div className="flex items-center gap-3 pt-2">
+                <div className="flex items-center gap-3 pt-2 flex-wrap">
                   <div className="w-10 h-px bg-amber-300/60" />
                   <p className="text-amber-100 font-medium">
                     {course.instructor} 院長 親授
                   </p>
+                  {studentCount > 0 && (
+                    <>
+                      <span className="text-amber-300/60">·</span>
+                      <p className="text-amber-100/80 text-sm">
+                        累計 <span className="text-amber-200 font-bold">{studentCount}</span> 位學員加入
+                      </p>
+                    </>
+                  )}
                 </div>
                 {course.sale_ends_at && new Date(course.sale_ends_at) > new Date() && (
                   <div className="pt-4 space-y-2">
@@ -1196,6 +1211,11 @@ export default async function CourseDetailPage({ params }: Props) {
               <p className="text-xs text-center text-white/50 leading-relaxed">
                 付款後立即解鎖全部章節 · 無下載限制 · 1 年無限觀看
               </p>
+              {studentCount > 0 && (
+                <p className="text-xs text-center text-amber-200/80 leading-relaxed pt-2 border-t border-white/10">
+                  累計 <span className="font-bold text-amber-200">{studentCount}</span> 位學員已加入
+                </p>
+              )}
             </div>
           </div>
         </section>

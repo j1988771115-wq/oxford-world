@@ -171,7 +171,7 @@ export default function AboutPage() {
               {
                 num: "01",
                 title: "不是又一個線上課程",
-                desc: "我們結合 AI 個人化推薦、講師 AI 助手、和 Discord 學習社群，完成率是傳統課程的 4 倍。",
+                desc: "Eyesy AI 助教 24/7 解答課程內容、講師親錄主影片 + 背景補充教材雙軌設計，學完不只是看完。",
               },
               {
                 num: "02",
