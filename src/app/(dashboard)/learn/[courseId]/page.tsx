@@ -5,6 +5,7 @@ import { YouTubePlayer } from "@/components/courses/youtube-player";
 import { ChapterCheckin } from "@/components/courses/chapter-checkin";
 import { CourseInfoCollapse } from "@/components/courses/course-info-collapse";
 import { MobileLearnNav } from "@/components/courses/mobile-learn-nav";
+import { NewChaptersBanner } from "@/components/courses/new-chapters-banner";
 import Link from "next/link";
 import {
   PlayCircle,
@@ -188,6 +189,19 @@ export default async function LearnPage({ params, searchParams }: Props) {
           </div>
         </div>
       </header>
+
+      {/* 新章節通知 — 太空大師課,有 access 學員,2026-05-22 後自動隱藏,可手動 dismiss */}
+      {course.slug === "master-space-age-capital" && hasAccess && (() => {
+        const firstNew = chapters?.find((c) => c.sort_order >= 10);
+        return firstNew ? (
+          <NewChaptersBanner
+            courseId={courseId}
+            firstNewChapterId={firstNew.id}
+            expiresAt="2026-05-22"
+            dismissKey="oxford-new-chapters-2026-05-08-master-space"
+          />
+        ) : null;
+      })()}
 
       {/* 試看中提示 — 已登入但沒購買時最上方顯示(?preview=1 可強制顯示用於 demo) */}
       {(forcePreviewBanner || (!hasAccess && currentChapter?.is_free_preview)) && (
