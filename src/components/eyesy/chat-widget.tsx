@@ -352,8 +352,20 @@ export function EyesyChatWidget() {
 
       {/* Greeting Bubble */}
       {showBubble && !isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 max-w-[260px] animate-in slide-in-from-bottom-2 duration-300">
-          <div className="bg-surface-container-lowest dark:bg-surface-container rounded-2xl rounded-br-none shadow-xl border border-outline-variant/20 px-4 py-3 relative">
+        <div className={cn(
+          "fixed bottom-24 z-50 max-w-[260px] animate-in slide-in-from-bottom-2 duration-300",
+          // 配合 FAB:課程詳情頁手機 left-6,其他維持 right-6
+          pathname.startsWith("/courses/") && pathname !== "/courses"
+            ? "left-6 lg:left-auto lg:right-6"
+            : "right-6"
+        )}>
+          <div className={cn(
+            "bg-surface-container-lowest dark:bg-surface-container rounded-2xl shadow-xl border border-outline-variant/20 px-4 py-3 relative",
+            // 對話泡尖角:右下/左下視 FAB 而定
+            pathname.startsWith("/courses/") && pathname !== "/courses"
+              ? "rounded-bl-none lg:rounded-bl-2xl lg:rounded-br-none"
+              : "rounded-br-none"
+          )}>
             <button
               onClick={() => {
                 setShowBubble(false);
@@ -389,11 +401,14 @@ export function EyesyChatWidget() {
           setBubbleDismissed(true);
         }}
         className={cn(
+          "fixed z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-200 active:scale-90",
           // 學習頁手機底部有 nav bar(64px),把 FAB 抬高避免疊;其他頁面跟桌面維持原位
-          "fixed right-6 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-200 active:scale-90",
           pathname.startsWith("/learn/")
-            ? "bottom-24 lg:bottom-6"
-            : "bottom-6",
+            ? "right-6 bottom-24 lg:bottom-6"
+            // 課程詳情頁手機底部有 sticky 購買 CTA bar,FAB 改 left-6 避開右側「立即購買」按鈕;桌面側欄 sticky 不衝突,維持 right-6
+            : pathname.startsWith("/courses/") && pathname !== "/courses"
+            ? "left-6 bottom-6 lg:left-auto lg:right-6"
+            : "right-6 bottom-6",
           isOpen
             ? "bg-surface-container-highest text-on-surface"
             : "signature-gradient text-white hover:scale-105 hover:shadow-2xl",
