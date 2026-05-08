@@ -951,9 +951,10 @@ export function CourseSalesBody({
       )}
 
       {/* === 沉式 CTA === */}
+      {/* mobile min-h 加大,容納標題+desc+倒數+CTA stack 不被 items-center 切;桌面維持 3:1 cinematic 比例 */}
       {isMasterSpace && (
         <section className="relative mt-16 w-full overflow-hidden">
-          <div className="relative aspect-[3/2] md:aspect-[3/1] min-h-[400px]">
+          <div className="relative min-h-[680px] md:aspect-[3/1] md:min-h-[400px]">
             <Image
               src="/marketing/cta-master-space-age.png"
               alt=""
