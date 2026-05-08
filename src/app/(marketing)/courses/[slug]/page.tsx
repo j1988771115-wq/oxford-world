@@ -316,7 +316,7 @@ export default async function CourseDetailPage({ params }: Props) {
   const isMasterSpace = course.slug === "master-space-age-capital";
 
   return (
-    <main className="pb-20">
+    <main className={cn("pb-20", isMasterSpace && "bg-slate-950")}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(courseJsonLd) }}
@@ -640,24 +640,41 @@ export default async function CourseDetailPage({ params }: Props) {
 
       <div className="pt-12 px-8 max-w-[1440px] mx-auto">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-on-surface-variant text-sm mb-8">
-        <Link href="/" className="hover:text-secondary transition-colors">
+      <nav className={cn(
+        "flex items-center gap-2 text-sm mb-8",
+        isMasterSpace ? "text-white/60" : "text-on-surface-variant"
+      )}>
+        <Link href="/" className={cn(
+          "transition-colors",
+          isMasterSpace ? "hover:text-amber-300" : "hover:text-secondary"
+        )}>
           首頁
         </Link>
         <ChevronRight size={14} />
         <Link
           href="/courses"
-          className="hover:text-secondary transition-colors"
+          className={cn(
+            "transition-colors",
+            isMasterSpace ? "hover:text-amber-300" : "hover:text-secondary"
+          )}
         >
           課程
         </Link>
         <ChevronRight size={14} />
-        <span className="text-on-surface font-medium">{course.title}</span>
+        <span className={cn(
+          "font-medium",
+          isMasterSpace ? "text-white" : "text-on-surface"
+        )}>{course.title}</span>
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
         {/* Left Column */}
-        <div className="lg:col-span-7 space-y-12">
+        <div className={cn(
+          "space-y-12",
+          // 太空大師課:Hero 右側 card 已含購買 + 倒數,sidebar 冗餘 → 主 content 全寬。
+          // 其他課程維持 7/5 grid 有 sidebar
+          isMasterSpace ? "lg:col-span-12" : "lg:col-span-7"
+        )}>
           {/* 非太空大師課 fallback:沒 hero 時顯示 header */}
           {!isMasterSpace && (
             <header>
@@ -689,26 +706,51 @@ export default async function CourseDetailPage({ params }: Props) {
 
           {/* 本課給誰 — 邊界設定，過濾錯誤期待 */}
           <section>
-            <h2 className="text-2xl font-bold text-on-surface mb-6">
+            <h2 className={cn(
+              "text-2xl font-bold mb-6",
+              isMasterSpace ? "text-white" : "text-on-surface"
+            )}>
               這堂課給誰
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-6 deep-diffusion">
-                <h3 className="font-bold text-on-surface mb-4 flex items-center gap-2 text-base">
-                  <Check size={16} className="text-on-surface-variant" /> 適合
+              <div className={cn(
+                "rounded-xl p-6",
+                isMasterSpace
+                  ? "bg-slate-900/60 border border-emerald-500/20"
+                  : "bg-surface-container-lowest border border-outline-variant/30 deep-diffusion"
+              )}>
+                <h3 className={cn(
+                  "font-bold mb-4 flex items-center gap-2 text-base",
+                  isMasterSpace ? "text-emerald-300" : "text-on-surface"
+                )}>
+                  <Check size={16} /> 適合
                 </h3>
-                <ul className="space-y-2.5 text-sm text-on-surface-variant leading-relaxed">
+                <ul className={cn(
+                  "space-y-2.5 text-sm leading-relaxed",
+                  isMasterSpace ? "text-white/75" : "text-on-surface-variant"
+                )}>
                   <li>想建立太空產業投資框架的投資者(長線、波段、事件交易都用得上)</li>
                   <li>願意花時間理解產業競爭結構,不只看股票代號</li>
                   <li>有美股下單經驗,想擴張持股版圖到下一個十年</li>
                   <li>對「為什麼 SpaceX 改寫產業」這類大敘事有興趣</li>
                 </ul>
               </div>
-              <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-6 deep-diffusion">
-                <h3 className="font-bold text-on-surface mb-4 flex items-center gap-2 text-base">
-                  <X size={16} className="text-on-surface-variant" /> 不適合
+              <div className={cn(
+                "rounded-xl p-6",
+                isMasterSpace
+                  ? "bg-slate-900/60 border border-rose-500/20"
+                  : "bg-surface-container-lowest border border-outline-variant/30 deep-diffusion"
+              )}>
+                <h3 className={cn(
+                  "font-bold mb-4 flex items-center gap-2 text-base",
+                  isMasterSpace ? "text-rose-300" : "text-on-surface"
+                )}>
+                  <X size={16} /> 不適合
                 </h3>
-                <ul className="space-y-2.5 text-sm text-on-surface-variant leading-relaxed">
+                <ul className={cn(
+                  "space-y-2.5 text-sm leading-relaxed",
+                  isMasterSpace ? "text-white/75" : "text-on-surface-variant"
+                )}>
                   <li>只想要明牌、不想花時間理解產業邏輯的人</li>
                   <li>期待保證獲利或無風險回報的學員</li>
                   <li>不打算實際投入資金、只想吸收財經新聞的人</li>
@@ -716,7 +758,10 @@ export default async function CourseDetailPage({ params }: Props) {
                 </ul>
               </div>
             </div>
-            <p className="text-xs text-on-surface-variant mt-4 leading-relaxed">
+            <p className={cn(
+              "text-xs mt-4 leading-relaxed",
+              isMasterSpace ? "text-white/50" : "text-on-surface-variant"
+            )}>
               邊界寫清楚不是嚇你,是希望付費後你看的是真能用的內容。
             </p>
           </section>
@@ -725,8 +770,8 @@ export default async function CourseDetailPage({ params }: Props) {
           {isMasterSpace ? (
             <section>
               <div className="flex justify-between items-end mb-6">
-                <h2 className="text-2xl font-bold text-on-surface">課程地圖</h2>
-                <p className="text-sm text-on-surface-variant">
+                <h2 className="text-2xl font-bold text-white">課程地圖</h2>
+                <p className="text-sm text-white/60">
                   5 個主題 module · {chapters?.length ?? 11} 章影片
                 </p>
               </div>
@@ -760,23 +805,23 @@ export default async function CourseDetailPage({ params }: Props) {
                 ].map((m) => (
                   <li
                     key={m.n}
-                    className="bg-surface-container-lowest rounded-xl deep-diffusion p-6 flex gap-5 items-start"
+                    className="bg-slate-900/60 border border-amber-500/20 rounded-xl p-6 flex gap-5 items-start"
                   >
-                    <span className="shrink-0 w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center font-black text-amber-700 dark:text-amber-300 tabular-nums">
+                    <span className="shrink-0 w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center font-black text-amber-300 tabular-nums">
                       {m.n}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-bold text-on-surface mb-2 leading-snug">
+                      <h3 className="text-lg font-bold text-white mb-2 leading-snug">
                         {m.title}
                       </h3>
-                      <p className="text-sm md:text-base text-on-surface-variant leading-relaxed">
+                      <p className="text-sm md:text-base text-white/75 leading-relaxed">
                         {m.desc}
                       </p>
                     </div>
                   </li>
                 ))}
               </ul>
-              <p className="text-xs text-on-surface-variant mt-5 leading-relaxed">
+              <p className="text-xs text-white/50 mt-5 leading-relaxed">
                 每個 module 含 1-3 章影片,搭配「主影片(久方武院長親錄)+ 背景資料學習」雙軌設計。具體個股 thesis 留給付費學員,在主流發現前先佈局。
               </p>
             </section>
@@ -899,8 +944,11 @@ export default async function CourseDetailPage({ params }: Props) {
           )}
         </div>
 
-        {/* Right Sidebar */}
-        <div className="lg:col-span-5">
+        {/* Right Sidebar — 太空大師課隱藏(Hero 右 card / 你拿到什麼 / 沉式 CTA 已含購買) */}
+        <div className={cn(
+          "lg:col-span-5",
+          isMasterSpace && "hidden"
+        )}>
           <div className="sticky top-28 space-y-6">
             <div className="bg-surface-container-lowest rounded-xl overflow-hidden deep-diffusion">
               {/* Video Preview — 點擊帶到第一個免費試看章節（未登入導去登入） */}
@@ -1318,15 +1366,16 @@ export default async function CourseDetailPage({ params }: Props) {
 
       {/* === FAQ accordion (太空大師課專用) === */}
       {isMasterSpace && (
-        <section className="py-16 md:py-24 bg-surface">
+        <section className="py-16 md:py-24 bg-slate-950">
           <div className="max-w-[800px] mx-auto px-6 md:px-12">
-            <p className="text-[11px] uppercase tracking-[0.3em] text-amber-600 dark:text-amber-400 font-bold mb-4">
+            <p className="text-[11px] uppercase tracking-[0.3em] text-amber-300/80 font-bold mb-4">
               Frequently Asked
             </p>
-            <h2 className="text-3xl md:text-4xl font-black text-on-surface tracking-tight mb-12 leading-tight">
+            <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-12 leading-tight">
               常見問題
             </h2>
             <FaqAccordion
+              variant="dark"
               items={[
                 {
                   q: "課程多長?怎麼看?",
@@ -1421,7 +1470,12 @@ export default async function CourseDetailPage({ params }: Props) {
 
       {/* 手機 sticky bottom buy bar — 只在沒購買時顯示 */}
       {!hasAccess && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-container-lowest/95 backdrop-blur-xl border-t border-outline-variant/15 px-4 py-3 shadow-2xl">
+        <div className={cn(
+          "lg:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl px-4 py-3 shadow-2xl border-t",
+          isMasterSpace
+            ? "bg-slate-950/95 border-amber-500/20"
+            : "bg-surface-container-lowest/95 border-outline-variant/15"
+        )}>
           {isProOnly ? (
             <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">

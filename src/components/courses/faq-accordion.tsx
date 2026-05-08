@@ -11,13 +11,21 @@ export interface FaqItem {
 
 interface Props {
   items: FaqItem[];
+  /** 'dark' = 暗色 cinematic 風(配 slate-950 bg);'light' = 預設 surface theme */
+  variant?: "light" | "dark";
 }
 
-export function FaqAccordion({ items }: Props) {
+export function FaqAccordion({ items, variant = "light" }: Props) {
   const [open, setOpen] = useState<number | null>(0);
+  const dark = variant === "dark";
 
   return (
-    <ul className="divide-y divide-outline-variant/15 border-y border-outline-variant/15">
+    <ul className={cn(
+      "divide-y border-y",
+      dark
+        ? "divide-amber-500/15 border-amber-500/20"
+        : "divide-outline-variant/15 border-outline-variant/15"
+    )}>
       {items.map((item, i) => {
         const isOpen = open === i;
         return (
@@ -28,13 +36,17 @@ export function FaqAccordion({ items }: Props) {
               className="w-full flex items-center justify-between gap-4 py-5 text-left"
               aria-expanded={isOpen}
             >
-              <span className="text-base md:text-lg font-bold text-on-surface">
+              <span className={cn(
+                "text-base md:text-lg font-bold",
+                dark ? "text-white" : "text-on-surface"
+              )}>
                 {item.q}
               </span>
               <ChevronDown
                 size={20}
                 className={cn(
-                  "shrink-0 text-on-surface-variant transition-transform duration-200",
+                  "shrink-0 transition-transform duration-200",
+                  dark ? "text-amber-300" : "text-on-surface-variant",
                   isOpen && "rotate-180",
                 )}
               />
@@ -46,7 +58,10 @@ export function FaqAccordion({ items }: Props) {
               )}
             >
               <div className="overflow-hidden">
-                <p className="text-base text-on-surface-variant leading-relaxed whitespace-pre-line">
+                <p className={cn(
+                  "text-base leading-relaxed whitespace-pre-line",
+                  dark ? "text-white/75" : "text-on-surface-variant"
+                )}>
                   {item.a}
                 </p>
               </div>
