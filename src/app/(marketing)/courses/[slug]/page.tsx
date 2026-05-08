@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import { COURSE_DISCLAIMER } from "@/lib/constants";
 import { hasCourseAccess } from "@/lib/access";
+import { CountdownTimer } from "@/components/courses/countdown-timer";
 
 // ISR:課程詳情頁 60 秒 cache,改 DB 後最多 60 秒生效,TTFB ~50ms vs 1.3s
 export const revalidate = 60;
@@ -303,8 +304,11 @@ export default async function CourseDetailPage({ params }: Props) {
     ],
   };
 
+  // Hero 是不是太空大師課:這支用 cinematic banner;其他課程後續再補
+  const isMasterSpace = course.slug === "master-space-age-capital";
+
   return (
-    <main className="pt-12 pb-20 px-8 max-w-[1440px] mx-auto">
+    <main className="pb-20">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(courseJsonLd) }}
@@ -330,6 +334,62 @@ export default async function CourseDetailPage({ params }: Props) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(vo) }}
         />
       ))}
+
+      {/* === Hero 全寬 cinematic banner (太空大師課專用) === */}
+      {isMasterSpace && (
+        <section className="relative w-full h-[70vh] min-h-[520px] overflow-hidden">
+          <Image
+            src="/marketing/hero-master-space-age.png"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center"
+          />
+          {/* Dark gradient overlay 讓文字可讀 */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/70" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/30" />
+
+          <div className="relative z-10 h-full flex items-center">
+            <div className="max-w-[1440px] mx-auto w-full px-6 md:px-12 grid md:grid-cols-2 gap-8">
+              <div className="space-y-6 max-w-xl">
+                {course.category && (
+                  <span className="inline-block px-3 py-1.5 rounded-full bg-amber-500/15 text-amber-200 text-[11px] font-black uppercase tracking-[0.2em] border border-amber-500/30">
+                    {course.category}
+                  </span>
+                )}
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.15]">
+                  {course.title.split("：")[0]}
+                  {course.title.includes("：") && (
+                    <span className="block mt-2 text-2xl md:text-3xl lg:text-4xl font-bold text-amber-200/90">
+                      {course.title.split("：")[1]}
+                    </span>
+                  )}
+                </h1>
+                <p className="text-base md:text-lg text-white/85 leading-relaxed">
+                  {course.description}
+                </p>
+                <div className="flex items-center gap-3 pt-2">
+                  <div className="w-10 h-px bg-amber-300/60" />
+                  <p className="text-amber-100 font-medium">
+                    {course.instructor} 院長 親授
+                  </p>
+                </div>
+                {course.sale_ends_at && new Date(course.sale_ends_at) > new Date() && (
+                  <div className="pt-4 space-y-2">
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-amber-300/80">
+                      限時特價結束倒數
+                    </p>
+                    <CountdownTimer endsAt={course.sale_ends_at} />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <div className="pt-12 px-8 max-w-[1440px] mx-auto">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-on-surface-variant text-sm mb-8">
         <Link href="/" className="hover:text-secondary transition-colors">
@@ -349,28 +409,34 @@ export default async function CourseDetailPage({ params }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
         {/* Left Column */}
         <div className="lg:col-span-7 space-y-12">
-          <header>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-on-surface tracking-tight mb-6 leading-tight">
-              {course.title}
-            </h1>
-            {course.category && (
-              <span className="inline-block px-3 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant text-xs font-bold uppercase tracking-wider mb-4">
-                {course.category}
-              </span>
-            )}
-            <p className="text-on-surface-variant">
-              講師：{course.instructor}
-            </p>
-          </header>
+          {/* 非太空大師課 fallback:沒 hero 時顯示 header */}
+          {!isMasterSpace && (
+            <header>
+              <h1 className="text-4xl md:text-5xl font-extrabold text-on-surface tracking-tight mb-6 leading-tight">
+                {course.title}
+              </h1>
+              {course.category && (
+                <span className="inline-block px-3 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant text-xs font-bold uppercase tracking-wider mb-4">
+                  {course.category}
+                </span>
+              )}
+              <p className="text-on-surface-variant">
+                講師：{course.instructor}
+              </p>
+            </header>
+          )}
 
-          <section>
-            <h2 className="text-2xl font-bold text-on-surface mb-4">
-              課程簡介
-            </h2>
-            <p className="text-lg text-on-surface-variant leading-relaxed">
-              {course.description || "課程介紹即將更新。"}
-            </p>
-          </section>
+          {/* 課程簡介:hero 已展示 description,只在非 hero 頁顯示 */}
+          {!isMasterSpace && (
+            <section>
+              <h2 className="text-2xl font-bold text-on-surface mb-4">
+                課程簡介
+              </h2>
+              <p className="text-lg text-on-surface-variant leading-relaxed">
+                {course.description || "課程介紹即將更新。"}
+              </p>
+            </section>
+          )}
 
           {/* 本課給誰 — 邊界設定，過濾錯誤期待 */}
           <section>
@@ -419,58 +485,83 @@ export default async function CourseDetailPage({ params }: Props) {
             <div className="space-y-3">
               {chapters && chapters.length > 0 ? (
                 chapters.map((ch: any, i: number) => {
-                  const isUpcoming = !ch.mux_playback_id && !ch.youtube_url;
+                  const isUpcoming = !ch.mux_playback_id && !ch.mux_playback_id_bg && !ch.youtube_url;
+                  const totalDur = (ch.duration_seconds || 0) + (ch.duration_seconds_bg || 0);
                   return (
                     <div
                       key={ch.id}
-                      className="bg-surface-container-lowest rounded-xl deep-diffusion p-5"
+                      className="bg-surface-container-lowest rounded-xl deep-diffusion overflow-hidden flex flex-col sm:flex-row"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-4 flex-1 min-w-0">
-                          <span className="w-8 h-8 rounded-lg bg-secondary-fixed text-on-secondary-fixed-variant flex items-center justify-center font-bold text-xs shrink-0">
-                            {String(i + 1).padStart(2, "0")}
+                      {/* Visual block 章節編號 + 漸層 + dot pattern */}
+                      <div className="sm:w-[200px] sm:shrink-0 aspect-video sm:aspect-auto relative bg-gradient-to-br from-slate-900 via-blue-950 to-slate-800 flex items-center justify-center overflow-hidden">
+                        <div
+                          className="absolute inset-0 opacity-25"
+                          style={{
+                            backgroundImage:
+                              "radial-gradient(circle at 1px 1px, rgba(212,175,55,0.5) 1px, transparent 0)",
+                            backgroundSize: "18px 18px",
+                          }}
+                        />
+                        <span className="text-5xl sm:text-6xl font-black text-amber-300/70 tabular-nums tracking-tight relative z-10">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        {ch.is_free_preview && (
+                          <span className="absolute top-2 right-2 px-2 py-0.5 rounded bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+                            FREE
                           </span>
+                        )}
+                        {isUpcoming && (
+                          <span className="absolute top-2 right-2 px-2 py-0.5 rounded bg-amber-500/90 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+                            即將上線
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 p-5 min-w-0">
+                        <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-on-surface leading-snug">
+                            <h3 className="font-bold text-on-surface leading-snug text-base">
                               {ch.title}
                             </h3>
-                            <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                              {ch.is_free_preview && (
-                                <span className="text-[10px] font-bold text-secondary-container bg-secondary-fixed px-1.5 py-0.5 rounded">
-                                  免費試看
+                            <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-on-surface-variant">
+                              {ch.mux_playback_id && (
+                                <span className="inline-flex items-center gap-1">
+                                  <PlayCircle size={12} /> 主影片
                                 </span>
                               )}
-                              {isUpcoming && (
-                                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-1.5 py-0.5 rounded">
-                                  兩週內上線
+                              {ch.mux_playback_id_bg && (
+                                <span className="inline-flex items-center gap-1">
+                                  <Layers size={12} /> 背景資料
                                 </span>
                               )}
-                              {ch.duration_seconds && !isUpcoming && (
-                                <span className="text-xs text-on-surface-variant">
-                                  {Math.floor(ch.duration_seconds / 60)}:{String(ch.duration_seconds % 60).padStart(2, "0")}
+                              {totalDur > 0 && (
+                                <span>
+                                  · {Math.floor(totalDur / 60)}:
+                                  {String(totalDur % 60).padStart(2, "0")}
                                 </span>
                               )}
                             </div>
                           </div>
+                          <div className="shrink-0 mt-1">
+                            {isUpcoming ? (
+                              <Clock size={18} className="text-amber-700 dark:text-amber-300" />
+                            ) : ch.is_free_preview ? (
+                              <PlayCircle size={20} className="text-secondary-container fill-current" />
+                            ) : (
+                              <Lock size={18} className="text-on-surface-variant" />
+                            )}
+                          </div>
                         </div>
-                        <div className="shrink-0 mt-1">
-                          {isUpcoming ? (
-                            <Clock size={18} className="text-amber-700 dark:text-amber-300" />
-                          ) : ch.is_free_preview ? (
-                            <PlayCircle size={20} className="text-secondary-container fill-current" />
-                          ) : (
-                            <Lock size={18} className="text-on-surface-variant" />
-                          )}
-                        </div>
+                        {ch.takeaway_summary && (
+                          <div className="mt-3 pt-3 border-t border-outline-variant/15">
+                            <p className="text-sm text-on-surface-variant leading-relaxed">
+                              <span className="text-on-surface font-medium">你會帶走 — </span>
+                              {ch.takeaway_summary}
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      {ch.takeaway_summary && (
-                        <div className="mt-3 ml-12 pt-3 border-t border-outline-variant/15">
-                          <p className="text-sm text-on-surface-variant leading-relaxed">
-                            <span className="text-on-surface font-medium">你會帶走 — </span>
-                            {ch.takeaway_summary}
-                          </p>
-                        </div>
-                      )}
                     </div>
                   );
                 })
@@ -783,6 +874,99 @@ export default async function CourseDetailPage({ params }: Props) {
           </div>
         </div>
       </div>
+      </div>
+
+      {/* === 講師大幅形象 (太空大師課專用) === */}
+      {isMasterSpace && (
+        <section className="mt-16 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-20 overflow-hidden">
+          <div className="max-w-[1440px] mx-auto px-6 md:px-12 grid md:grid-cols-2 gap-10 items-center">
+            <div className="relative aspect-[4/5] md:aspect-[3/4] rounded-2xl overflow-hidden bg-slate-900 order-2 md:order-1">
+              <Image
+                src="/covers/main-space-age-capital.png"
+                alt={`${course.instructor} 院長`}
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover object-right"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
+            </div>
+            <div className="space-y-6 order-1 md:order-2">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-amber-300/80 font-bold">
+                Course Instructor
+              </p>
+              <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight">
+                {course.instructor}
+                <span className="block text-xl md:text-2xl text-amber-200/90 font-bold mt-2">
+                  巨石文化負責人 · 牛津視界院長
+                </span>
+              </h2>
+              <p className="text-base md:text-lg text-white/85 leading-relaxed">
+                長期關注科技與資本市場的交集,研究產業競爭結構與長期價值。
+                過去三年深入鑽研太空產業，從 SpaceX 大敘事到下一波太空概念股的投資 thesis,
+                把研究心得拆解成可執行的資本配置框架。
+              </p>
+              <blockquote className="border-l-2 border-amber-300/60 pl-5 py-2">
+                <p className="text-amber-100/90 italic text-base md:text-lg leading-relaxed">
+                  「太空不是科幻,是下一個資本配置必修課。」
+                </p>
+              </blockquote>
+              <div className="flex items-center gap-3 pt-2">
+                <div className="w-10 h-px bg-amber-300/60" />
+                <p className="text-amber-100/70 text-sm">
+                  也在牛津視界發布 AI 與創投主題內容
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* === 沉式 CTA (太空大師課專用) === */}
+      {isMasterSpace && !hasAccess && (
+        <section className="relative mt-16 w-full overflow-hidden">
+          <div className="relative aspect-[3/2] md:aspect-[3/1] min-h-[400px]">
+            <Image
+              src="/marketing/cta-master-space-age.png"
+              alt=""
+              fill
+              sizes="100vw"
+              className="object-cover object-center"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/70" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center px-6 max-w-3xl space-y-6">
+                <p className="text-[11px] uppercase tracking-[0.3em] text-amber-300/80 font-bold">
+                  The Final Call
+                </p>
+                <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight">
+                  在主流醒來前
+                  <span className="block mt-2">先佔好你的位置</span>
+                </h2>
+                <p className="text-base md:text-lg text-white/85 max-w-xl mx-auto">
+                  AI 漲完了,大資金正在悄悄佈局太空。每一塊都是兆元級市場,每一塊都還沒擠進主流投資人視野。
+                </p>
+                {course.sale_ends_at && new Date(course.sale_ends_at) > new Date() && (
+                  <div className="pt-2">
+                    <CountdownTimer endsAt={course.sale_ends_at} />
+                  </div>
+                )}
+                <div className="pt-4">
+                  <Link
+                    href={
+                      userId
+                        ? `/checkout?type=course&courseId=${course.id}`
+                        : `/sign-in?redirect=/courses/${course.slug}`
+                    }
+                    className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-8 py-4 rounded-xl text-base md:text-lg shadow-2xl shadow-amber-500/30 active:scale-95 transition-all"
+                  >
+                    立即購買 — NT${effectivePrice.toLocaleString()}
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* 手機 sticky bottom buy bar — 只在沒購買時顯示 */}
       {!hasAccess && (
