@@ -138,6 +138,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "沒有收件人" }, { status: 400 });
   }
 
+  // 監控收件人:不論什麼 target,JD 跟久老師都收到一份
+  // 用途:看信件實際長相、是否進垃圾匣、寄出真的成功
+  const MONITORING_EMAILS = ["j1988771115@gmail.com", "yupupin@gmail.com"];
+  emails = [...new Set([...emails, ...MONITORING_EMAILS])];
+
   const result = await sendBatchEmails({ emails, subject, html, replyTo });
 
   return NextResponse.json({
