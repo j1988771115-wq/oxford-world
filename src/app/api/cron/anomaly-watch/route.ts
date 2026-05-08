@@ -215,6 +215,35 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // 10. 殭屍 auth user(auth.users 有 row,profiles 沒對應)— 5/4-5/5 出過 4 筆,已修 trigger
+  //     殘留檢測:任何時候 >0 都該知道(可能新 zombie,可能歷史漏網)
+  try {
+    const allAuth: { id: string; email: string | null; created_at: string }[] = [];
+    let page = 1;
+    while (page < 20) {
+      const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+      if (error) break;
+      const users = data.users.map((u) => ({ id: u.id, email: u.email ?? null, created_at: u.created_at }));
+      allAuth.push(...users);
+      if (users.length < 1000) break;
+      page++;
+    }
+    const { data: profileRows } = await supabase.from("profiles").select("auth_id");
+    const profileSet = new Set((profileRows || []).map((r) => r.auth_id));
+    const zombies = allAuth.filter((u) => !profileSet.has(u.id));
+    if (zombies.length > 0) {
+      anomalies.push({
+        severity: "P0",
+        kind: "ZOMBIE_AUTH_USER",
+        details: "auth.users 有 row 但 profiles 沒對應 — handle_new_user trigger 失敗或被 swallow",
+        count: zombies.length,
+        evidence: zombies.slice(0, 20),
+      });
+    }
+  } catch (e) {
+    console.error("[anomaly-watch] zombie scan fail", e);
+  }
+
   // 8. course_access 重複 row(unique constraint 沒生效徵兆)
   const { data: allAccess } = await supabase
     .from("course_access")
@@ -276,7 +305,7 @@ ${anomalies
   }
 
   return NextResponse.json({
-    checked: 8,
+    checked: 9,
     found: anomalies.length,
     notified,
     anomalies: anomalies.map((a) => ({ severity: a.severity, kind: a.kind, count: a.count })),
