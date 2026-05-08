@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   const isIOS = /iPad|iPhone|iPod/i.test(userAgent);
   const isSafari = /Safari/i.test(userAgent) && !/Chrome|CriOS|FxiOS/i.test(userAgent);
 
-  // Auth
+  // Auth — 試看也要先登入(JD 拍板:降低門檻 vs 收 email 名單,選後者)
   const supabase = await createServerClient();
   const {
     data: { user },

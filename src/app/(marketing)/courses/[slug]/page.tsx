@@ -21,6 +21,7 @@ import { COURSE_DISCLAIMER } from "@/lib/constants";
 import { hasCourseAccess } from "@/lib/access";
 import { CountdownTimer } from "@/components/courses/countdown-timer";
 import { FaqAccordion } from "@/components/courses/faq-accordion";
+import { InlinePreviewPlayer } from "@/components/courses/inline-preview-player";
 
 // ISR:課程詳情頁 60 秒 cache,改 DB 後最多 60 秒生效,TTFB ~50ms vs 1.3s
 export const revalidate = 60;
@@ -473,62 +474,16 @@ export default async function CourseDetailPage({ params }: Props) {
               </p>
             </div>
 
-            <Link
-              href={
-                userId
-                  ? `/learn/${course.id}?chapter=${firstFreeChapter.id}&part=main`
-                  : `/sign-in?redirect=/learn/${course.id}?chapter=${firstFreeChapter.id}%26part=main`
-              }
-              className="group block bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 rounded-2xl border border-amber-500/20 hover:border-amber-500/50 overflow-hidden transition-all"
-            >
-              <div className="grid md:grid-cols-[1.6fr_1fr] gap-0 items-stretch">
-                {/* Left:課程封面當預覽縮圖 + Play 按鈕 overlay */}
-                <div className="relative aspect-video md:aspect-auto md:min-h-[280px] bg-slate-900 overflow-hidden">
-                  <Image
-                    src={course.thumbnail_url || "/covers/main-space-age-capital.png"}
-                    alt=""
-                    fill
-                    sizes="(max-width: 768px) 100vw, 60vw"
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                  {/* Dark vignette 讓 PlayCircle / badge 視覺清楚 */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-black/30 via-transparent to-black/50" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-amber-500 group-hover:bg-amber-400 group-hover:scale-110 flex items-center justify-center shadow-2xl shadow-amber-500/50 transition-all">
-                      <PlayCircle size={44} className="text-slate-950 fill-current ml-1" />
-                    </div>
-                  </div>
-                  <span className="absolute top-4 left-4 px-2.5 py-1 rounded bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-lg">
-                    FREE
-                  </span>
-                </div>
-                {/* Right:章節資訊 */}
-                <div className="p-7 md:p-8 flex flex-col justify-center space-y-4">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-amber-300/80 font-bold">
-                    第 1 章 · 免費試看
-                  </p>
-                  <h3 className="text-xl md:text-2xl font-black text-white leading-snug">
-                    {firstFreeChapter.title}
-                  </h3>
-                  {firstFreeChapter.duration_seconds && (
-                    <p className="text-sm text-white/60">
-                      時長約 {Math.floor(firstFreeChapter.duration_seconds / 60)} 分鐘
-                    </p>
-                  )}
-                  <p className="text-sm md:text-base text-white/75 leading-relaxed">
-                    {firstFreeChapter.takeaway_summary
-                      ? firstFreeChapter.takeaway_summary.slice(0, 100) + "…"
-                      : "看久方武院長親自講解,先抓到課程風格再決定要不要全課。"}
-                  </p>
-                  <div className="pt-2">
-                    <span className="inline-flex items-center gap-2 text-amber-300 font-bold group-hover:gap-3 transition-all">
-                      {userId ? "立即試看" : "登入後試看"}
-                      <ChevronRight size={18} />
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Link>
+            <InlinePreviewPlayer
+              chapterId={firstFreeChapter.id}
+              chapterTitle={firstFreeChapter.title}
+              takeawaySummary={firstFreeChapter.takeaway_summary}
+              durationSeconds={firstFreeChapter.duration_seconds}
+              thumbnailUrl={course.thumbnail_url || "/covers/main-space-age-capital.png"}
+              courseSlug={course.slug}
+              userId={userId}
+            />
+
           </div>
         </section>
       )}
