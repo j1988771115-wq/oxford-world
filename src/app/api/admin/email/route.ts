@@ -65,6 +65,26 @@ export async function POST(req: Request) {
       ...(members?.map((d) => d.email) || []),
     ];
     emails = [...new Set(allEmails)]; // deduplicate
+  } else if (target?.startsWith("course:")) {
+    // course:<slug> — 寄給該課程所有有 access 的學員(購買 / 贈與 / 試讀)
+    const slug = target.slice("course:".length);
+    const { data: course } = await supabase.from("courses").select("id").eq("slug", slug).single();
+    if (!course) {
+      return NextResponse.json({ error: `course not found: ${slug}` }, { status: 400 });
+    }
+    const { data: access } = await supabase
+      .from("course_access")
+      .select("user_id")
+      .eq("course_id", course.id);
+    const uids = access?.map((a) => a.user_id) || [];
+    if (uids.length === 0) {
+      return NextResponse.json({ error: "此課程沒有 access 學員" }, { status: 400 });
+    }
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("email")
+      .in("id", uids);
+    emails = (profiles || []).map((p) => p.email).filter(Boolean) as string[];
   }
 
   if (emails.length === 0) {
