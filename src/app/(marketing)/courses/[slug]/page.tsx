@@ -897,12 +897,28 @@ export default async function CourseDetailPage({ params }: Props) {
               <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight">
                 {course.instructor}
                 <span className="block text-xl md:text-2xl text-amber-200/90 font-bold mt-2">
-                  巨石文化負責人 · 牛津視界院長
+                  牛津視界院長 · 巨石文化負責人
                 </span>
               </h2>
-              <p className="text-base md:text-lg text-white/85 leading-relaxed">
-                長期關注科技與資本市場的交集,研究產業競爭結構與長期價值。
-                過去三年深入鑽研太空產業，從 SpaceX 大敘事到下一波太空概念股的投資 thesis,
+              {/* 經歷標籤化 — 正式 credentials 一目了然 */}
+              <ul className="flex flex-wrap gap-2 pt-1">
+                {[
+                  "產官學三棲",
+                  "上市櫃輔導",
+                  "證券公司副總經理",
+                  "財訊資深研究員",
+                ].map((cred) => (
+                  <li
+                    key={cred}
+                    className="inline-flex items-center px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-100 text-sm"
+                  >
+                    {cred}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-base md:text-lg text-white/85 leading-relaxed pt-2">
+                專長太空產業與美股微型股投資。
+                過去三年深入鑽研太空產業大敘事到下一波概念股的投資 thesis,
                 把研究心得拆解成可執行的資本配置框架。
               </p>
               <blockquote className="border-l-2 border-amber-300/60 pl-5 py-2">
@@ -910,12 +926,6 @@ export default async function CourseDetailPage({ params }: Props) {
                   「太空不是科幻,是下一個資本配置必修課。」
                 </p>
               </blockquote>
-              <div className="flex items-center gap-3 pt-2">
-                <div className="w-10 h-px bg-amber-300/60" />
-                <p className="text-amber-100/70 text-sm">
-                  也在牛津視界發布 AI 與創投主題內容
-                </p>
-              </div>
             </div>
           </div>
         </section>
