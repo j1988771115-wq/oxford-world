@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { COURSE_DISCLAIMER } from "@/lib/constants";
 import { hasCourseAccess } from "@/lib/access";
 import { CountdownTimer } from "@/components/courses/countdown-timer";
+import { FaqAccordion } from "@/components/courses/faq-accordion";
 
 // ISR:課程詳情頁 60 秒 cache,改 DB 後最多 60 秒生效,TTFB ~50ms vs 1.3s
 export const revalidate = 60;
@@ -389,6 +390,111 @@ export default async function CourseDetailPage({ params }: Props) {
         </section>
       )}
 
+      {/* === 痛點 section (太空大師課專用) === */}
+      {isMasterSpace && (
+        <section className="bg-slate-950 py-16 md:py-24">
+          <div className="max-w-[1100px] mx-auto px-6 md:px-12">
+            <p className="text-[11px] uppercase tracking-[0.3em] text-amber-300/80 font-bold mb-4">
+              The Pain Point
+            </p>
+            <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-12 leading-tight">
+              你是不是也卡在這？
+            </h2>
+            <ul className="grid md:grid-cols-3 gap-6">
+              {[
+                {
+                  num: "01",
+                  title: "AI 漲完了，下一波看不出來",
+                  body: "市場開始問下一個故事，搜「太空概念股」一堆名詞跳出來。看不出哪家是真材實料、哪家是 hype。",
+                },
+                {
+                  num: "02",
+                  title: "看到太空題材想跟，又怕被套",
+                  body: "新聞一報就漲，要不要進場？沒框架判斷哪些是 thesis driven、哪些只是被動跟風。",
+                },
+                {
+                  num: "03",
+                  title: "想佈局新敘事，但產業看不懂",
+                  body: "衛星、發射、數據、國防、月球——5 個次產業競爭結構搞不清，根本下不了手。",
+                },
+              ].map((p) => (
+                <li
+                  key={p.num}
+                  className="bg-slate-900/60 border border-amber-500/15 rounded-2xl p-6 md:p-7"
+                >
+                  <p className="text-amber-300/70 font-black text-sm tracking-wider mb-3">
+                    {p.num}
+                  </p>
+                  <h3 className="text-lg md:text-xl font-bold text-white mb-3 leading-snug">
+                    {p.title}
+                  </h3>
+                  <p className="text-sm md:text-base text-white/70 leading-relaxed">
+                    {p.body}
+                  </p>
+                </li>
+              ))}
+            </ul>
+            <p className="text-amber-200/80 text-base md:text-lg mt-10 max-w-2xl">
+              這堂課不給你明牌，給你一套自己判斷的框架——讓你接下來十年看到任何太空題材，都知道怎麼拆、怎麼配、怎麼下。
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* === Outcome section (太空大師課專用) === */}
+      {isMasterSpace && (
+        <section className="bg-slate-900 py-16 md:py-24">
+          <div className="max-w-[1100px] mx-auto px-6 md:px-12">
+            <p className="text-[11px] uppercase tracking-[0.3em] text-amber-300/80 font-bold mb-4">
+              What You Get
+            </p>
+            <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-3 leading-tight">
+              上完這堂課，你會帶走
+            </h2>
+            <p className="text-base md:text-lg text-white/60 mb-12 max-w-2xl">
+              不是名單、不是 hype，是接下來十年都用得上的判斷框架。
+            </p>
+            <ul className="grid md:grid-cols-2 gap-5">
+              {[
+                {
+                  title: "產業地圖",
+                  body: "看懂太空 5 大次產業競爭結構，知道每塊是兆元級市場還是噱頭、誰在哪裡卡住。",
+                },
+                {
+                  title: "個股拆解框架",
+                  body: "一套判斷哪家公司值得佈局的標準：財報健康度、護城河厚度、估值落差訊號。",
+                },
+                {
+                  title: "時序判斷",
+                  body: "哪些公司現在還是故事、哪些已經有訂單、哪些訂單還在沒人看到——進場時機不靠運氣。",
+                },
+                {
+                  title: "資本配置 framework",
+                  body: "從持股比例、加減碼、停損到 exit 的完整邏輯，把太空配置融進你整個資產配置裡。",
+                },
+              ].map((o) => (
+                <li
+                  key={o.title}
+                  className="bg-slate-950/50 border border-amber-500/20 rounded-2xl p-6 md:p-7 flex gap-5"
+                >
+                  <div className="shrink-0 w-12 h-12 rounded-full bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-amber-300">
+                    <Check size={22} strokeWidth={2.5} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg md:text-xl font-bold text-white mb-2 leading-snug">
+                      {o.title}
+                    </h3>
+                    <p className="text-sm md:text-base text-white/75 leading-relaxed">
+                      {o.body}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
       <div className="pt-12 px-8 max-w-[1440px] mx-auto">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-on-surface-variant text-sm mb-8">
@@ -472,7 +578,67 @@ export default async function CourseDetailPage({ params }: Props) {
             </p>
           </section>
 
-          {/* Curriculum */}
+          {/* === Module 化大綱 (太空大師課專用,代替 11 章 detail) === */}
+          {isMasterSpace ? (
+            <section>
+              <div className="flex justify-between items-end mb-6">
+                <h2 className="text-2xl font-bold text-on-surface">課程地圖</h2>
+                <p className="text-sm text-on-surface-variant">
+                  5 個主題 module · {chapters?.length ?? 11} 章影片
+                </p>
+              </div>
+              <ul className="space-y-4">
+                {[
+                  {
+                    n: "M1",
+                    title: "太空產業全景",
+                    desc: "為什麼下一個十年最強敘事是太空,而不是 AI 也不是電動車。資本配置黃金窗口判斷。",
+                  },
+                  {
+                    n: "M2",
+                    title: "垂直整合與發射執行",
+                    desc: "誰會吃掉整條產業鏈、誰是中型發射執行者的破壞創新——巨頭護城河與夾縫機會的選股邏輯。",
+                  },
+                  {
+                    n: "M3",
+                    title: "連線基礎設施",
+                    desc: "直連手機與下一代行動通訊的衛星挑戰者:技術 thesis vs 商業 thesis 的落差怎麼看。",
+                  },
+                  {
+                    n: "M4",
+                    title: "數據經濟與賣鏟人",
+                    desc: "太空數據商業模式 SaaS 化轉型 + 在軌服務太空製造的「賣鏟人」選股邏輯。",
+                  },
+                  {
+                    n: "M5",
+                    title: "政策驅動與下一波",
+                    desc: "政府訂單型公司的時序風險(月球商業化、國防航太),以及還沒被主流發現的下一波概念。",
+                  },
+                ].map((m) => (
+                  <li
+                    key={m.n}
+                    className="bg-surface-container-lowest rounded-xl deep-diffusion p-6 flex gap-5 items-start"
+                  >
+                    <span className="shrink-0 w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center font-black text-amber-700 dark:text-amber-300 tabular-nums">
+                      {m.n}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-bold text-on-surface mb-2 leading-snug">
+                        {m.title}
+                      </h3>
+                      <p className="text-sm md:text-base text-on-surface-variant leading-relaxed">
+                        {m.desc}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-on-surface-variant mt-5 leading-relaxed">
+                每個 module 含 1-3 章影片,搭配「主影片(久方武院長親錄)+ 背景資料學習」雙軌設計。具體個股 thesis 留給付費學員,在主流發現前先佈局。
+              </p>
+            </section>
+          ) : (
+          /* 非太空大師課 fallback:走原 11 章 detail layout */
           <section>
             <div className="flex justify-between items-end mb-6">
               <h2 className="text-2xl font-bold text-on-surface">課程大綱</h2>
@@ -572,19 +738,22 @@ export default async function CourseDetailPage({ params }: Props) {
               )}
             </div>
           </section>
+          )}
 
-          {/* Reviews */}
-          <section>
-            <h2 className="text-2xl font-bold text-on-surface mb-8">
-              學員評價
-            </h2>
-            <div className="bg-surface-container-low p-8 rounded-xl text-center">
-              <Star size={32} className="text-on-surface-variant/30 mx-auto mb-3" />
-              <p className="text-on-surface-variant">
-                還沒有評價。成為第一個完課並留下評價的學員！
-              </p>
-            </div>
-          </section>
+          {/* Reviews — 太空大師課 25 人付費中,先不放 placeholder「沒評價」(削弱信任),等實際 testimonial 收齊再上 */}
+          {!isMasterSpace && (
+            <section>
+              <h2 className="text-2xl font-bold text-on-surface mb-8">
+                學員評價
+              </h2>
+              <div className="bg-surface-container-low p-8 rounded-xl text-center">
+                <Star size={32} className="text-on-surface-variant/30 mx-auto mb-3" />
+                <p className="text-on-surface-variant">
+                  還沒有評價。成為第一個完課並留下評價的學員！
+                </p>
+              </div>
+            </section>
+          )}
         </div>
 
         {/* Right Sidebar */}
@@ -927,6 +1096,145 @@ export default async function CourseDetailPage({ params }: Props) {
                 </p>
               </blockquote>
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* === 你拿到什麼 + 價格 anchor (太空大師課專用) === */}
+      {isMasterSpace && !hasAccess && (
+        <section className="bg-slate-950 py-16 md:py-24">
+          <div className="max-w-[1100px] mx-auto px-6 md:px-12 grid md:grid-cols-2 gap-12 items-start">
+            <div className="space-y-6">
+              <p className="text-[11px] uppercase tracking-[0.3em] text-amber-300/80 font-bold">
+                What&apos;s Included
+              </p>
+              <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight">
+                你拿到的不只是 9 章影片
+              </h2>
+              <ul className="space-y-4 text-white/85">
+                {[
+                  "9 章久方武院長親錄主影片(從產業大圖到個股 thesis)",
+                  `${chapters?.length ?? 11} 章背景補充教材(NotebookLM 風格 deep dive)`,
+                  "1 年無限觀看 + 期滿後平台贈送繼續回看",
+                  "Eyesy AI 助教 24/7 在線,看不懂可隨時問",
+                  "完整資本配置 framework,從建倉到 exit 全套邏輯",
+                  "太空產業判斷框架,套接下來十年都用得上",
+                ].map((line, i) => (
+                  <li key={i} className="flex gap-3 text-base md:text-lg leading-relaxed">
+                    <Check size={20} className="shrink-0 text-amber-300 mt-1" />
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* 價格 anchor box */}
+            <div className="bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-amber-500/30 rounded-2xl p-8 md:p-10 space-y-6 shadow-2xl">
+              {course.original_price && course.original_price > effectivePrice &&
+                (!course.sale_ends_at || new Date(course.sale_ends_at) > new Date()) && (
+                <div className="inline-flex items-center gap-1.5 bg-red-500/15 text-red-300 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-[0.2em]">
+                  <Sparkles size={12} />
+                  限時特價
+                </div>
+              )}
+              <div className="space-y-2">
+                <p className="text-sm text-white/60">大師課單次買斷</p>
+                <div className="flex items-baseline gap-3 flex-wrap">
+                  {course.original_price && course.original_price > effectivePrice &&
+                    (!course.sale_ends_at || new Date(course.sale_ends_at) > new Date()) && (
+                    <span className="text-2xl text-white/50 line-through">
+                      NT${course.original_price.toLocaleString()}
+                    </span>
+                  )}
+                  <span className="text-5xl md:text-6xl font-black text-amber-300 tracking-tight">
+                    NT${effectivePrice.toLocaleString()}
+                  </span>
+                </div>
+                {course.original_price && course.original_price > effectivePrice &&
+                  (!course.sale_ends_at || new Date(course.sale_ends_at) > new Date()) && (
+                  <p className="text-amber-200 font-bold text-sm">
+                    省 NT${(course.original_price - effectivePrice).toLocaleString()}
+                  </p>
+                )}
+              </div>
+              {course.sale_ends_at && new Date(course.sale_ends_at) > new Date() && (
+                <div className="space-y-2 pt-2 border-t border-white/10">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-amber-300/80">
+                    特價結束倒數
+                  </p>
+                  <CountdownTimer endsAt={course.sale_ends_at} />
+                </div>
+              )}
+              <Link
+                href={
+                  userId
+                    ? `/checkout?type=course&courseId=${course.id}`
+                    : `/sign-in?redirect=/courses/${course.slug}`
+                }
+                className="block w-full text-center bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-6 py-4 rounded-xl text-base md:text-lg shadow-lg shadow-amber-500/20 active:scale-95 transition-all"
+              >
+                {userId ? "立即購買" : "登入後購買"}
+              </Link>
+              <p className="text-xs text-center text-white/50 leading-relaxed">
+                付款後立即解鎖全部章節 · 無下載限制 · 1 年無限觀看
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* === FAQ accordion (太空大師課專用) === */}
+      {isMasterSpace && (
+        <section className="py-16 md:py-24 bg-surface">
+          <div className="max-w-[800px] mx-auto px-6 md:px-12">
+            <p className="text-[11px] uppercase tracking-[0.3em] text-amber-600 dark:text-amber-400 font-bold mb-4">
+              Frequently Asked
+            </p>
+            <h2 className="text-3xl md:text-4xl font-black text-on-surface tracking-tight mb-12 leading-tight">
+              常見問題
+            </h2>
+            <FaqAccordion
+              items={[
+                {
+                  q: "課程多長?怎麼看?",
+                  a: `${chapters?.length ?? 11} 章影片(每章主影片 + 背景補充教材),總時長約 ${
+                    chapters && chapters.length > 0
+                      ? (
+                          chapters.reduce(
+                            (s: number, c: { duration_seconds?: number | null; duration_seconds_bg?: number | null }) =>
+                              s + (c.duration_seconds || 0) + (c.duration_seconds_bg || 0),
+                            0,
+                          ) / 3600
+                        ).toFixed(1)
+                      : "8-10"
+                  } 小時。可在桌面、手機、平板隨時觀看,進度自動同步。`,
+                },
+                {
+                  q: "我可以看多久?",
+                  a: "付款後 1 年內無限觀看,期滿後平台贈送繼續回看(此為平台善意,非合約義務)。沒有觀看次數限制、沒有下載限制。",
+                },
+                {
+                  q: "退費政策?",
+                  a: "依消費者權益法數位內容例外準則,大師課單次買斷不退費。建議先看免費試看章節確認講師風格再下單。",
+                },
+                {
+                  q: "跟 Pro 訂閱有什麼差別?",
+                  a: "大師課是針對單一主題的深度內容(這堂是太空產業),買斷後 1 年無限看。Pro 訂閱(NT$999/月)是平台所有持續更新內容的訂閱權。兩者獨立,可分開買。",
+                },
+                {
+                  q: "不會看財報能上嗎?",
+                  a: "可以。課程從產業大敘事切入,逐章帶到個股拆解,財報相關語法會邊講邊解釋。如果完全沒美股經驗,建議先看免費試看章節評估難度。",
+                },
+                {
+                  q: "有試看嗎?",
+                  a: "有。第 1 章「先導:為什麼太空是下一個科技週期」開放免費試看,登入即可觀看完整章節。",
+                },
+                {
+                  q: "課程會持續更新嗎?",
+                  a: "會。久方武院長持續追蹤太空產業動態,新章節會以「背景資料學習」形式補進來,你購買後可看到所有後續更新。",
+                },
+              ]}
+            />
           </div>
         </section>
       )}
