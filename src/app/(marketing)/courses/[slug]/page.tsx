@@ -1048,21 +1048,6 @@ export default async function CourseDetailPage({ params }: Props) {
               </div>
             </div>
 
-            <div className="bg-secondary-fixed p-6 rounded-xl border border-secondary-container/30 flex items-start gap-4">
-              <Sparkles
-                size={24}
-                className="text-on-secondary-fixed-variant fill-current"
-              />
-              <div>
-                <p className="text-on-secondary-fixed-variant font-bold text-sm mb-1">
-                  AI 顧問分析
-                </p>
-                <p className="text-on-secondary-fixed-variant/80 text-sm leading-relaxed">
-                  根據您的興趣，這門課能幫助您提升專業能力。
-                </p>
-              </div>
-            </div>
-
             <div className="bg-amber-500/10 border border-amber-500/30 p-6 rounded-xl">
               <p className="text-amber-700 dark:text-amber-300 font-black text-xs uppercase tracking-wider mb-3">
                 {COURSE_DISCLAIMER.title} ({COURSE_DISCLAIMER.titleEn})
