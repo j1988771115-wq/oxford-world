@@ -552,9 +552,10 @@ export default async function CourseDetailPage({ params }: Props) {
               })()}
 
               <div className="p-8 space-y-6">
-                {/* Price */}
+                {/* Price — sale_ends_at 過期則不顯示特價 badge(cron 沒跑時的視覺保險,ISR revalidate=60s) */}
                 <div className="space-y-2">
-                  {course.original_price && course.original_price > effectivePrice && !hasAlumniDiscount && (
+                  {course.original_price && course.original_price > effectivePrice && !hasAlumniDiscount &&
+                    (!course.sale_ends_at || new Date(course.sale_ends_at) > new Date()) && (
                     <div className="inline-flex items-center gap-1.5 bg-red-500/15 text-red-600 dark:text-red-400 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
                       <Sparkles size={10} />
                       {course.sale_ends_at
@@ -576,7 +577,8 @@ export default async function CourseDetailPage({ params }: Props) {
                         NT${course.price.toLocaleString()}
                       </span>
                     )}
-                    {!hasAlumniDiscount && course.original_price && course.original_price > effectivePrice && (
+                    {!hasAlumniDiscount && course.original_price && course.original_price > effectivePrice &&
+                      (!course.sale_ends_at || new Date(course.sale_ends_at) > new Date()) && (
                       <span className="text-xl text-on-surface-variant line-through">
                         NT${course.original_price.toLocaleString()}
                       </span>
@@ -805,14 +807,18 @@ export default async function CourseDetailPage({ params }: Props) {
           ) : (
             <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">
-                  限時特價
-                </p>
+                {course.original_price && course.original_price > effectivePrice && !hasAlumniDiscount &&
+                  (!course.sale_ends_at || new Date(course.sale_ends_at) > new Date()) && (
+                  <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">
+                    限時特價
+                  </p>
+                )}
                 <div className="flex items-baseline gap-2">
                   <span className="text-xl font-black text-on-surface">
                     NT${effectivePrice.toLocaleString()}
                   </span>
-                  {course.original_price && course.original_price > effectivePrice && (
+                  {course.original_price && course.original_price > effectivePrice &&
+                    (!course.sale_ends_at || new Date(course.sale_ends_at) > new Date()) && (
                     <span className="text-xs text-on-surface-variant line-through">
                       NT${course.original_price.toLocaleString()}
                     </span>

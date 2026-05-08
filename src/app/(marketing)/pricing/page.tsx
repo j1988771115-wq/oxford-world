@@ -77,7 +77,8 @@ export default async function PricingPage() {
       <div className="max-w-5xl mx-auto px-8 grid md:grid-cols-2 gap-6 items-stretch">
         {/* 大師課 (主推) */}
         <div className="relative bg-surface-container-lowest rounded-2xl border-2 border-amber-500/40 shadow-[0_24px_48px_-12px_rgba(13,28,50,0.18)] flex flex-col overflow-hidden">
-          {originalPrice && originalPrice > price && (
+          {originalPrice && originalPrice > price &&
+            (!course?.sale_ends_at || new Date(course.sale_ends_at) > new Date()) && (
             <div className="bg-amber-500 text-white text-center py-2.5 text-[11px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2">
               <Sparkles size={12} />
               限時特價{saleEndLabel ? ` · ${saleEndLabel}` : ""}
@@ -97,7 +98,8 @@ export default async function PricingPage() {
                 下一個十年的產業革命 · {course?.instructor ?? "久方武"} 院長親授
               </p>
               <div className="flex items-baseline justify-center gap-3 mb-2">
-                {originalPrice && originalPrice > price && (
+                {originalPrice && originalPrice > price &&
+                  (!course?.sale_ends_at || new Date(course.sale_ends_at) > new Date()) && (
                   <span className="text-xl text-on-surface-variant line-through">
                     {fmt(originalPrice)}
                   </span>
