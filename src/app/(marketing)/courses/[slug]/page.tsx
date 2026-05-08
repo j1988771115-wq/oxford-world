@@ -384,6 +384,39 @@ export default async function CourseDetailPage({ params }: Props) {
                     <CountdownTimer endsAt={course.sale_ends_at} />
                   </div>
                 )}
+                {/* Hero CTA — 直接讓人在最上面就能點購買 */}
+                <div className="flex flex-wrap items-center gap-4 pt-4">
+                  {hasAccess ? (
+                    <Link
+                      href={`/learn/${course.id}`}
+                      className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-7 py-4 rounded-xl text-base md:text-lg shadow-2xl shadow-amber-500/30 active:scale-95 transition-all"
+                    >
+                      進入課程
+                    </Link>
+                  ) : (
+                    <>
+                      <Link
+                        href={
+                          userId
+                            ? `/checkout?type=course&courseId=${course.id}`
+                            : `/sign-in?redirect=/courses/${course.slug}`
+                        }
+                        className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-7 py-4 rounded-xl text-base md:text-lg shadow-2xl shadow-amber-500/30 active:scale-95 transition-all"
+                      >
+                        {userId ? "立即購買" : "登入後購買"}
+                        <span className="text-amber-900/70 font-bold">·</span>
+                        <span>NT${effectivePrice.toLocaleString()}</span>
+                      </Link>
+                      {course.original_price &&
+                        course.original_price > effectivePrice &&
+                        (!course.sale_ends_at || new Date(course.sale_ends_at) > new Date()) && (
+                          <span className="text-white/60 text-sm line-through">
+                            NT${course.original_price.toLocaleString()}
+                          </span>
+                        )}
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
