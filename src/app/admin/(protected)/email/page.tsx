@@ -8,6 +8,7 @@ const TARGETS = [
   { value: "members", label: "所有會員" },
   { value: "pro", label: "Pro 會員" },
   { value: "course:master-space-age-capital", label: "已購買「太空時代的資本配置」大師課的學員" },
+  { value: "prospects:master-space-age-capital", label: "註冊會員但還沒買「太空時代的資本配置」大師課（推廣對象）" },
 ];
 
 export default function AdminEmailPage() {

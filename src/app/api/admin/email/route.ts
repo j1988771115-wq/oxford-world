@@ -89,6 +89,49 @@ export async function POST(req: Request) {
       .select("email")
       .in("id", uids);
     emails = (profiles || []).map((p) => p.email).filter(Boolean) as string[];
+  } else if (target?.startsWith("prospects:")) {
+    // prospects:<slug> — 寄給「註冊會員但還沒買該課程」的人,推廣信用。
+    //
+    // 排除規則(避免雙帳號重複轟炸):
+    // 1. 直接已買的 user_id 排除
+    // 2. 同 display_name 也排除(處理「同一個人有多個帳號」的 case ─
+    //    例如 j1988771115@gmail.com 跟 jd@onlymusic.tw 都叫黃建東,
+    //    其中一個買了大師課,另一個就不該再被推廣)
+    const slug = target.slice("prospects:".length);
+    const { data: course } = await supabase.from("courses").select("id").eq("slug", slug).single();
+    if (!course) {
+      return NextResponse.json({ error: `course not found: ${slug}` }, { status: 400 });
+    }
+    const { data: bought } = await supabase
+      .from("course_access")
+      .select("user_id")
+      .eq("course_id", course.id);
+    const boughtIds = new Set((bought || []).map((b) => b.user_id));
+    // 抓已買學員的 display_name(去 trim,排空字串)
+    let boughtNames = new Set<string>();
+    if (boughtIds.size > 0) {
+      const { data: boughtProfiles } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .in("id", [...boughtIds]);
+      boughtNames = new Set(
+        (boughtProfiles || [])
+          .map((p) => p.display_name?.trim())
+          .filter((n): n is string => !!n),
+      );
+    }
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, email, display_name");
+    emails = (profiles || [])
+      .filter((p) => {
+        if (boughtIds.has(p.id)) return false;
+        // 同名也排除(雙帳號保險)
+        const name = p.display_name?.trim();
+        if (name && boughtNames.has(name)) return false;
+        return !!p.email;
+      })
+      .map((p) => p.email) as string[];
   }
 
   if (emails.length === 0) {
