@@ -31,16 +31,20 @@ export async function GET() {
 export async function POST(req: Request) {
   if (!(await isAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  let body: { target?: string; subject?: string; html?: string };
+  let body: { target?: string; subject?: string; html?: string; replyTo?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
   }
-  const { target, subject, html } = body;
+  const { target, subject, html, replyTo } = body;
 
   if (!subject || !html) {
     return NextResponse.json({ error: "subject and html are required" }, { status: 400 });
+  }
+  // 簡單驗 replyTo 格式
+  if (replyTo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyTo)) {
+    return NextResponse.json({ error: "replyTo email format invalid" }, { status: 400 });
   }
 
   const supabase = createAdminClient();
@@ -91,7 +95,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "沒有收件人" }, { status: 400 });
   }
 
-  const result = await sendBatchEmails({ emails, subject, html });
+  const result = await sendBatchEmails({ emails, subject, html, replyTo });
 
   return NextResponse.json({
     ...result,

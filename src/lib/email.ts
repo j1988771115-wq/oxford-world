@@ -62,10 +62,12 @@ export async function sendEmail({
   to,
   subject,
   html,
+  replyTo,
 }: {
   to: string | string[];
   subject: string;
   html: string;
+  replyTo?: string;
 }) {
   const resend = getResend();
   if (!resend) {
@@ -78,6 +80,7 @@ export async function sendEmail({
     to: Array.isArray(to) ? to : [to],
     subject,
     html,
+    ...(replyTo ? { replyTo } : {}),
   });
 
   if (error) {
@@ -92,10 +95,12 @@ export async function sendBatchEmails({
   emails,
   subject,
   html,
+  replyTo,
 }: {
   emails: string[];
   subject: string;
   html: string;
+  replyTo?: string;
 }) {
   const resend = getResend();
   if (!resend) {
@@ -120,6 +125,7 @@ export async function sendBatchEmails({
       to: batch,
       subject,
       html,
+      ...(replyTo ? { replyTo } : {}),
     });
 
     if (error) {

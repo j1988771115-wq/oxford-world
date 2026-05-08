@@ -15,6 +15,7 @@ export default function AdminEmailPage() {
   const [target, setTarget] = useState("all");
   const [subject, setSubject] = useState("");
   const [html, setHtml] = useState("");
+  const [replyTo, setReplyTo] = useState("");
   const [isPending, startTransition] = useTransition();
   const [result, setResult] = useState("");
   const [preview, setPreview] = useState(false);
@@ -34,7 +35,7 @@ export default function AdminEmailPage() {
       const res = await fetch("/api/admin/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target, subject, html }),
+        body: JSON.stringify({ target, subject, html, replyTo: replyTo.trim() || undefined }),
       });
       const data = await res.json();
       setResult(data.message || data.error || "完成");
@@ -74,6 +75,16 @@ export default function AdminEmailPage() {
               placeholder="例：牛津視界週報 #01 — AI 趨勢速遞"
             />
           </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-gray-400">回信地址 Reply-To（選填）</label>
+          <input
+            value={replyTo}
+            onChange={(e) => setReplyTo(e.target.value)}
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm text-white focus:ring-2 ring-blue-600/50 focus:outline-none placeholder-gray-600"
+            placeholder="例：yupupin@gmail.com (學員回信會跑到這個信箱,留空走 noreply 不收回信)"
+          />
         </div>
 
         <div className="space-y-1">

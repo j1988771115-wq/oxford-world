@@ -358,9 +358,10 @@ export default async function CourseDetailPage({ params }: Props) {
           <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/70" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/30" />
 
-          <div className="relative z-10 h-full flex items-center">
-            <div className="max-w-[1440px] mx-auto w-full px-6 md:px-12 grid md:grid-cols-2 gap-8">
-              <div className="space-y-6 max-w-xl">
+          <div className="relative z-10 h-full flex items-center py-12 md:py-0">
+            <div className="max-w-[1440px] mx-auto w-full px-6 md:px-12 grid md:grid-cols-[1fr_auto] gap-8 md:gap-12 items-center">
+              {/* 左欄:title + description + instructor */}
+              <div className="space-y-5 md:space-y-6 max-w-xl">
                 {course.category && (
                   <span className="inline-block px-3 py-1.5 rounded-full bg-amber-500/15 text-amber-200 text-[11px] font-black uppercase tracking-[0.2em] border border-amber-500/30">
                     {course.category}
@@ -391,49 +392,142 @@ export default async function CourseDetailPage({ params }: Props) {
                     </>
                   )}
                 </div>
+              </div>
+
+              {/* 右欄:倒數 + 價格 + CTA card box(桌面側欄、手機 stack 在下方)*/}
+              <div className="w-full md:w-[340px] lg:w-[380px] bg-black/50 backdrop-blur-xl border border-amber-500/30 rounded-2xl p-6 md:p-7 space-y-5 shadow-2xl">
                 {course.sale_ends_at && new Date(course.sale_ends_at) > new Date() && (
-                  <div className="pt-4 space-y-2">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-amber-300/80">
+                  <div className="space-y-2">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-amber-300/80 font-bold">
                       限時特價結束倒數
                     </p>
                     <CountdownTimer endsAt={course.sale_ends_at} />
                   </div>
                 )}
-                {/* Hero CTA — 直接讓人在最上面就能點購買 */}
-                <div className="flex flex-wrap items-center gap-4 pt-4">
-                  {hasAccess ? (
-                    <Link
-                      href={`/learn/${course.id}`}
-                      className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-7 py-4 rounded-xl text-base md:text-lg shadow-2xl shadow-amber-500/30 active:scale-95 transition-all"
-                    >
-                      進入課程
-                    </Link>
-                  ) : (
-                    <>
-                      <Link
-                        href={
-                          userId
-                            ? `/checkout?type=course&courseId=${course.id}`
-                            : `/sign-in?redirect=/courses/${course.slug}`
-                        }
-                        className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-7 py-4 rounded-xl text-base md:text-lg shadow-2xl shadow-amber-500/30 active:scale-95 transition-all"
-                      >
-                        {userId ? "立即購買" : "登入後購買"}
-                        <span className="text-amber-900/70 font-bold">·</span>
-                        <span>NT${effectivePrice.toLocaleString()}</span>
-                      </Link>
+                {!hasAccess && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-baseline gap-3 flex-wrap">
+                      <span className="text-3xl md:text-4xl font-black text-amber-300 tracking-tight">
+                        NT${effectivePrice.toLocaleString()}
+                      </span>
                       {course.original_price &&
                         course.original_price > effectivePrice &&
                         (!course.sale_ends_at || new Date(course.sale_ends_at) > new Date()) && (
-                          <span className="text-white/60 text-sm line-through">
+                          <span className="text-base text-white/50 line-through">
                             NT${course.original_price.toLocaleString()}
                           </span>
                         )}
-                    </>
-                  )}
-                </div>
+                    </div>
+                    {course.original_price &&
+                      course.original_price > effectivePrice &&
+                      (!course.sale_ends_at || new Date(course.sale_ends_at) > new Date()) && (
+                        <p className="text-xs text-amber-200/80">
+                          省 NT${(course.original_price - effectivePrice).toLocaleString()}
+                        </p>
+                      )}
+                  </div>
+                )}
+                {hasAccess ? (
+                  <Link
+                    href={`/learn/${course.id}`}
+                    className="block w-full text-center bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-6 py-4 rounded-xl text-base md:text-lg shadow-lg shadow-amber-500/20 active:scale-95 transition-all"
+                  >
+                    進入課程
+                  </Link>
+                ) : (
+                  <Link
+                    href={
+                      userId
+                        ? `/checkout?type=course&courseId=${course.id}`
+                        : `/sign-in?redirect=/courses/${course.slug}`
+                    }
+                    className="block w-full text-center bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-6 py-4 rounded-xl text-base md:text-lg shadow-lg shadow-amber-500/20 active:scale-95 transition-all"
+                  >
+                    {userId ? "立即購買" : "登入後購買"}
+                  </Link>
+                )}
+                <p className="text-[11px] text-center text-white/50 leading-relaxed">
+                  付款後立即解鎖 · 1 年無限觀看
+                </p>
               </div>
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* === 免費試看 section (太空大師課專用,有 firstFreeChapter 才顯示) === */}
+      {isMasterSpace && firstFreeChapter && !hasAccess && (
+        <section className="bg-slate-950 py-14 md:py-20">
+          <div className="max-w-[1100px] mx-auto px-6 md:px-12">
+            <div className="flex items-end justify-between gap-4 flex-wrap mb-8">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.3em] text-amber-300/80 font-bold mb-2">
+                  Free Preview
+                </p>
+                <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight">
+                  先聽聽看課程風格
+                </h2>
+              </div>
+              <p className="text-sm text-white/60 max-w-md">
+                不確定要不要買?先看完整第一章再決定。登入即可觀看,不收費。
+              </p>
+            </div>
+
+            <Link
+              href={
+                userId
+                  ? `/learn/${course.id}?chapter=${firstFreeChapter.id}&part=main`
+                  : `/sign-in?redirect=/learn/${course.id}?chapter=${firstFreeChapter.id}%26part=main`
+              }
+              className="group block bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 rounded-2xl border border-amber-500/20 hover:border-amber-500/50 overflow-hidden transition-all"
+            >
+              <div className="grid md:grid-cols-[1.6fr_1fr] gap-0 items-stretch">
+                {/* Left:visual block (大塊章節 visual) */}
+                <div className="relative aspect-video md:aspect-auto md:min-h-[260px] bg-gradient-to-br from-slate-900 via-blue-950 to-slate-800 overflow-hidden">
+                  <div
+                    className="absolute inset-0 opacity-30"
+                    style={{
+                      backgroundImage:
+                        "radial-gradient(circle at 1px 1px, rgba(212,175,55,0.5) 1px, transparent 0)",
+                      backgroundSize: "20px 20px",
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-amber-500 group-hover:bg-amber-400 group-hover:scale-110 flex items-center justify-center shadow-2xl shadow-amber-500/40 transition-all">
+                      <PlayCircle size={44} className="text-slate-950 fill-current" />
+                    </div>
+                  </div>
+                  <span className="absolute top-4 left-4 px-2.5 py-1 rounded bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+                    FREE
+                  </span>
+                </div>
+                {/* Right:章節資訊 */}
+                <div className="p-7 md:p-8 flex flex-col justify-center space-y-4">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-amber-300/80 font-bold">
+                    第 1 章 · 免費試看
+                  </p>
+                  <h3 className="text-xl md:text-2xl font-black text-white leading-snug">
+                    {firstFreeChapter.title}
+                  </h3>
+                  {firstFreeChapter.duration_seconds && (
+                    <p className="text-sm text-white/60">
+                      時長約 {Math.floor(firstFreeChapter.duration_seconds / 60)} 分鐘
+                    </p>
+                  )}
+                  <p className="text-sm md:text-base text-white/75 leading-relaxed">
+                    {firstFreeChapter.takeaway_summary
+                      ? firstFreeChapter.takeaway_summary.slice(0, 100) + "…"
+                      : "看久方武院長親自講解,先抓到課程風格再決定要不要全課。"}
+                  </p>
+                  <div className="pt-2">
+                    <span className="inline-flex items-center gap-2 text-amber-300 font-bold group-hover:gap-3 transition-all">
+                      {userId ? "立即試看" : "登入後試看"}
+                      <ChevronRight size={18} />
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Link>
           </div>
         </section>
       )}
