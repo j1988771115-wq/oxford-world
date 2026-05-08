@@ -63,6 +63,51 @@ export async function getCourseBySlug(slug: string) {
   return data;
 }
 
+// 行銷頁(/courses/[slug]) anon ISR 用,不讀 cookies → revalidate=N 真的能 work。
+// user-aware 邏輯靠 client 端 fetch /api/me/course/[slug]。
+export async function getPublicCourseBySlug(slug: string) {
+  const supabase = getPublicSupabase();
+  const { data, error } = await supabase
+    .from("courses")
+    .select("*")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) {
+    console.error("Get public course error:", error);
+    return null;
+  }
+  return data;
+}
+
+// course chapters(anon)+ purchased count,行銷頁 anon ISR 一次拿
+export async function getPublicCourseChapters(courseId: string) {
+  const supabase = getPublicSupabase();
+  const { data } = await supabase
+    .from("course_chapters")
+    .select("*")
+    .eq("course_id", courseId)
+    .order("sort_order", { ascending: true });
+  return data || [];
+}
+
+// course_access RLS 不開放 anon SELECT,改用 service role 端 count。
+// service role client 不讀 cookies → 不 opt-in dynamic → ISR 仍 work。
+export async function getPublicCourseStudentCount(courseId: string) {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) return 0;
+  const supabase = createPublicClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey,
+    { auth: { persistSession: false } }
+  );
+  const { count } = await supabase
+    .from("course_access")
+    .select("*", { count: "exact", head: true })
+    .eq("course_id", courseId)
+    .eq("access_type", "purchased");
+  return count ?? 0;
+}
+
 export async function checkCourseAccess(courseId: string) {
   const supabase = await createClient();
   const {

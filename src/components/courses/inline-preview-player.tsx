@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { PlayCircle, ChevronRight, X } from "lucide-react";
+import { useCourseAccess } from "./course-access-provider";
 
 // MuxPlayer ~80KB,只有點開試看才載
 const MuxPlayer = dynamic(() => import("@mux/mux-player-react"), { ssr: false });
@@ -15,7 +16,6 @@ interface Props {
   durationSeconds?: number | null;
   thumbnailUrl: string;
   courseSlug: string;
-  userId: string | null;
 }
 
 export function InlinePreviewPlayer({
@@ -25,8 +25,8 @@ export function InlinePreviewPlayer({
   durationSeconds,
   thumbnailUrl,
   courseSlug,
-  userId,
 }: Props) {
+  const { userId } = useCourseAccess();
   const [token, setToken] = useState<{ playbackId: string; token: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
