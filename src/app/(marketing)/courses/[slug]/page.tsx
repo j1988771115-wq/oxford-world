@@ -482,22 +482,23 @@ export default async function CourseDetailPage({ params }: Props) {
               className="group block bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 rounded-2xl border border-amber-500/20 hover:border-amber-500/50 overflow-hidden transition-all"
             >
               <div className="grid md:grid-cols-[1.6fr_1fr] gap-0 items-stretch">
-                {/* Left:visual block (大塊章節 visual) */}
-                <div className="relative aspect-video md:aspect-auto md:min-h-[260px] bg-gradient-to-br from-slate-900 via-blue-950 to-slate-800 overflow-hidden">
-                  <div
-                    className="absolute inset-0 opacity-30"
-                    style={{
-                      backgroundImage:
-                        "radial-gradient(circle at 1px 1px, rgba(212,175,55,0.5) 1px, transparent 0)",
-                      backgroundSize: "20px 20px",
-                    }}
+                {/* Left:課程封面當預覽縮圖 + Play 按鈕 overlay */}
+                <div className="relative aspect-video md:aspect-auto md:min-h-[280px] bg-slate-900 overflow-hidden">
+                  <Image
+                    src={course.thumbnail_url || "/covers/main-space-age-capital.png"}
+                    alt=""
+                    fill
+                    sizes="(max-width: 768px) 100vw, 60vw"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
+                  {/* Dark vignette 讓 PlayCircle / badge 視覺清楚 */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-black/30 via-transparent to-black/50" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-amber-500 group-hover:bg-amber-400 group-hover:scale-110 flex items-center justify-center shadow-2xl shadow-amber-500/40 transition-all">
-                      <PlayCircle size={44} className="text-slate-950 fill-current" />
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-amber-500 group-hover:bg-amber-400 group-hover:scale-110 flex items-center justify-center shadow-2xl shadow-amber-500/50 transition-all">
+                      <PlayCircle size={44} className="text-slate-950 fill-current ml-1" />
                     </div>
                   </div>
-                  <span className="absolute top-4 left-4 px-2.5 py-1 rounded bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+                  <span className="absolute top-4 left-4 px-2.5 py-1 rounded bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-lg">
                     FREE
                   </span>
                 </div>
