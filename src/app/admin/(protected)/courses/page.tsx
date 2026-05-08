@@ -1,19 +1,23 @@
 import Link from "next/link";
 import { getAdminCourses } from "@/lib/actions/admin";
+import { RestorePricesButton } from "@/components/admin/restore-prices-button";
 
 export default async function AdminCoursesPage() {
   const courses = await getAdminCourses();
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-2xl font-bold">課程管理</h2>
-        <Link
-          href="/admin/courses/new"
-          className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-colors"
-        >
-          + 新增課程
-        </Link>
+        <div className="flex items-center gap-3 flex-wrap">
+          <RestorePricesButton />
+          <Link
+            href="/admin/courses/new"
+            className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-colors"
+          >
+            + 新增課程
+          </Link>
+        </div>
       </div>
 
       {courses.length === 0 ? (
