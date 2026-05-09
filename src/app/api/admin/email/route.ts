@@ -34,13 +34,16 @@ export async function GET() {
 export async function POST(req: Request) {
   if (!(await isAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  let body: { target?: string; subject?: string; html?: string; replyTo?: string };
+  let body: { target?: string; subject?: string; html?: string; replyTo?: string; groupSize?: number };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
   }
   const { target, subject, html, replyTo } = body;
+  // groupSize:1 = 個別寄送(預設,個資安全但 Gmail 易進 Promotions)
+  //           5+ = N 人 BCC 一封,個資仍安全 + envelope 少 → Primary inbox 機率高
+  const groupSize = Math.max(1, Math.min(50, body.groupSize ?? 1));
 
   if (!subject || !html) {
     return NextResponse.json({ error: "subject and html are required" }, { status: 400 });
@@ -171,7 +174,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = await sendBatchEmails({ emails, subject, html, replyTo });
+  const result = await sendBatchEmails({ emails, subject, html, replyTo, groupSize });
 
   // 寫 log(寄完才 insert,失敗也記但 sent_count=0)
   await supabase.from("email_send_log").insert({

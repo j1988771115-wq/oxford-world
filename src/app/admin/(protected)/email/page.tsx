@@ -17,6 +17,7 @@ export default function AdminEmailPage() {
   const [subject, setSubject] = useState("");
   const [html, setHtml] = useState("");
   const [replyTo, setReplyTo] = useState("");
+  const [groupSize, setGroupSize] = useState(1);
   const [isPending, startTransition] = useTransition();
   const [result, setResult] = useState("");
   const [preview, setPreview] = useState(false);
@@ -36,7 +37,7 @@ export default function AdminEmailPage() {
       const res = await fetch("/api/admin/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target, subject, html, replyTo: replyTo.trim() || undefined }),
+        body: JSON.stringify({ target, subject, html, replyTo: replyTo.trim() || undefined, groupSize }),
       });
       const data = await res.json();
       setResult(data.message || data.error || "完成");
@@ -86,6 +87,19 @@ export default function AdminEmailPage() {
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm text-white focus:ring-2 ring-blue-600/50 focus:outline-none placeholder-gray-600"
             placeholder="例：yupupin@gmail.com (學員回信會跑到這個信箱,留空走 noreply 不收回信)"
           />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-gray-400">寄送方式</label>
+          <select
+            value={groupSize}
+            onChange={(e) => setGroupSize(Number(e.target.value))}
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm text-white focus:ring-2 ring-blue-600/50 focus:outline-none"
+          >
+            <option value={1}>個別寄送（每人 1 封獨立 envelope，最安全但 Gmail 易進 Promotions）</option>
+            <option value={5}>5 人一組 BCC（envelope 少 5 倍 → Primary inbox 機率高，仍不外流個資）</option>
+            <option value={10}>10 人一組 BCC（更少 envelope，但群組看起來更明顯像 mailing list）</option>
+          </select>
         </div>
 
         <div className="space-y-1">

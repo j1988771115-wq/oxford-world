@@ -96,11 +96,19 @@ export async function sendBatchEmails({
   subject,
   html,
   replyTo,
+  groupSize = 1,
 }: {
   emails: string[];
   subject: string;
   html: string;
   replyTo?: string;
+  /**
+   * 每個 envelope 包多少 receivers:
+   * - 1 (default):每人一封獨立 envelope。最安全(零外流)、最多 envelope = Gmail 容易 mark Promotions
+   * - 5+:每 N 人 BCC 一封。To 留空 / from 自己,bcc=[N emails]。每 receiver 仍看不到對方,
+   *   但 envelope 數少 N 倍 = Gmail 比較不會 bulk-classify → Primary inbox 機率高
+   */
+  groupSize?: number;
 }) {
   const resend = getResend();
   if (!resend) {
@@ -111,31 +119,61 @@ export async function sendBatchEmails({
     return { sent: 0, failed: 0, skipped: emails.length };
   }
 
-  // P0 個資外流 hotfix(2026-05-10):原本 to: batch[100] 一封信送多人 → 收件人
-  // 互看到對方 email。改成「每人一封 individual send」,Resend SDK 接受
-  // batch.send([{...}, {...}]) 一次 API call 多 emails 但每個 envelope 獨立,
-  // 收件人不會看到其他人。
-  // 限制:Resend batch API 一次最多 100 個 emails,所以 chunk 100。
   let sent = 0;
   let failed = 0;
   const dedup = [...new Set(emails.map((e) => e.trim().toLowerCase()))].filter(Boolean);
-  for (let i = 0; i < dedup.length; i += 100) {
-    const slice = dedup.slice(i, i + 100);
-    const payload = slice.map((to) => ({
-      from: FROM_EMAIL,
-      to: [to],
-      subject,
-      html,
-      ...(replyTo ? { replyTo } : {}),
-    }));
-    const { data, error } = await resend.batch.send(payload);
-    if (error) {
-      console.error("[email] batch.send error:", error);
-      failed += slice.length;
-    } else {
-      // data.data 是每筆 send result 的 array
-      const ok = Array.isArray(data?.data) ? data.data.length : slice.length;
-      sent += ok;
+
+  if (groupSize <= 1) {
+    // Individual mode: 每人一封獨立 envelope
+    for (let i = 0; i < dedup.length; i += 100) {
+      const slice = dedup.slice(i, i + 100);
+      const payload = slice.map((to) => ({
+        from: FROM_EMAIL,
+        to: [to],
+        subject,
+        html,
+        ...(replyTo ? { replyTo } : {}),
+      }));
+      const { data, error } = await resend.batch.send(payload);
+      if (error) {
+        console.error("[email] batch.send error:", error);
+        failed += slice.length;
+      } else {
+        const ok = Array.isArray(data?.data) ? data.data.length : slice.length;
+        sent += ok;
+      }
+    }
+  } else {
+    // BCC group mode: 每 groupSize 人 1 封 envelope, BCC 隱藏所有 receivers
+    // To 欄填 from address (Resend 不接受空 to)
+    const fromMatch = FROM_EMAIL.match(/<([^>]+)>/);
+    const fromAddr = fromMatch ? fromMatch[1] : FROM_EMAIL;
+    const groups: string[][] = [];
+    for (let i = 0; i < dedup.length; i += groupSize) {
+      groups.push(dedup.slice(i, i + groupSize));
+    }
+    // Resend batch.send 一次 100 個 envelope 上限,我們的 group 通常 < 100 envelopes
+    for (let i = 0; i < groups.length; i += 100) {
+      const slice = groups.slice(i, i + 100);
+      const payload = slice.map((bccGroup) => ({
+        from: FROM_EMAIL,
+        to: [fromAddr],
+        bcc: bccGroup,
+        subject,
+        html,
+        ...(replyTo ? { replyTo } : {}),
+      }));
+      const { data, error } = await resend.batch.send(payload);
+      if (error) {
+        console.error("[email] batch.send (BCC) error:", error);
+        failed += slice.reduce((sum, g) => sum + g.length, 0);
+      } else {
+        const okGroups = Array.isArray(data?.data) ? data.data.length : slice.length;
+        // sent count 算實際 BCC receivers
+        for (let j = 0; j < okGroups; j++) {
+          sent += slice[j]?.length ?? 0;
+        }
+      }
     }
   }
 
