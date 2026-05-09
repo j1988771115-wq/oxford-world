@@ -111,28 +111,31 @@ export async function sendBatchEmails({
     return { sent: 0, failed: 0, skipped: emails.length };
   }
 
-  const batches = [];
-  for (let i = 0; i < emails.length; i += 100) {
-    batches.push(emails.slice(i, i + 100));
-  }
-
+  // P0 個資外流 hotfix(2026-05-10):原本 to: batch[100] 一封信送多人 → 收件人
+  // 互看到對方 email。改成「每人一封 individual send」,Resend SDK 接受
+  // batch.send([{...}, {...}]) 一次 API call 多 emails 但每個 envelope 獨立,
+  // 收件人不會看到其他人。
+  // 限制:Resend batch API 一次最多 100 個 emails,所以 chunk 100。
   let sent = 0;
   let failed = 0;
-
-  for (const batch of batches) {
-    const { error } = await resend.emails.send({
+  const dedup = [...new Set(emails.map((e) => e.trim().toLowerCase()))].filter(Boolean);
+  for (let i = 0; i < dedup.length; i += 100) {
+    const slice = dedup.slice(i, i + 100);
+    const payload = slice.map((to) => ({
       from: FROM_EMAIL,
-      to: batch,
+      to: [to],
       subject,
       html,
       ...(replyTo ? { replyTo } : {}),
-    });
-
+    }));
+    const { data, error } = await resend.batch.send(payload);
     if (error) {
-      console.error("Batch email error:", error);
-      failed += batch.length;
+      console.error("[email] batch.send error:", error);
+      failed += slice.length;
     } else {
-      sent += batch.length;
+      // data.data 是每筆 send result 的 array
+      const ok = Array.isArray(data?.data) ? data.data.length : slice.length;
+      sent += ok;
     }
   }
 
