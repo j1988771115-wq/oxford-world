@@ -71,7 +71,13 @@ export async function POST(req: Request) {
     }
   }
 
-  const finalDuration = durationSeconds || chapter.duration_seconds || null;
+  // client 可能傳 float (e.g. 879.573333),DB column 是 integer → 必 floor
+  // 否則 PG 22P02 invalid input syntax for type integer 整支 500
+  const rawDuration = durationSeconds || chapter.duration_seconds || null;
+  const finalDuration =
+    typeof rawDuration === "number" && isFinite(rawDuration)
+      ? Math.floor(rawDuration)
+      : null;
   const newCompleted = !!(
     finalDuration && positionSeconds >= finalDuration * COMPLETION_THRESHOLD
   );
