@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createHash } from "crypto";
 import { sendBatchEmails } from "@/lib/email";
 import { isAdmin } from "@/lib/admin-auth";
+
+const IDEMPOTENCY_WINDOW_MS = 5 * 60 * 1000; // 5 分鐘 lock
 
 function createAdminClient() {
   return createClient(
@@ -143,11 +146,46 @@ export async function POST(req: Request) {
   const MONITORING_EMAILS = ["j1988771115@gmail.com", "yupupin@gmail.com"];
   emails = [...new Set([...emails, ...MONITORING_EMAILS])];
 
+  // === Idempotency lock (P0 防重複寄) ===
+  // 5 分鐘內同 (target + subject) 視為重複,拒(429)。網路 timeout 後 refresh 再點
+  // 不會重發。subject_hash 比對 — short hash 快、輕微 typo 算新一封。
+  const subjectHash = createHash("sha256")
+    .update(`${target}::${subject}`)
+    .digest("hex")
+    .slice(0, 32);
+  const since = new Date(Date.now() - IDEMPOTENCY_WINDOW_MS).toISOString();
+  const { data: recent } = await supabase
+    .from("email_send_log")
+    .select("id, sent_at, sent_count")
+    .eq("subject_hash", subjectHash)
+    .gte("sent_at", since)
+    .limit(1);
+  if (recent && recent.length > 0) {
+    const r = recent[0];
+    return NextResponse.json(
+      {
+        error: `5 分鐘內已寄過同主旨同對象(${r.sent_count} 封),拒重複寄。要重寄請改主旨或等 5 分鐘`,
+        last_sent_at: r.sent_at,
+      },
+      { status: 429 },
+    );
+  }
+
   const result = await sendBatchEmails({ emails, subject, html, replyTo });
+
+  // 寫 log(寄完才 insert,失敗也記但 sent_count=0)
+  await supabase.from("email_send_log").insert({
+    target: target ?? "all",
+    subject,
+    subject_hash: subjectHash,
+    recipient_count: emails.length,
+    sent_count: result.sent ?? 0,
+    failed_count: result.failed ?? 0,
+  });
 
   return NextResponse.json({
     ...result,
     total: emails.length,
-    message: `已發送 ${result.sent} 封，失敗 ${result.failed} 封`,
+    message: `已發送 ${result.sent} 封,失敗 ${result.failed} 封`,
   });
 }
