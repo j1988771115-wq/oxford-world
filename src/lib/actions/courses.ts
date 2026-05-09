@@ -92,6 +92,15 @@ export async function getPublicCourseChapters(courseId: string) {
 
 // course_access RLS 不開放 anon SELECT,改用 service role 端 count。
 // service role client 不讀 cookies → 不 opt-in dynamic → ISR 仍 work。
+//
+// 排除內部 monitoring access(JD 跟久老師 admin grant 的 row 標 purchased,
+// 但他們不是真付費學員)。trust signal 顯示「累計 N 位學員加入」需排除內部
+// 否則對外誇大 2 人。
+const INTERNAL_PROFILE_IDS = [
+  "2d751170-fe0e-4cf5-809f-9348b17241ee", // j1988771115@gmail.com 黃建東
+  "29672e26-98c0-47ca-8caf-d52126cc391e", // yupupin@gmail.com 久方武
+];
+
 export async function getPublicCourseStudentCount(courseId: string) {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceKey) return 0;
@@ -104,7 +113,8 @@ export async function getPublicCourseStudentCount(courseId: string) {
     .from("course_access")
     .select("*", { count: "exact", head: true })
     .eq("course_id", courseId)
-    .eq("access_type", "purchased");
+    .eq("access_type", "purchased")
+    .not("user_id", "in", `(${INTERNAL_PROFILE_IDS.join(",")})`);
   return count ?? 0;
 }
 
