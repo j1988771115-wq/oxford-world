@@ -149,26 +149,73 @@ export async function POST(req: Request) {
   const MONITORING_EMAILS = ["j1988771115@gmail.com", "yupupin@gmail.com"];
   emails = [...new Set([...emails, ...MONITORING_EMAILS])];
 
-  // === Idempotency lock (P0 防重複寄) ===
-  // 5 分鐘內同 (target + subject) 視為重複,拒(429)。網路 timeout 後 refresh 再點
-  // 不會重發。subject_hash 比對 — short hash 快、輕微 typo 算新一封。
-  const subjectHash = createHash("sha256")
-    .update(`${target}::${subject}`)
+  // === Idempotency lock (atomic, race-safe) ===
+  // 改 hash content 不 hash subject(subject 微改容易繞過,5/10 incident 主因之一)。
+  // 用 supabase RPC acquire_email_send_lock 走 pg_try_advisory_xact_lock + atomic
+  // INSERT placeholder,擋並行請求(A+B 同時進場 race condition,Gemini review 抓到)。
+  const normalizedHtml = (html ?? "").replace(/\s+/g, " ").trim();
+  const contentHash = createHash("sha256")
+    .update(`${target}::${replyTo ?? ""}::${normalizedHtml}`)
     .digest("hex")
     .slice(0, 32);
-  const since = new Date(Date.now() - IDEMPOTENCY_WINDOW_MS).toISOString();
-  const { data: recent } = await supabase
-    .from("email_send_log")
-    .select("id, sent_at, sent_count")
-    .eq("subject_hash", subjectHash)
-    .gte("sent_at", since)
-    .limit(1);
-  if (recent && recent.length > 0) {
-    const r = recent[0];
+  const { data: lockOk, error: lockErr } = await supabase.rpc(
+    "acquire_email_send_lock",
+    {
+      p_hash: contentHash,
+      p_window_minutes: 5,
+    },
+  );
+  if (lockErr) {
+    console.error("[admin/email] acquire lock failed:", lockErr);
+    return NextResponse.json(
+      { error: "lock check failed: " + lockErr.message },
+      { status: 500 },
+    );
+  }
+  if (!lockOk) {
     return NextResponse.json(
       {
-        error: `5 分鐘內已寄過同主旨同對象(${r.sent_count} 封),拒重複寄。要重寄請改主旨或等 5 分鐘`,
-        last_sent_at: r.sent_at,
+        error: "5 分鐘內已寄過同內容信件 OR 並行請求處理中,拒重複寄。等 5 分鐘 OR 真改信件內容",
+      },
+      { status: 429 },
+    );
+  }
+
+  // === Daily quota check (Resend free tier 100/day) ===
+  // 5/10 incident:Music King + Oxford 共用 Resend account 100/day quota,
+  // 凌晨 219 封超 quota → Resend throttle delivery ~10hr → 學員下午才收到 +
+  // 含 30 to 暴露版兩封。
+  //
+  // 修法:
+  // 1. 兩 project 應分開 Resend account (long-term)
+  // 2. 寄前 check 今天 oxford 自己已寄量 + 預估 + 其他 project buffer
+  // 3. 爆 cap 直接 429 拒,不 throttle
+  //
+  // RESEND_OTHER_PROJECTS_DAILY env 控制其他 project (e.g. Music King) 預估每日量,
+  // 若 oxford / Music King 分開 Resend account 後設 0 解除 buffer。
+  const dayStart = new Date();
+  dayStart.setUTCHours(0, 0, 0, 0);
+  const { data: todayLog } = await supabase
+    .from("email_send_log")
+    .select("sent_count")
+    .gte("sent_at", dayStart.toISOString());
+  const todaySent = (todayLog ?? []).reduce(
+    (sum, r) => sum + (r.sent_count ?? 0),
+    0,
+  );
+  const RESEND_DAILY_CAP = parseInt(process.env.RESEND_DAILY_CAP || "100", 10);
+  const otherProjectsDaily = parseInt(
+    process.env.RESEND_OTHER_PROJECTS_DAILY || "0",
+    10,
+  );
+  const projectedTotal = todaySent + emails.length + otherProjectsDaily;
+  if (projectedTotal > RESEND_DAILY_CAP) {
+    return NextResponse.json(
+      {
+        error: `Resend daily quota 預估爆: 今日 oxford 已寄 ${todaySent} 封 + 其他 project buffer ${otherProjectsDaily} 封 + 此次 ${emails.length} 封 = ${projectedTotal} > ${RESEND_DAILY_CAP}/day。爆 quota 會延遲 ~10 hr deliver。請等明天 UTC 重置或升 Resend Pro`,
+        today_sent: todaySent,
+        projected_total: projectedTotal,
+        cap: RESEND_DAILY_CAP,
       },
       { status: 429 },
     );
@@ -176,15 +223,23 @@ export async function POST(req: Request) {
 
   const result = await sendBatchEmails({ emails, subject, html, replyTo, groupSize });
 
-  // 寫 log(寄完才 insert,失敗也記但 sent_count=0)
-  await supabase.from("email_send_log").insert({
-    target: target ?? "all",
-    subject,
-    subject_hash: subjectHash,
-    recipient_count: emails.length,
-    sent_count: result.sent ?? 0,
-    failed_count: result.failed ?? 0,
-  });
+  // acquire_email_send_lock RPC 已 INSERT placeholder row(target=PENDING),寄完
+  // UPDATE 該 row 補真實 target/subject/counts。subject_hash 同。
+  await supabase
+    .from("email_send_log")
+    .update({
+      target: target ?? "all",
+      subject,
+      recipient_count: emails.length,
+      sent_count: result.sent ?? 0,
+      failed_count: result.failed ?? 0,
+    })
+    .eq("subject_hash", contentHash)
+    .eq("target", "PENDING")
+    .gte(
+      "sent_at",
+      new Date(Date.now() - IDEMPOTENCY_WINDOW_MS).toISOString(),
+    );
 
   return NextResponse.json({
     ...result,
