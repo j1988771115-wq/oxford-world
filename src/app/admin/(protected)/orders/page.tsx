@@ -1,11 +1,19 @@
 import { createClient } from "@supabase/supabase-js";
 import { adminFulfillOrder, adminBulkReconcileNewebPay, adminTestNewebPayRoundtrip } from "@/lib/actions/admin-fulfill";
+import { getAdminActor } from "@/lib/admin-auth";
+import { MaskedEmail } from "@/components/admin/masked-email";
 
 function getAdminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
+}
+
+function maskEmail(email: string | null | undefined): string {
+  if (!email) return "-";
+  const m = email.match(/^(.{1,3})([^@]*)@(.+)$/);
+  return m ? `${m[1]}***@${m[3]}` : "***";
 }
 
 interface SearchParams {
@@ -32,17 +40,20 @@ async function runRoundtripTest() {
 
 export default async function AdminOrdersPage({ searchParams }: SearchParams) {
   const sp = await searchParams;
+  const actor = await getAdminActor();
+  // P0c: superadmin 看完整 email,其他 role (instructor / admin) 走 mask + reveal
+  const showFullEmail = actor?.role === "superadmin";
   const supabase = getAdminClient();
   const { data: pending } = await supabase
     .from("orders")
-    .select("merchant_order_no, amount, order_type, course_id, status, created_at, profiles(email, display_name), courses(title)")
+    .select("id, merchant_order_no, amount, order_type, course_id, status, created_at, profiles(email, display_name), courses(title)")
     .eq("status", "pending")
     .order("created_at", { ascending: false })
     .limit(50);
 
   const { data: paid } = await supabase
     .from("orders")
-    .select("merchant_order_no, amount, paid_at, order_type, profiles(email, display_name), courses(title)")
+    .select("id, merchant_order_no, amount, paid_at, order_type, profiles(email, display_name), courses(title)")
     .eq("status", "paid")
     .order("paid_at", { ascending: false })
     .limit(20);
@@ -169,7 +180,17 @@ export default async function AdminOrdersPage({ searchParams }: SearchParams) {
                     </td>
                     <td className="py-2">
                       <div>{p?.display_name || "-"}</div>
-                      <div className="text-xs text-gray-500">{p?.email}</div>
+                      <div className="text-xs text-gray-500">
+                        {showFullEmail ? (
+                          p?.email
+                        ) : (
+                          <MaskedEmail
+                            targetType="order"
+                            targetId={(o as { id: string }).id}
+                            initial={maskEmail(p?.email)}
+                          />
+                        )}
+                      </div>
                     </td>
                     <td className="py-2 text-xs">
                       {o.order_type === "course" ? c?.title?.slice(0, 12) || "course" : o.order_type}
