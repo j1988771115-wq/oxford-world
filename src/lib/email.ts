@@ -5,7 +5,11 @@ function getResend() {
   return new Resend(process.env.RESEND_API_KEY);
 }
 
+// transactional 信(訂單確認 / 異常警報) 用 noreply@ — 純系統通知不期望回信
 const FROM_EMAIL = "Oxford Vision <noreply@oxford-vision.com>";
+// marketing / outreach 信 (sendBatchEmails) 用 jiu@ 個人化 — Gmail 看像個人寄信
+// 5/11 deliverability 改:noreply@ 是 Promotions magnet,jiu@ 進 Primary inbox 機率高
+const MARKETING_FROM_EMAIL = "久方武 <jiu@oxford-vision.com>";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://oxford-vision.com";
 
 interface OrderConfirmationParams {
@@ -123,15 +127,27 @@ export async function sendBatchEmails({
   let failed = 0;
   const dedup = [...new Set(emails.map((e) => e.trim().toLowerCase()))].filter(Boolean);
 
+  // marketing/outreach 用 jiu@ 個人化 sender + List-Unsubscribe header → Gmail
+  // 比較會放 Primary / Updates(不是 Promotions)。同時 reply-to 也對齊到 yupupin
+  // 確保學員 reply 進久老師信箱(Gmail 看到 reply 強化 sender reputation)
+  const marketingFrom = MARKETING_FROM_EMAIL;
+  // List-Unsubscribe RFC 8058 (mailto only,不放 https 因為沒寫 endpoint
+  // page,放 invalid URL 反而被 Gmail 懲罰)。mailto: 信寄到 unsubscribe@
+  // 後續可加 cron 處理。Gmail 看到合法 List-Unsubscribe 比較不會 mark Promotions。
+  const unsubscribeHeaders = {
+    "List-Unsubscribe": "<mailto:unsubscribe@oxford-vision.com>",
+  };
+
   if (groupSize <= 1) {
     // Individual mode: 每人一封獨立 envelope
     for (let i = 0; i < dedup.length; i += 100) {
       const slice = dedup.slice(i, i + 100);
       const payload = slice.map((to) => ({
-        from: FROM_EMAIL,
+        from: marketingFrom,
         to: [to],
         subject,
         html,
+        headers: unsubscribeHeaders,
         ...(replyTo ? { replyTo } : {}),
       }));
       const { data, error } = await resend.batch.send(payload);
@@ -146,8 +162,8 @@ export async function sendBatchEmails({
   } else {
     // BCC group mode: 每 groupSize 人 1 封 envelope, BCC 隱藏所有 receivers
     // To 欄填 from address (Resend 不接受空 to)
-    const fromMatch = FROM_EMAIL.match(/<([^>]+)>/);
-    const fromAddr = fromMatch ? fromMatch[1] : FROM_EMAIL;
+    const fromMatch = marketingFrom.match(/<([^>]+)>/);
+    const fromAddr = fromMatch ? fromMatch[1] : marketingFrom;
     const groups: string[][] = [];
     for (let i = 0; i < dedup.length; i += groupSize) {
       groups.push(dedup.slice(i, i + groupSize));
@@ -156,11 +172,12 @@ export async function sendBatchEmails({
     for (let i = 0; i < groups.length; i += 100) {
       const slice = groups.slice(i, i + 100);
       const payload = slice.map((bccGroup) => ({
-        from: FROM_EMAIL,
+        from: marketingFrom,
         to: [fromAddr],
         bcc: bccGroup,
         subject,
         html,
+        headers: unsubscribeHeaders,
         ...(replyTo ? { replyTo } : {}),
       }));
       const { data, error } = await resend.batch.send(payload);
