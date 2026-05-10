@@ -1,7 +1,8 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
-import { isAdmin } from "@/lib/admin-auth";
+import { isAdmin, getAdminActor } from "@/lib/admin-auth";
+import { writeAuditLog } from "@/lib/audit";
 import { sendOrderConfirmation } from "@/lib/email";
 import { sendCoursePurchaseAlert } from "@/lib/donate-alert";
 import { addProRole } from "@/lib/discord";
@@ -24,6 +25,14 @@ function getAdminClient() {
  */
 export async function adminTestNewebPayRoundtrip() {
   if (!(await isAdmin())) return { error: "unauthorized" };
+  const actor = await getAdminActor();
+  if (actor) {
+    await writeAuditLog({
+      actor,
+      action: "test_newebpay_roundtrip",
+      targetType: "system",
+    });
+  }
   const HASH_KEY = (process.env.NEWEBPAY_HASH_KEY || "").trim();
   const HASH_IV = (process.env.NEWEBPAY_HASH_IV || "").trim();
   const MID = (process.env.NEWEBPAY_MERCHANT_ID || "").trim();
@@ -122,6 +131,22 @@ export async function adminBulkReconcileNewebPay() {
     results.push(entry);
   }
   revalidatePath("/admin/orders");
+
+  // P0c audit log
+  const actor = await getAdminActor();
+  if (actor) {
+    await writeAuditLog({
+      actor,
+      action: "bulk_reconcile_newebpay",
+      targetType: "orders",
+      metadata: {
+        total: results.length,
+        fulfilled: results.filter((r) => r.fulfilled).length,
+        succeeded_in_newebpay: results.filter((r) => r.newebpay_status === "SUCCESS").length,
+      },
+    });
+  }
+
   return {
     ok: true,
     total: results.length,
@@ -273,6 +298,26 @@ export async function adminFulfillOrder(formData: FormData) {
   }
 
   revalidatePath("/admin/orders");
+
+  // P0c audit log
+  const actor = await getAdminActor();
+  if (actor) {
+    await writeAuditLog({
+      actor,
+      action: "fulfill_order",
+      targetType: "order",
+      targetId: merchantOrderNo,
+      metadata: {
+        order_type: order.order_type,
+        amount: order.amount,
+        course_title: courseTitle,
+        course_id: order.course_id,
+        was_paid_before: wasPaid,
+        notifications,
+      },
+    });
+  }
+
   return {
     ok: true,
     merchantOrderNo,

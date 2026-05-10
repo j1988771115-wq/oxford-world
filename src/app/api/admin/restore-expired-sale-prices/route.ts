@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { isAdmin } from "@/lib/admin-auth";
+import { isAdmin, getAdminActor } from "@/lib/admin-auth";
 import { restoreExpiredSalePrices } from "@/lib/restore-expired-sale-prices";
+import { writeAuditLog } from "@/lib/audit";
 
 export const maxDuration = 60;
 
@@ -18,12 +19,24 @@ function getAdminClient() {
  *
  * 用途:萬一 daily cron 沒跑或想立刻 trigger,可手動點 admin 按鈕。
  */
-export async function POST() {
+export async function POST(req: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
   const result = await restoreExpiredSalePrices(getAdminClient());
+
+  const actor = await getAdminActor();
+  if (actor) {
+    await writeAuditLog({
+      actor,
+      action: "restore_expired_sale_prices",
+      targetType: "courses",
+      metadata: "error" in result ? { error: result.error } : result,
+      request: req,
+    });
+  }
+
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: 500 });
   }
