@@ -1,8 +1,44 @@
 import { Resend } from "resend";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { generateUnsubscribeToken } from "@/lib/unsubscribe-token";
 
 function getResend() {
   if (!process.env.RESEND_API_KEY) return null;
   return new Resend(process.env.RESEND_API_KEY);
+}
+
+// 寄前 filter unsubscribed emails (Codex P0a)
+async function filterUnsubscribed(emails: string[]): Promise<string[]> {
+  if (emails.length === 0) return emails;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) return emails; // dev mode 沒 service role,passthrough
+  try {
+    const supabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      serviceKey,
+      { auth: { persistSession: false } },
+    );
+    const normalized = emails.map((e) => e.trim().toLowerCase());
+    const { data } = await supabase
+      .from("email_unsubscribes")
+      .select("email")
+      .in("email", normalized);
+    const unsubscribed = new Set((data ?? []).map((r) => r.email));
+    return normalized.filter((e) => !unsubscribed.has(e));
+  } catch (e) {
+    console.error("[email] filterUnsubscribed error:", e);
+    return emails; // fail-open(寧可寄出也不要阻擋 transactional 信)
+  }
+}
+
+function buildListUnsubscribeHeaders(recipient: string, baseUrl?: string) {
+  const base = baseUrl || process.env.NEXT_PUBLIC_SITE_URL || "https://oxford-vision.com";
+  const token = generateUnsubscribeToken(recipient);
+  const url = `${base}/api/unsubscribe?email=${encodeURIComponent(recipient)}&token=${token}`;
+  return {
+    "List-Unsubscribe": `<mailto:unsubscribe@oxford-vision.com>, <${url}>`,
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+  };
 }
 
 // transactional 信(訂單確認 / 異常警報) 用 noreply@ — 純系統通知不期望回信
@@ -126,32 +162,34 @@ export async function sendBatchEmails({
   let sent = 0;
   let failed = 0;
   const dedup = [...new Set(emails.map((e) => e.trim().toLowerCase()))].filter(Boolean);
+  // P0a: 寄前 filter unsubscribed (Codex review patch)
+  // marketing 信才 filter,transactional 信(訂單通知)由 sendEmail() 寄不走這 helper
+  const filtered = await filterUnsubscribed(dedup);
+  const skippedUnsubscribed = dedup.length - filtered.length;
+  if (skippedUnsubscribed > 0) {
+    console.log(`[email] skipped ${skippedUnsubscribed} unsubscribed recipients`);
+  }
 
   // marketing/outreach 用 jiu@ 個人化 sender + List-Unsubscribe header → Gmail
   // 比較會放 Primary / Updates(不是 Promotions)。同時 reply-to 也對齊到 yupupin
   // 確保學員 reply 進久老師信箱(Gmail 看到 reply 強化 sender reputation)
   const marketingFrom = MARKETING_FROM_EMAIL;
-  // List-Unsubscribe RFC 8058 (mailto only,不放 https 因為沒寫 endpoint
-  // page,放 invalid URL 反而被 Gmail 懲罰)。mailto: 信寄到 unsubscribe@
-  // 後續可加 cron 處理。Gmail 看到合法 List-Unsubscribe 比較不會 mark Promotions。
-  const unsubscribeHeaders = {
-    "List-Unsubscribe": "<mailto:unsubscribe@oxford-vision.com>",
-  };
-  // 關 Resend tracking — 預設 open_tracking + click_tracking 都 ON,會插 tracking
-  // pixel + redirect link via re.resend.com。Gmail 看到第三方 redirect 一律認 marketing
-  // → Promotions tab。關掉之後信件純文字無第三方 tracking,看起來像個人寄信。
-  // Gemini deliverability review 強調 tracking 比 List-Unsubscribe 影響更大。
+  // RFC 8058 One-Click Unsubscribe + HMAC token (P0a)
+  // 每封信用 per-recipient unique URL,防猜 email 代退訂。
+  // Gmail 看 List-Unsubscribe-Post: One-Click 提供 native UI unsubscribe button → 提升信任度
+  // 關 Resend tracking — 預設 open_tracking + click_tracking 都 ON,會插 tracking pixel +
+  // redirect link via re.resend.com。Gmail 看第三方 redirect 一律認 marketing → Promotions。
 
   if (groupSize <= 1) {
     // Individual mode: 每人一封獨立 envelope
-    for (let i = 0; i < dedup.length; i += 100) {
-      const slice = dedup.slice(i, i + 100);
+    for (let i = 0; i < filtered.length; i += 100) {
+      const slice = filtered.slice(i, i + 100);
       const payload = slice.map((to) => ({
         from: marketingFrom,
         to: [to],
         subject,
         html,
-        headers: unsubscribeHeaders,
+        headers: buildListUnsubscribeHeaders(to),
         open_tracking: false,
         click_tracking: false,
         ...(replyTo ? { replyTo } : {}),
@@ -167,12 +205,15 @@ export async function sendBatchEmails({
     }
   } else {
     // BCC group mode: 每 groupSize 人 1 封 envelope, BCC 隱藏所有 receivers
-    // To 欄填 from address (Resend 不接受空 to)
+    // To 欄填 from address (Resend 不接受空 to)。
+    // 注意: BCC mode 下 unsubscribe URL 只能用 BCC group 第一人 (or fromAddr),
+    // 因為一封 envelope 帶單一 List-Unsubscribe header。建議 BCC mode 純行銷用,
+    // 個人化 unsubscribe 走 individual mode。
     const fromMatch = marketingFrom.match(/<([^>]+)>/);
     const fromAddr = fromMatch ? fromMatch[1] : marketingFrom;
     const groups: string[][] = [];
-    for (let i = 0; i < dedup.length; i += groupSize) {
-      groups.push(dedup.slice(i, i + groupSize));
+    for (let i = 0; i < filtered.length; i += groupSize) {
+      groups.push(filtered.slice(i, i + groupSize));
     }
     // Resend batch.send 一次 100 個 envelope 上限,我們的 group 通常 < 100 envelopes
     for (let i = 0; i < groups.length; i += 100) {
@@ -183,7 +224,8 @@ export async function sendBatchEmails({
         bcc: bccGroup,
         subject,
         html,
-        headers: unsubscribeHeaders,
+        // BCC mode: 用 fromAddr 當 unsubscribe 對象(無 per-recipient)
+        headers: buildListUnsubscribeHeaders(fromAddr),
         open_tracking: false,
         click_tracking: false,
         ...(replyTo ? { replyTo } : {}),
