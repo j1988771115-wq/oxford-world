@@ -82,6 +82,48 @@ async function queryWelcome(supabase: ReturnType<typeof getAdminClient>): Promis
 }
 
 /**
+ * onboarding: 購買 3-5 天但完全沒進 /learn (無任何 course_progress row)
+ *
+ * 學員下單後沒點開課程 = 容易冷掉 → nudge「先從第 1 章開始」+ link to /learn
+ */
+async function queryOnboarding(supabase: ReturnType<typeof getAdminClient>): Promise<NudgeCandidate[]> {
+  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+  const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: recentBought } = await supabase
+    .from("course_access")
+    .select("user_id, granted_at")
+    .eq("course_id", COURSE_ID)
+    .eq("access_type", "purchased")
+    .lt("granted_at", threeDaysAgo)
+    .gt("granted_at", fiveDaysAgo);
+  if (!recentBought || recentBought.length === 0) return [];
+
+  const userIds = recentBought.map((b) => b.user_id);
+  // 排除有 progress 的
+  const { data: progressed } = await supabase
+    .from("course_progress")
+    .select("user_id")
+    .eq("course_id", COURSE_ID)
+    .in("user_id", userIds);
+  const progressedIds = new Set((progressed ?? []).map((p) => p.user_id));
+
+  const dormant = userIds.filter((id) => !progressedIds.has(id));
+  if (dormant.length === 0) return [];
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, email")
+    .in("id", dormant);
+  return (profiles ?? [])
+    .filter((p) => !!p.email)
+    .map((p) => ({
+      user_id: p.id,
+      email: p.email,
+      sequence: "onboarding" as const,
+      reason: "purchased 3-5d ago, no /learn progress",
+    }));
+}
+
+/**
  * trial_to_paid: 看過 ch1 免費試看 (last_position > 60s) 過去 24-72h 沒回來看 + 沒買
  *
  * 「熱 lead」— 已看過試看內容但沒下單,可能還在猶豫。
@@ -176,6 +218,28 @@ function buildWelcomeHtml(email: string): string {
 </body></html>`;
 }
 
+function buildOnboardingHtml(email: string): string {
+  const unsubUrl = getUnsubscribeUrl(email);
+  return `<!doctype html>
+<html><body style="margin:0;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Helvetica Neue',sans-serif;color:#222;line-height:1.75;font-size:15px;background:#fff;">
+<div style="max-width:560px;margin:0 auto;">
+<p>你好,</p>
+<p>謝謝你購買《太空時代的資本配置》。</p>
+<p>看到你還沒點開過課程,先給你一個簡單建議:</p>
+<p style="padding:14px 18px;background:#f6f6f6;border-left:3px solid #888;margin:18px 0;">
+<strong>從第 1 章「先導:為什麼太空是下一個科技週期」開始</strong>,大概 20 分鐘,聽完就知道整個課程的架構。
+</p>
+<p>不需要一次看完,每章 15-25 分鐘,你可以排在每天通勤或晚上 30 分鐘看完一章。</p>
+<p>直接進去看:</p>
+<p><a href="https://oxford-vision.com/learn/3ae3f802-1828-425d-919f-4563331e0bec" style="color:#1a4480;">https://oxford-vision.com/learn</a></p>
+<p>有任何問題直接回信給我,或者寄到 yupupin@gmail.com。</p>
+<p>—— 久方武</p>
+<hr style="margin:30px 0 12px;border:0;border-top:1px solid #eee;"/>
+<p style="font-size:11px;color:#999;">不想收到提醒? <a href="${unsubUrl}" style="color:#999;">取消訂閱</a></p>
+</div>
+</body></html>`;
+}
+
 function buildTrialToPaidHtml(email: string): string {
   const unsubUrl = getUnsubscribeUrl(email);
   return `<!doctype html>
@@ -208,14 +272,15 @@ export async function GET(req: Request) {
   const supabase = getAdminClient();
 
   // 拉所有 sequence candidates
-  const [welcomeRaw, trialToPaidRaw] = await Promise.all([
+  const [welcomeRaw, trialToPaidRaw, onboardingRaw] = await Promise.all([
     queryWelcome(supabase),
     queryTrialToPaid(supabase),
+    queryOnboarding(supabase),
   ]);
 
   // 同 user 命中多 sequence → pick 最高 priority
   const byUser = new Map<string, NudgeCandidate>();
-  for (const c of [...welcomeRaw, ...trialToPaidRaw]) {
+  for (const c of [...welcomeRaw, ...trialToPaidRaw, ...onboardingRaw]) {
     const existing = byUser.get(c.user_id);
     if (!existing || SEQUENCE_PRIORITY[c.sequence] > SEQUENCE_PRIORITY[existing.sequence]) {
       byUser.set(c.user_id, c);
@@ -230,20 +295,25 @@ export async function GET(req: Request) {
   type SeqResult = { sent: number; failed: number };
   const perSequence: Record<string, SeqResult> = {};
 
-  for (const seq of ["trial_to_paid", "welcome"] as const) {
+  const subjectMap: Record<string, string> = {
+    trial_to_paid: "看完第 1 章了 — 久方武想問你",
+    welcome: "想跟你聊一下太空大師課 — 久方武",
+    onboarding: "先從第 1 章開始 — 久方武",
+  };
+  const htmlBuilder: Record<string, (e: string) => string> = {
+    trial_to_paid: buildTrialToPaidHtml,
+    welcome: buildWelcomeHtml,
+    onboarding: buildOnboardingHtml,
+  };
+
+  for (const seq of ["trial_to_paid", "welcome", "onboarding"] as const) {
     const subset = filtered.filter((c) => c.sequence === seq);
     if (subset.length === 0) continue;
     const emails = subset.map((c) => c.email);
     const sendResult = await sendBatchEmails({
       emails,
-      subject:
-        seq === "trial_to_paid"
-          ? "看完第 1 章了 — 久方武想問你"
-          : "想跟你聊一下太空大師課 — 久方武",
-      html:
-        seq === "trial_to_paid"
-          ? buildTrialToPaidHtml(emails[0])
-          : buildWelcomeHtml(emails[0]),
+      subject: subjectMap[seq],
+      html: htmlBuilder[seq](emails[0]),
       replyTo: "yupupin@gmail.com",
       groupSize: 1,
     });
@@ -273,6 +343,7 @@ export async function GET(req: Request) {
     metadata: {
       welcome_candidates: welcomeRaw.length,
       trial_candidates: trialToPaidRaw.length,
+      onboarding_candidates: onboardingRaw.length,
       after_cool_down: filtered.length,
       per_sequence: perSequence,
     },
@@ -283,6 +354,7 @@ export async function GET(req: Request) {
     candidates: {
       welcome: welcomeRaw.length,
       trial_to_paid: trialToPaidRaw.length,
+      onboarding: onboardingRaw.length,
     },
     after_cool_down: filtered.length,
     per_sequence: perSequence,
