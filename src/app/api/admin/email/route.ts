@@ -33,7 +33,12 @@ export async function GET() {
 
 // POST — send email blast
 export async function POST(req: Request) {
-  if (!(await isAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // P0c: 改用 getAdminActor 拿真實 actor (admin / superadmin / instructor)
+  const actor = await getAdminActor();
+  if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!["admin", "superadmin", "instructor"].includes(actor.role)) {
+    return NextResponse.json({ error: "insufficient role" }, { status: 403 });
+  }
 
   let body: { target?: string; subject?: string; html?: string; replyTo?: string; groupSize?: number };
   try {
@@ -42,6 +47,38 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
   }
   const { target, subject, html, replyTo } = body;
+
+  // P0c: instructor 強制 target=course:<slug> + 驗 course_permissions
+  if (actor.role === "instructor") {
+    if (!target?.startsWith("course:")) {
+      return NextResponse.json(
+        { error: "instructor 只能寄 target=course:<slug>,不能寄 all/members/pro/prospects" },
+        { status: 403 },
+      );
+    }
+    const slug = target.slice("course:".length);
+    const sb = createAdminClient();
+    const { data: course } = await sb
+      .from("courses")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (!course) {
+      return NextResponse.json({ error: `course not found: ${slug}` }, { status: 400 });
+    }
+    const { data: perm } = await sb
+      .from("course_permissions")
+      .select("permission")
+      .eq("course_id", course.id)
+      .eq("user_id", actor.profileId)
+      .maybeSingle();
+    if (!perm) {
+      return NextResponse.json(
+        { error: `no course_permissions for ${slug}` },
+        { status: 403 },
+      );
+    }
+  }
   // groupSize:1 = 個別寄送(預設,個資安全但 Gmail 易進 Promotions)
   //           5+ = N 人 BCC 一封,個資仍安全 + envelope 少 → Primary inbox 機率高
   const groupSize = Math.max(1, Math.min(50, body.groupSize ?? 1));
