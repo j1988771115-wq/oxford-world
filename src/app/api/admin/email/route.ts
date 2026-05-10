@@ -279,9 +279,7 @@ export async function POST(req: Request) {
       new Date(Date.now() - IDEMPOTENCY_WINDOW_MS).toISOString(),
     );
 
-  // P0c audit log: actor + sanitized metadata (PII whitelist auto)
-  // metadata 內 html 會 auto hash, emails array 會 mask
-  const actor = await getAdminActor();
+  // P0c audit log: 用 POST 開頭已拿的 actor
   if (actor) {
     await writeAuditLog({
       actor,
