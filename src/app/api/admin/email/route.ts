@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "crypto";
 import { sendBatchEmails } from "@/lib/email";
-import { isAdmin } from "@/lib/admin-auth";
+import { isAdmin, getAdminActor } from "@/lib/admin-auth";
+import { writeAuditLog } from "@/lib/audit";
 
 const IDEMPOTENCY_WINDOW_MS = 5 * 60 * 1000; // 5 分鐘 lock
 
@@ -240,6 +241,29 @@ export async function POST(req: Request) {
       "sent_at",
       new Date(Date.now() - IDEMPOTENCY_WINDOW_MS).toISOString(),
     );
+
+  // P0c audit log: actor + sanitized metadata (PII whitelist auto)
+  // metadata 內 html 會 auto hash, emails array 會 mask
+  const actor = await getAdminActor();
+  if (actor) {
+    await writeAuditLog({
+      actor,
+      action: "send_batch_email",
+      targetType: "email_campaign",
+      targetId: contentHash,
+      metadata: {
+        target: target ?? "all",
+        subject,
+        recipient_count: emails.length,
+        sent_count: result.sent ?? 0,
+        failed_count: result.failed ?? 0,
+        group_size: groupSize,
+        // html 不直接放 — sanitizeMetadata 會 auto hash if >500 char
+        html_sample: html?.slice(0, 100) ?? "",
+      },
+      request: req,
+    });
+  }
 
   return NextResponse.json({
     ...result,
