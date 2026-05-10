@@ -17,7 +17,7 @@ function maskEmail(email: string | null | undefined): string {
 }
 
 interface SearchParams {
-  searchParams: Promise<{ result?: string; error?: string }>;
+  searchParams: Promise<{ result?: string; error?: string; q?: string }>;
 }
 
 async function runFulfill(formData: FormData) {
@@ -44,19 +44,32 @@ export default async function AdminOrdersPage({ searchParams }: SearchParams) {
   // P0c: superadmin 看完整 email,其他 role (instructor / admin) 走 mask + reveal
   const showFullEmail = actor?.role === "superadmin";
   const supabase = getAdminClient();
-  const { data: pending } = await supabase
-    .from("orders")
-    .select("id, merchant_order_no, amount, order_type, course_id, status, created_at, profiles(email, display_name), courses(title)")
-    .eq("status", "pending")
-    .order("created_at", { ascending: false })
-    .limit(50);
+  const q = (sp.q ?? "").trim();
 
-  const { data: paid } = await supabase
-    .from("orders")
-    .select("id, merchant_order_no, amount, paid_at, order_type, profiles(email, display_name), courses(title)")
-    .eq("status", "paid")
+  // search filter (merchant_order_no OR profiles.email/display_name OR courses.title)
+  // service role bypass RLS,直接 ilike OR
+  const buildQuery = (status: "pending" | "paid") => {
+    let qb = supabase
+      .from("orders")
+      .select(
+        status === "pending"
+          ? "id, merchant_order_no, amount, order_type, course_id, status, created_at, profiles(email, display_name), courses(title)"
+          : "id, merchant_order_no, amount, paid_at, order_type, profiles(email, display_name), courses(title)"
+      )
+      .eq("status", status);
+    if (q) {
+      qb = qb.or(`merchant_order_no.ilike.%${q}%`);
+    }
+    return qb;
+  };
+
+  const { data: pending } = await buildQuery("pending")
+    .order("created_at", { ascending: false })
+    .limit(q ? 200 : 50);
+
+  const { data: paid } = await buildQuery("paid")
     .order("paid_at", { ascending: false })
-    .limit(20);
+    .limit(q ? 200 : 20);
 
   return (
     <div className="space-y-8">
@@ -66,6 +79,33 @@ export default async function AdminOrdersPage({ searchParams }: SearchParams) {
           金流出狀況時用這裡 — 可手動補單或全自動對帳藍新查所有 pending 是否其實已付款
         </p>
       </div>
+
+      {/* Search box */}
+      <form className="flex gap-2 items-end" method="GET">
+        <div className="flex-1">
+          <label className="block text-xs text-gray-400 mb-1">搜尋訂單號</label>
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="OVMOM... 或部分訂單號"
+            className="w-full bg-gray-950 border border-gray-700 text-white px-3 py-2 rounded font-mono text-sm focus:ring-2 ring-blue-600/50 focus:outline-none"
+          />
+        </div>
+        <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-5 py-2 rounded font-bold">
+          搜尋
+        </button>
+        {q && (
+          <a href="/admin/orders" className="text-gray-400 text-sm px-3 py-2 hover:text-white">
+            清空
+          </a>
+        )}
+      </form>
+
+      {q && (
+        <div className="text-xs text-amber-400">
+          搜尋中: <span className="font-mono">{q}</span> · pending {pending?.length ?? 0} / paid {paid?.length ?? 0}
+        </div>
+      )}
 
       {sp.result && (
         <div className="bg-emerald-900/30 border border-emerald-700 text-emerald-200 px-4 py-3 rounded text-sm">
