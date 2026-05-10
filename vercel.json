@@ -20,10 +20,6 @@
     {
       "path": "/api/cron/restore-expired-sale-prices",
       "schedule": "1 16 * * *"
-    },
-    {
-      "path": "/api/cron/email-nudge",
-      "schedule": "0 1 * * *"
     }
   ]
 }
