@@ -36,6 +36,14 @@ interface NudgeCandidate {
   reason: string;
 }
 
+// Sequence priority: 同一 user 同天命中多個 → pick 最高 priority 一個
+const SEQUENCE_PRIORITY: Record<NudgeCandidate["sequence"], number> = {
+  trial_to_paid: 3, // 看過試看的最熱 lead,優先 nudge
+  welcome: 2,
+  onboarding: 1,
+  win_back: 0,
+};
+
 /**
  * welcome: 註冊 7-14 天沒購買大師課
  *
@@ -70,6 +78,62 @@ async function queryWelcome(supabase: ReturnType<typeof getAdminClient>): Promis
       email: p.email,
       sequence: "welcome" as const,
       reason: `registered ${p.created_at?.slice(0, 10)}, not paid`,
+    }));
+}
+
+/**
+ * trial_to_paid: 看過 ch1 免費試看 (last_position > 60s) 過去 24-72h 沒回來看 + 沒買
+ *
+ * 「熱 lead」— 已看過試看內容但沒下單,可能還在猶豫。
+ * 24h cool-off 避免太急,72h 上限避免冷掉太久。
+ */
+async function queryTrialToPaid(supabase: ReturnType<typeof getAdminClient>): Promise<NudgeCandidate[]> {
+  // 1. 找 ch1 (sort_order=1 — 免費試看)
+  const { data: ch1 } = await supabase
+    .from("course_chapters")
+    .select("id")
+    .eq("course_id", COURSE_ID)
+    .eq("sort_order", 1)
+    .maybeSingle();
+  if (!ch1) return [];
+
+  // 2. 看過 ch1 (last_position_seconds > 60),updated_at 在 24-72h 區間
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: progress } = await supabase
+    .from("course_progress")
+    .select("user_id, updated_at, last_position_seconds")
+    .eq("chapter_id", ch1.id)
+    .gt("last_position_seconds", 60)
+    .lt("updated_at", dayAgo)
+    .gt("updated_at", threeDaysAgo);
+  if (!progress || progress.length === 0) return [];
+
+  const watcherIds = [...new Set(progress.map((p) => p.user_id))];
+
+  // 3. 排除已買
+  const { data: bought } = await supabase
+    .from("course_access")
+    .select("user_id")
+    .eq("course_id", COURSE_ID)
+    .in("user_id", watcherIds);
+  const boughtIds = new Set((bought ?? []).map((b) => b.user_id));
+
+  // 4. 拉 email
+  const candidateIds = watcherIds.filter((id) => !boughtIds.has(id));
+  if (candidateIds.length === 0) return [];
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, email")
+    .in("id", candidateIds);
+
+  return (profiles ?? [])
+    .filter((p) => !!p.email)
+    .map((p) => ({
+      user_id: p.id,
+      email: p.email,
+      sequence: "trial_to_paid" as const,
+      reason: "watched ch1 free preview, 24-72h ago, not bought",
     }));
 }
 
@@ -112,6 +176,27 @@ function buildWelcomeHtml(email: string): string {
 </body></html>`;
 }
 
+function buildTrialToPaidHtml(email: string): string {
+  const unsubUrl = getUnsubscribeUrl(email);
+  return `<!doctype html>
+<html><body style="margin:0;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Helvetica Neue',sans-serif;color:#222;line-height:1.75;font-size:15px;background:#fff;">
+<div style="max-width:560px;margin:0 auto;">
+<p>你好,</p>
+<p>看了後台,你前天看完了《太空時代的資本配置》第 1 章免費試看。</p>
+<p>想問你:</p>
+<p style="padding:14px 18px;background:#f6f6f6;border-left:3px solid #888;margin:18px 0;">
+<strong>看完第 1 章之後,是什麼讓你停下來、沒繼續往下走?</strong>
+</p>
+<p>價格?內容看不懂?還是其他?如果方便直接回信,我們會把你的回應讀完。</p>
+<p>如果你還在猶豫,提醒你 5/18 之前是限時特價 NT\$24,900 (原價 NT\$30,000),省 NT\$5,100。5/18 之後自動回原價。</p>
+<p><a href="https://oxford-vision.com/courses/${COURSE_SLUG}" style="color:#1a4480;">https://oxford-vision.com/courses/${COURSE_SLUG}</a></p>
+<p>—— 久方武<br>牛津視界院長</p>
+<hr style="margin:30px 0 12px;border:0;border-top:1px solid #eee;"/>
+<p style="font-size:11px;color:#999;">不想收到推廣信? <a href="${unsubUrl}" style="color:#999;">取消訂閱</a></p>
+</div>
+</body></html>`;
+}
+
 export async function GET(req: Request) {
   // CRON_SECRET auth (Vercel cron 帶 Authorization: Bearer)
   const authHeader = req.headers.get("authorization");
@@ -122,41 +207,61 @@ export async function GET(req: Request) {
 
   const supabase = getAdminClient();
 
-  // Phase 1 lite: welcome sequence only
-  const welcomeRaw = await queryWelcome(supabase);
-  const welcome = await filterCoolDown(supabase, welcomeRaw);
+  // 拉所有 sequence candidates
+  const [welcomeRaw, trialToPaidRaw] = await Promise.all([
+    queryWelcome(supabase),
+    queryTrialToPaid(supabase),
+  ]);
 
-  // 寄信
-  const emails = welcome.map((c) => c.email);
-  let result: { sent: number; failed: number; skipped?: number } = {
-    sent: 0,
-    failed: 0,
-    skipped: 0,
-  };
-  if (emails.length > 0) {
+  // 同 user 命中多 sequence → pick 最高 priority
+  const byUser = new Map<string, NudgeCandidate>();
+  for (const c of [...welcomeRaw, ...trialToPaidRaw]) {
+    const existing = byUser.get(c.user_id);
+    if (!existing || SEQUENCE_PRIORITY[c.sequence] > SEQUENCE_PRIORITY[existing.sequence]) {
+      byUser.set(c.user_id, c);
+    }
+  }
+  const dedupedCandidates = Array.from(byUser.values());
+
+  // global 7-day cool-down
+  const filtered = await filterCoolDown(supabase, dedupedCandidates);
+
+  // 按 sequence 分組,各別寄信 (subject + HTML 不同)
+  type SeqResult = { sent: number; failed: number };
+  const perSequence: Record<string, SeqResult> = {};
+
+  for (const seq of ["trial_to_paid", "welcome"] as const) {
+    const subset = filtered.filter((c) => c.sequence === seq);
+    if (subset.length === 0) continue;
+    const emails = subset.map((c) => c.email);
     const sendResult = await sendBatchEmails({
       emails,
-      subject: "想跟你聊一下太空大師課 — 久方武",
-      // 每人一封自己的 HTML (內含 per-recipient unsubscribe link)
-      // sendBatchEmails 預設 individual envelope 已 handle unsubscribe header
-      // 但 HTML 內 link 要 per-user — 我們先用 first email 的 link 範本 (簡化)
-      // P1 v2 改 per-recipient HTML
-      html: buildWelcomeHtml(emails[0]),
+      subject:
+        seq === "trial_to_paid"
+          ? "看完第 1 章了 — 久方武想問你"
+          : "想跟你聊一下太空大師課 — 久方武",
+      html:
+        seq === "trial_to_paid"
+          ? buildTrialToPaidHtml(emails[0])
+          : buildWelcomeHtml(emails[0]),
       replyTo: "yupupin@gmail.com",
       groupSize: 1,
     });
-    result = sendResult as typeof result;
-  }
+    perSequence[seq] = {
+      sent: sendResult.sent ?? 0,
+      failed: sendResult.failed ?? 0,
+    };
 
-  // 寫 nudge_sent_log
-  if (result.sent > 0 && welcome.length > 0) {
-    const successCount = Math.min(result.sent, welcome.length);
-    const rows = welcome.slice(0, successCount).map((c) => ({
-      user_id: c.user_id,
-      sequence: c.sequence,
-      metadata: { reason: c.reason, email: c.email },
-    }));
-    await supabase.from("nudge_sent_log").insert(rows);
+    // 寫 nudge_sent_log
+    if (sendResult.sent && sendResult.sent > 0) {
+      const successCount = Math.min(sendResult.sent, subset.length);
+      const rows = subset.slice(0, successCount).map((c) => ({
+        user_id: c.user_id,
+        sequence: c.sequence,
+        metadata: { reason: c.reason, email: c.email },
+      }));
+      await supabase.from("nudge_sent_log").insert(rows);
+    }
   }
 
   // audit log
@@ -164,22 +269,22 @@ export async function GET(req: Request) {
     actor: { email: "cron@email-nudge", role: "system" },
     action: "email_nudge_cron",
     targetType: "nudge_sequence",
-    targetId: "welcome",
+    targetId: "batch",
     metadata: {
-      candidates: welcomeRaw.length,
-      filtered: welcome.length,
-      sent: result.sent,
-      failed: result.failed,
+      welcome_candidates: welcomeRaw.length,
+      trial_candidates: trialToPaidRaw.length,
+      after_cool_down: filtered.length,
+      per_sequence: perSequence,
     },
   });
 
   return NextResponse.json({
     ok: true,
-    welcome: {
-      candidates: welcomeRaw.length,
-      after_cool_down: welcome.length,
-      sent: result.sent,
-      failed: result.failed,
+    candidates: {
+      welcome: welcomeRaw.length,
+      trial_to_paid: trialToPaidRaw.length,
     },
+    after_cool_down: filtered.length,
+    per_sequence: perSequence,
   });
 }
