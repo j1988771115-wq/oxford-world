@@ -46,30 +46,30 @@ export default async function AdminOrdersPage({ searchParams }: SearchParams) {
   const supabase = getAdminClient();
   const q = (sp.q ?? "").trim();
 
-  // search filter (merchant_order_no OR profiles.email/display_name OR courses.title)
-  // service role bypass RLS,直接 ilike OR
-  const buildQuery = (status: "pending" | "paid") => {
-    let qb = supabase
-      .from("orders")
-      .select(
-        status === "pending"
-          ? "id, merchant_order_no, amount, order_type, course_id, status, created_at, profiles(email, display_name), courses(title)"
-          : "id, merchant_order_no, amount, paid_at, order_type, profiles(email, display_name), courses(title)"
-      )
-      .eq("status", status);
-    if (q) {
-      qb = qb.or(`merchant_order_no.ilike.%${q}%`);
-    }
-    return qb;
-  };
+  // search filter via ilike on merchant_order_no (service role bypass RLS)
+  const limitN = q ? 200 : undefined;
 
-  const { data: pending } = await buildQuery("pending")
+  const pendingQuery = supabase
+    .from("orders")
+    .select(
+      "id, merchant_order_no, amount, order_type, course_id, status, created_at, profiles(email, display_name), courses(title)",
+    )
+    .eq("status", "pending")
     .order("created_at", { ascending: false })
-    .limit(q ? 200 : 50);
+    .limit(limitN ?? 50);
+  if (q) pendingQuery.ilike("merchant_order_no", `%${q}%`);
+  const { data: pending } = await pendingQuery;
 
-  const { data: paid } = await buildQuery("paid")
+  const paidQuery = supabase
+    .from("orders")
+    .select(
+      "id, merchant_order_no, amount, paid_at, order_type, profiles(email, display_name), courses(title)",
+    )
+    .eq("status", "paid")
     .order("paid_at", { ascending: false })
-    .limit(q ? 200 : 20);
+    .limit(limitN ?? 20);
+  if (q) paidQuery.ilike("merchant_order_no", `%${q}%`);
+  const { data: paid } = await paidQuery;
 
   return (
     <div className="space-y-8">
