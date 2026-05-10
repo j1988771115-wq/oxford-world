@@ -137,6 +137,10 @@ export async function sendBatchEmails({
   const unsubscribeHeaders = {
     "List-Unsubscribe": "<mailto:unsubscribe@oxford-vision.com>",
   };
+  // 關 Resend tracking — 預設 open_tracking + click_tracking 都 ON,會插 tracking
+  // pixel + redirect link via re.resend.com。Gmail 看到第三方 redirect 一律認 marketing
+  // → Promotions tab。關掉之後信件純文字無第三方 tracking,看起來像個人寄信。
+  // Gemini deliverability review 強調 tracking 比 List-Unsubscribe 影響更大。
 
   if (groupSize <= 1) {
     // Individual mode: 每人一封獨立 envelope
@@ -148,6 +152,8 @@ export async function sendBatchEmails({
         subject,
         html,
         headers: unsubscribeHeaders,
+        open_tracking: false,
+        click_tracking: false,
         ...(replyTo ? { replyTo } : {}),
       }));
       const { data, error } = await resend.batch.send(payload);
@@ -178,6 +184,8 @@ export async function sendBatchEmails({
         subject,
         html,
         headers: unsubscribeHeaders,
+        open_tracking: false,
+        click_tracking: false,
         ...(replyTo ? { replyTo } : {}),
       }));
       const { data, error } = await resend.batch.send(payload);
