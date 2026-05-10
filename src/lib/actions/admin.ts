@@ -1,7 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { isAdmin } from "@/lib/admin-auth";
+import { isAdmin, getAdminActor } from "@/lib/admin-auth";
+import { writeAuditLog } from "@/lib/audit";
 
 async function requireAdmin() {
   if (!(await isAdmin())) {
@@ -88,6 +89,7 @@ export async function upsertCourse(formData: FormData) {
     access_type: accessType,
   };
 
+  const actor = await getAdminActor();
   if (id) {
     const { error } = await supabase
       .from("courses")
@@ -95,10 +97,28 @@ export async function upsertCourse(formData: FormData) {
       .eq("id", id);
 
     if (error) return { error: error.message };
+    if (actor) {
+      await writeAuditLog({
+        actor,
+        action: "update_course",
+        targetType: "course",
+        targetId: id,
+        metadata: { title, slug, price, accessType },
+      });
+    }
   } else {
     const { error } = await supabase.from("courses").insert(courseData);
 
     if (error) return { error: error.message };
+    if (actor) {
+      await writeAuditLog({
+        actor,
+        action: "create_course",
+        targetType: "course",
+        targetId: slug,
+        metadata: { title, slug, price, accessType },
+      });
+    }
   }
 
   redirect("/admin/courses");
@@ -107,10 +127,28 @@ export async function upsertCourse(formData: FormData) {
 export async function deleteCourse(id: string) {
   await requireAdmin();
   const supabase = await createAdminClient();
+  const actor = await getAdminActor();
+
+  // 拉 course info before delete (for audit)
+  const { data: course } = await supabase
+    .from("courses")
+    .select("title, slug")
+    .eq("id", id)
+    .maybeSingle();
 
   const { error } = await supabase.from("courses").delete().eq("id", id);
 
   if (error) return { error: error.message };
+
+  if (actor) {
+    await writeAuditLog({
+      actor,
+      action: "delete_course",
+      targetType: "course",
+      targetId: id,
+      metadata: { title: course?.title, slug: course?.slug },
+    });
+  }
 
   redirect("/admin/courses");
 }
@@ -161,6 +199,7 @@ export async function upsertChapter(formData: FormData) {
     is_free_preview: isFreePreview,
   };
 
+  const actor = await getAdminActor();
   if (id) {
     const { error } = await supabase
       .from("course_chapters")
@@ -168,12 +207,30 @@ export async function upsertChapter(formData: FormData) {
       .eq("id", id);
 
     if (error) return { error: error.message };
+    if (actor) {
+      await writeAuditLog({
+        actor,
+        action: "update_chapter",
+        targetType: "course_chapter",
+        targetId: id,
+        metadata: { courseId, title, sortOrder, hasMuxPlayback: !!muxPlaybackId },
+      });
+    }
   } else {
     const { error } = await supabase
       .from("course_chapters")
       .insert(chapterData);
 
     if (error) return { error: error.message };
+    if (actor) {
+      await writeAuditLog({
+        actor,
+        action: "create_chapter",
+        targetType: "course_chapter",
+        targetId: `${courseId}-${sortOrder}`,
+        metadata: { courseId, title, sortOrder },
+      });
+    }
   }
 
   return { success: true, courseId };
@@ -182,6 +239,13 @@ export async function upsertChapter(formData: FormData) {
 export async function deleteChapter(id: string) {
   await requireAdmin();
   const supabase = await createAdminClient();
+  const actor = await getAdminActor();
+
+  const { data: ch } = await supabase
+    .from("course_chapters")
+    .select("title, sort_order, course_id")
+    .eq("id", id)
+    .maybeSingle();
 
   const { error } = await supabase
     .from("course_chapters")
@@ -189,5 +253,14 @@ export async function deleteChapter(id: string) {
     .eq("id", id);
 
   if (error) return { error: error.message };
+  if (actor) {
+    await writeAuditLog({
+      actor,
+      action: "delete_chapter",
+      targetType: "course_chapter",
+      targetId: id,
+      metadata: { title: ch?.title, sort_order: ch?.sort_order, course_id: ch?.course_id },
+    });
+  }
   return { success: true };
 }
