@@ -32,7 +32,10 @@ export async function POST(req: Request) {
       actor,
       action: "restore_expired_sale_prices",
       targetType: "courses",
-      metadata: "error" in result ? { error: result.error } : result,
+      metadata:
+        "error" in result
+          ? { error: result.error }
+          : ({ ...result } as Record<string, unknown>),
       request: req,
     });
   }
