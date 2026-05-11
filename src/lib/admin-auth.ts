@@ -152,8 +152,10 @@ export async function requireSuperAdminOrAdmin(): Promise<AdminActor> {
   if (!actor) {
     redirect("/admin/login");
   }
-  if (actor.role === "instructor") {
+  // redirect() throws — TS 不知,加 type narrow
+  const a: AdminActor = actor!;
+  if (a.role === "instructor") {
     redirect("/admin");
   }
-  return actor;
+  return a;
 }
