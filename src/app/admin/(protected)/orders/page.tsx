@@ -46,6 +46,27 @@ export default async function AdminOrdersPage({ searchParams }: SearchParams) {
   const supabase = getAdminClient();
   const q = (sp.q ?? "").trim();
 
+  // P0c-4: instructor 限自己課的 orders (拉 course_permissions 取得 allowed course_ids)
+  let allowedCourseIds: string[] | null = null;
+  if (actor?.role === "instructor") {
+    const { data: perms } = await supabase
+      .from("course_permissions")
+      .select("course_id")
+      .eq("user_id", actor.profileId);
+    allowedCourseIds = (perms ?? []).map((p) => p.course_id);
+    if (allowedCourseIds.length === 0) {
+      // instructor 但沒任何 course permission → 空 page
+      return (
+        <div className="space-y-6">
+          <h1 className="text-2xl font-bold">訂單與補單工具</h1>
+          <div className="bg-amber-900/30 border border-amber-700 text-amber-200 px-4 py-3 rounded text-sm">
+            你目前沒有任何課程的權限。請聯絡 admin 設定 course_permissions。
+          </div>
+        </div>
+      );
+    }
+  }
+
   // search filter via ilike on merchant_order_no (service role bypass RLS)
   const limitN = q ? 200 : undefined;
 
@@ -58,17 +79,19 @@ export default async function AdminOrdersPage({ searchParams }: SearchParams) {
     .order("created_at", { ascending: false })
     .limit(limitN ?? 50);
   if (q) pendingQuery.ilike("merchant_order_no", `%${q}%`);
+  if (allowedCourseIds) pendingQuery.in("course_id", allowedCourseIds);
   const { data: pending } = await pendingQuery;
 
   const paidQuery = supabase
     .from("orders")
     .select(
-      "id, merchant_order_no, amount, paid_at, order_type, profiles(email, display_name), courses(title)",
+      "id, merchant_order_no, amount, paid_at, order_type, course_id, profiles(email, display_name), courses(title)",
     )
     .eq("status", "paid")
     .order("paid_at", { ascending: false })
     .limit(limitN ?? 20);
   if (q) paidQuery.ilike("merchant_order_no", `%${q}%`);
+  if (allowedCourseIds) paidQuery.in("course_id", allowedCourseIds);
   const { data: paid } = await paidQuery;
 
   return (

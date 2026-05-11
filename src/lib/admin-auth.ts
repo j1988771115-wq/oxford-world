@@ -106,13 +106,14 @@ export async function getAdminActor(): Promise<AdminActor | null> {
 /**
  * 保留舊 API 為 backward compat。新 code 用 getAdminActor() 拿完整身分。
  *
- * P0b 階段:instructor 不放進來(現有 admin endpoint 都沒 actor-scoped filter,
- * instructor 進去會看全站)。等 P0c authorization hardening 才開 instructor 路徑。
+ * P0c 完成後 instructor 開放進 admin,但 layout 用 path-level gate 擋掉
+ * /admin/courses /admin/insights /admin/knowledge /admin/dungeons。
+ * /admin /admin/orders /admin/email 三個 instructor 可進,各自加 actor-scoped filter。
  */
 export async function isAdmin(): Promise<boolean> {
   const actor = await getAdminActor();
   if (!actor) return false;
-  return ["admin", "superadmin"].includes(actor.role);
+  return ["admin", "superadmin", "instructor"].includes(actor.role);
 }
 
 /**
@@ -133,6 +134,26 @@ export async function requireRole(allowed: UserRole[]): Promise<AdminActor> {
   }
   if (!allowed.includes(actor.role)) {
     throw new Error("FORBIDDEN");
+  }
+  return actor;
+}
+
+/**
+ * Page-level guard: instructor 訪問此 page 直接 redirect /admin。
+ * Server component 內呼叫(用 next/navigation redirect)。
+ *
+ * 用途:/admin/courses /admin/insights /admin/knowledge /admin/dungeons
+ * 這幾個 instructor 不該進的 page。nav 已隱藏(P3.3),但 instructor 知道 URL
+ * 仍能直接 GET — 這 helper 擋住。
+ */
+export async function requireSuperAdminOrAdmin(): Promise<AdminActor> {
+  const { redirect } = await import("next/navigation");
+  const actor = await getAdminActor();
+  if (!actor) {
+    redirect("/admin/login");
+  }
+  if (actor.role === "instructor") {
+    redirect("/admin");
   }
   return actor;
 }

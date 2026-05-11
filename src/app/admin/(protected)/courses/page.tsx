@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { getAdminCourses } from "@/lib/actions/admin";
 import { RestorePricesButton } from "@/components/admin/restore-prices-button";
+import { requireSuperAdminOrAdmin } from "@/lib/admin-auth";
 
 export default async function AdminCoursesPage() {
+  // P0c-4: instructor 訪問此 page 直接 redirect /admin (nav 已隱藏,擋 URL 直敲)
+  await requireSuperAdminOrAdmin();
   const courses = await getAdminCourses();
 
   return (
