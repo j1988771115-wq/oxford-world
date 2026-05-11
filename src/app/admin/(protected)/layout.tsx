@@ -13,6 +13,7 @@ const NAV_ITEMS: Array<{
   { href: "/admin/insights", label: "Insights", roles: ["superadmin", "admin"] },
   { href: "/admin/knowledge", label: "知識庫", roles: ["superadmin", "admin"] },
   { href: "/admin/dungeons", label: "副本", roles: ["superadmin", "admin"] },
+  { href: "/admin/audit", label: "Audit", roles: ["superadmin", "admin"] },
 ];
 
 export default async function AdminLayout({
