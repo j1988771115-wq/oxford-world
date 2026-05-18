@@ -51,7 +51,7 @@ export async function adminTestNewebPayRoundtrip() {
     Message: "test",
     Result: {
       MerchantOrderNo: "TEST_" + Date.now(),
-      Amt: 24900,
+      Amt: 30000,
       TradeNo: "TEST_TRADE",
     },
   };

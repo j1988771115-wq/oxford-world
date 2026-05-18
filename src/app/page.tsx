@@ -56,7 +56,7 @@ export default async function HomePage() {
                 href="/courses/master-space-age-capital"
                 className="signature-gradient text-white px-8 py-5 rounded-xl font-bold text-lg shadow-xl shadow-secondary/20 hover:scale-[1.02] transition-transform text-center"
               >
-                限時 NT$24,900 <span className="text-white/50 line-through font-normal text-sm align-middle ml-1">原價 NT$30,000</span>
+                NT$30,000
               </Link>
               <Link
                 href="/courses"
@@ -303,10 +303,6 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
             {/* 大師課（主推） */}
             <div className="relative bg-surface-container-lowest rounded-2xl border-2 border-amber-500/40 shadow-[0_24px_48px_-12px_rgba(13,28,50,0.18)] flex flex-col overflow-hidden">
-              <div className="bg-amber-500 text-white text-center py-2.5 text-[11px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2">
-                <Sparkles size={12} />
-                限時特價 · 5/14 結束
-              </div>
               <div className="p-10 flex flex-col flex-1">
                 <div className="mb-8">
                   <div className="inline-flex items-center gap-1.5 bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-[0.18em] mb-4">
@@ -320,11 +316,8 @@ export default async function HomePage() {
                     久方武院長親授 · 10 章深度拆解美股太空標的
                   </p>
                   <div className="flex items-baseline gap-3 mb-2">
-                    <span className="text-xl text-on-surface-variant line-through">
-                      NT$30,000
-                    </span>
                     <span className="text-4xl font-black text-on-surface tracking-tight">
-                      NT$24,900
+                      NT$30,000
                     </span>
                   </div>
                   <p className="text-on-surface-variant text-xs">

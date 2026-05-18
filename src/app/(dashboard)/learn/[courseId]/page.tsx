@@ -219,7 +219,7 @@ export default async function LearnPage({ params, searchParams }: Props) {
               href={`/courses/${course.slug}`}
               className="signature-gradient text-white font-extrabold px-5 py-2 rounded-lg text-sm shrink-0 active:scale-95 transition-transform whitespace-nowrap"
             >
-              立即解鎖 NT$24,900
+              立即解鎖 NT$30,000
             </Link>
           </div>
         </div>

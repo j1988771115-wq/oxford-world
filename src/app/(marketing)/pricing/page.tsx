@@ -52,7 +52,7 @@ function fmtSaleEnd(iso: string | null): string | null {
 
 export default async function PricingPage() {
   const course = await loadFeaturedCourse();
-  const price = course?.price ?? 24900;
+  const price = course?.price ?? 30000;
   const originalPrice = course?.original_price;
   const bundleDays = course?.pro_bundle_days ?? 0;
   const saleEndLabel = fmtSaleEnd(course?.sale_ends_at ?? null);

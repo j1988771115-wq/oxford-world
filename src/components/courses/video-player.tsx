@@ -227,8 +227,6 @@ export function VideoPlayer({
             <p className="text-sm text-on-surface-variant leading-relaxed">
               一次付費 · 1 年無限看 + 之後贈送 · 加贈 90 天 Pro
               <br />
-              <span className="line-through opacity-60">原價 NT$30,000</span>
-              {" "}
               <span className="text-on-surface font-black text-base">
                 NT${conversionPrompt.price.toLocaleString()}
               </span>

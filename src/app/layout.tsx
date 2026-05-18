@@ -76,13 +76,13 @@ const jsonLd = {
     itemListElement: [
       {
         "@type": "Offer",
-        price: "24900",
+        price: "30000",
         priceCurrency: "TWD",
         url: "https://oxford-vision.com/courses/master-space-age-capital",
         availability: "https://schema.org/InStock",
         priceSpecification: {
           "@type": "PriceSpecification",
-          price: "24900",
+          price: "30000",
           priceCurrency: "TWD",
         },
         itemOffered: {
@@ -124,7 +124,7 @@ const faqJsonLd = {
       name: "牛津視界的課程多少錢？",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "牛津視界目前提供大師課單課買斷,太空時代的資本配置由久方武院長親授,原價 NT$30,000、限時優惠價 NT$24,900,一次付費享 1 年無限觀看權限(期滿後平台贈送繼續回看),加贈 Pro 90 天。",
+        text: "牛津視界目前提供大師課單課買斷,太空時代的資本配置由久方武院長親授,NT$30,000,一次付費享 1 年無限觀看權限(期滿後平台贈送繼續回看),加贈 Pro 90 天。",
       },
     },
     {

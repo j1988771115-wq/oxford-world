@@ -252,7 +252,7 @@ function buildTrialToPaidHtml(email: string): string {
 <strong>看完第 1 章之後,是什麼讓你停下來、沒繼續往下走?</strong>
 </p>
 <p>價格?內容看不懂?還是其他?如果方便直接回信,我們會把你的回應讀完。</p>
-<p>如果你還在猶豫,提醒你 5/18 之前是限時特價 NT\$24,900 (原價 NT\$30,000),省 NT\$5,100。5/18 之後自動回原價。</p>
+<p>課程一次付費 NT\$30,000,1 年無限觀看 + 加贈 90 天 Pro。</p>
 <p><a href="https://oxford-vision.com/courses/${COURSE_SLUG}" style="color:#1a4480;">https://oxford-vision.com/courses/${COURSE_SLUG}</a></p>
 <p>—— 久方武<br>牛津視界院長</p>
 <hr style="margin:30px 0 12px;border:0;border-top:1px solid #eee;"/>
